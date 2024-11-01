@@ -2,7 +2,7 @@
 
 <p />
 
-A toolset for deploying data to Azure Cosmos DB as part of a cloud-native application, designed for straightforward integration with CI/CD pipelines. The package model is based on the Common Data Model (CDM) and the Open Packaging Conventions (OPC) standards.
+A toolset for deploying data to Azure Cosmos DB as part of a cloud-native application, designed for straightforward integration with CI/CD pipelines. The package format is based on the Common Data Model (CDM) and the Open Packaging Conventions (OPC) standards.
 
 <p />
 
@@ -16,7 +16,7 @@ Supported deployment operations:
 
 <p />
 
-Command-line interface:
+The command-line interface:
 
 <p />
 
@@ -53,12 +53,12 @@ Options:
   --connection-string <connection-string>  Specifies the connection string (defaults to COSMOS_CONNECTION_STRING environment variable)
   --endpoint <endpoint>                    Specifies the endpoint (defaults to COSMOS_ENDPOINT environment variable)
   --key <key>                              Specifies the account key or resource token (defaults to COSMOS_KEY environment variable)
-  ```
+```
 
 <p />
 
 > [!NOTE]
-> Any existing system generated properties `_attachments`, `_etag`, `_rid`, `_self`, and `_ts` are not included in a created package.
+> Any existing system generated properties `_attachments`, `_etag`, `_rid`, `_self`, and `_ts` are not included in a package.
 
 <p />
 
@@ -66,7 +66,7 @@ Options:
 
 <p />
 
-An example project file content:
+An example project file:
 
 <p />
 
@@ -74,15 +74,15 @@ An example project file content:
 {
   "databases": [
     {
-      "name": "my_database",
+      "name": "adventureworks",
       "containers": [
         {
-          "name": "my_container",
+          "name": "products",
           "operations": [
             {
               "name": "upsert",
               "sources": [
-                "my_documents.json"
+                "documents/adventureworks/products.json"
               ]
             }
           ]
@@ -100,17 +100,17 @@ An example command line and output:
 <p />
 
 ```txt
-cotopaxi pack my_project.json my_package.cdbpkg
+cotopaxi pack project.json package.cdbpkg
 ```
 
 <p />
 
 ```txt
-Reading /home/vsts/work/1/a/my_project.json
-Reading /home/vsts/work/1/a/my_documents.json
-Packing urn:cdbpkg:db93b376-c02e-4673-8ade-72485eb2c07c for UPSERT in my_database\my_container
+Reading /home/vsts/work/1/s/contoso/project.json
+Reading /home/vsts/work/1/s/contoso/documents/adventureworks/products.json
+Packing urn:cdbpkg:db93b376-c02e-4673-8ade-72485eb2c07c for UPSERT in adventureworks\products
 Packing urn:cdbpkg:db93b376-c02e-4673-8ade-72485eb2c07c:0 - OK
-Created /home/vsts/work/1/a/my_package.cdbpkg
+Created /home/vsts/work/1/s/contoso/package.cdbpkg
 ```
 
 <p />
@@ -124,18 +124,18 @@ An example command line and output:
 <p />
 
 ```txt
-cotopaxi deploy my_package.cdbpkg
+cotopaxi deploy package.cdbpkg
 ```
 
 <p />
 
 ```txt
-Unpacking /home/vsts/work/1/a/my_package.cdbpkg
-Deploying the package to https://mycosmosdb.documents.azure.com:443
-Acquiring partition key paths for my_database\my_container - OK (HTTP 200, 2 RU)
-Deploying urn:cdbpkg:db93b376-c02e-4673-8ade-72485eb2c07c to my_database\my_container
+Unpacking /home/vsts/work/1/a/contoso/package.cdbpkg
+Deploying the package to https://contoso.documents.azure.com:443
+Acquiring partition key paths for adventureworks\products - OK (HTTP 200, 2 RU)
+Deploying urn:cdbpkg:db93b376-c02e-4673-8ade-72485eb2c07c to adventureworks\products
 UPSERT urn:cdbpkg:db93b376-c02e-4673-8ade-72485eb2c07c:0 - OK (HTTP 200, 10.29 RU)
-Deploying the package to https://mycosmosdb.documents.azure.com:443 - DONE (12.29 RU)
+Deploying the package to https://contoso.documents.azure.com:443 - DONE (12.29 RU)
 ```
 
 <p />
@@ -144,13 +144,13 @@ Deploying the package to https://mycosmosdb.documents.azure.com:443 - DONE (12.2
 
 <p />
 
-A package project schema:
+The package project schema:
 
 <p />
 
 ```json
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$schema": "https://json-schema.org/draft/2020-12",
   "type": "object",
   "properties": {
     "databases": {
@@ -224,13 +224,13 @@ A package project schema:
 
 <p />
 
-A package project source schema:
+The package project source schema:
 
 <p />
 
 ```json
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$schema": "https://json-schema.org/draft/2020-12",
   "type": "array",
   "items": {
     "type": "object",

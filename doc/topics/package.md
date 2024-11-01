@@ -8,15 +8,15 @@ uid: urn:topics:package
 
 - The CDM namespace and URI scheme for the OPC package is `opc`.
 - The CDM manifest has a package-level OPC relationship of type `http://microsoft.com/cdm/schema.manifest.cdm.json`.
-- The CDM entity for database documents is named `cosmosdb.document` and has the following arguments:
+- The CDM entity for data partitions is named `cosmosdb.document` and has the following attributes:
 
 <p />
 
 | Name | Format | Purpose |
 | - | - | - |
-| `database` | `string` | The target database name. |
-| `container` | `string` | The target container name. |
-| `operation` | `string` | The operation to perform. |
+| `database` | `string` | The target database name |
+| `container` | `string` | The target container name |
+| `operation` | `string` | The operation to perform |
 
 <p />
 
