@@ -1,0 +1,12 @@
+﻿<Project>
+  <PropertyGroup>
+    <PackageProjectUrl>https://alexanderkozlenko.github.io/cotopaxi</PackageProjectUrl>
+    <PackageReleaseNotes>https://github.com/alexanderkozlenko/cotopaxi/releases</PackageReleaseNotes>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>PACKAGE.md</PackageReadmeFile>
+    <Authors><![CDATA[Oleksandr Kozlenko]]></Authors>
+    <Copyright><![CDATA[© Oleksandr Kozlenko. All rights reserved.]]></Copyright>
+    <PackageDescription><![CDATA[A toolset for deploying data packages to Azure Cosmos DB as part of a cloud-native application, designed for integration with Continuous Integration and Continuous Delivery (CI/CD) pipelines.]]></PackageDescription>
+    <PackageTags><![CDATA[azure cosmosdb data package cicd]]></PackageTags>
+  </PropertyGroup>
+</Project>

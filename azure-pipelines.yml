@@ -1,0 +1,15 @@
+steps:
+- task: UseDotNet@2
+  inputs:
+    useGlobalJson: true
+- script: >
+    dotnet build $(Build.SourcesDirectory)
+    -p:ContinuousIntegrationBuild=true
+    -c Release
+- script: >
+    dotnet pack $(Build.SourcesDirectory)
+    -p:ContinuousIntegrationBuild=true
+    -c Release
+    -o $(Build.ArtifactStagingDirectory)
+    --no-build
+- publish: '$(Build.ArtifactStagingDirectory)'

@@ -1,1 +1,7 @@
 syntax: glob
+
+.vs/
+.vscode/
+artifacts/
+*.user
+launchSettings.json
