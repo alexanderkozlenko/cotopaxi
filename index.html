@@ -1,0 +1,309 @@
+﻿<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title> </title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content=" ">
+      
+      
+      <link rel="icon" href="images/app-32.png">
+      <link rel="stylesheet" href="public/docfx.min.css">
+      <link rel="stylesheet" href="public/main.css">
+      <meta name="docfx:navrel" content="">
+      <meta name="docfx:tocrel" content="topics/toc.html">
+      
+      <meta name="docfx:rel" content="">
+      
+      
+      <meta name="docfx:docurl" content="https://github.com/alexanderkozlenko/cotopaxi/blob/gh-pages/index.md/#L1">
+      <meta name="loc:inThisArticle" content="In this article">
+      <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
+      <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
+      <meta name="loc:tocFilter" content="Filter by title">
+      <meta name="loc:nextArticle" content="Next">
+      <meta name="loc:prevArticle" content="Previous">
+      <meta name="loc:themeLight" content="Light">
+      <meta name="loc:themeDark" content="Dark">
+      <meta name="loc:themeAuto" content="Auto">
+      <meta name="loc:changeTheme" content="Change theme">
+      <meta name="loc:copy" content="Copy">
+      <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
+  </head>
+
+  <body class="tex2jax_ignore" data-layout="" data-yaml-mime="">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="index.html">
+            <img id="logo" class="svg" src="images/app-32.png" alt="Cotopaxi">
+            Cotopaxi
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+              <form class="search" role="search" id="search">
+                <i class="bi bi-search"></i>
+                <input class="form-control" id="search-query" type="search" disabled="" placeholder="Search" autocomplete="off" aria-label="Search">
+              </form>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+      <div class="toc-offcanvas">
+        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
+          <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="tocOffcanvasLabel">Table of Contents</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" aria-label="Close"></button>
+          </div>
+          <div class="offcanvas-body">
+            <nav class="toc" id="toc"></nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="actionbar">
+          <button class="btn btn-lg border-0 d-md-none" style="margin-top: -.65em; margin-left: -.8em" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+            <i class="bi bi-list"></i>
+          </button>
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="">
+
+<h3 id="about">About</h3>
+<p></p>
+<p>A toolset for deploying data to Azure Cosmos DB as part of a cloud-native application, designed for straightforward integration with Continuous Integration and Continuous Delivery (CI/CD) pipelines. The package model is based on the Common Data Model (CDM) and the Open Packaging Conventions (OPC) standards.</p>
+<p></p>
+<p>Supported deployment operations:</p>
+<p></p>
+<ul>
+<li><code>create</code> - creates the document with the partition key value and ID if it doesn't exist.</li>
+<li><code>update</code> - creates the document with the partition key value and ID if it doesn't exist, or update the document if it exists.</li>
+<li><code>delete</code> - deletes the document with the partition key value and ID if it exists.</li>
+</ul>
+<p></p>
+<p>Command-line interface:</p>
+<p></p>
+<pre><code class="lang-txt">Usage:
+  cotopaxi [command] [options]
+
+Commands:
+  pack &lt;project&gt; &lt;package&gt;  Creates a data package for Azure Cosmos DB
+  deploy &lt;package&gt;          Deploys a data package to an Azure Cosmos DB instance
+</code></pre>
+<p></p>
+<pre><code class="lang-txt">Usage:
+  cotopaxi pack &lt;project&gt; &lt;package&gt; [options]
+
+Arguments:
+  &lt;project&gt;  Specifies the input project path
+  &lt;package&gt;  Specifies the output package path
+</code></pre>
+<p></p>
+<pre><code class="lang-txt">Usage:
+  cotopaxi deploy &lt;package&gt; [options]
+
+Arguments:
+  &lt;package&gt;  Specifies the package to deploy
+
+Options:
+  --connection-string &lt;connection-string&gt;  Specifies the connection string (defaults to COSMOS_CONNECTION_STRING environment variable)
+  --endpoint &lt;endpoint&gt;                    Specifies the endpoint (defaults to COSMOS_ENDPOINT environment variable)
+  --key &lt;key&gt;                              Specifies the account key or resource token (defaults to COSMOS_KEY environment variable)
+</code></pre>
+<p></p>
+<div class="NOTE">
+<h5>Note</h5>
+<p>Any existing system generated properties <code>_attachments</code>, <code>_etag</code>, <code>_rid</code>, <code>_self</code>, and <code>_ts</code> are not included in a created package.</p>
+</div>
+<p></p>
+<h3 id="example---creating-a-data-package">Example - creating a data package</h3>
+<p></p>
+<p>An example project file content:</p>
+<p></p>
+<pre><code class="lang-json">{
+  &quot;databases&quot;: [
+    {
+      &quot;name&quot;: &quot;my_database&quot;,
+      &quot;containers&quot;: [
+        {
+          &quot;name&quot;: &quot;my_container&quot;,
+          &quot;operations&quot;: [
+            {
+              &quot;name&quot;: &quot;upsert&quot;,
+              &quot;sources&quot;: [
+                &quot;my_documents.json&quot;
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+</code></pre>
+<p></p>
+<p>An example command line and output:</p>
+<p></p>
+<pre><code class="lang-txt">cotopaxi pack my_project.json my_package.cdbpkg
+</code></pre>
+<p></p>
+<pre><code class="lang-txt">Reading /home/vsts/work/1/a/my_project.json
+Reading /home/vsts/work/1/a/my_documents.json
+Packing urn:cdbpkg:db93b376-c02e-4673-8ade-72485eb2c07c for UPSERT in my_database\my_container
+Packing urn:cdbpkg:db93b376-c02e-4673-8ade-72485eb2c07c:0 - OK
+Created /home/vsts/work/1/a/my_package.cdbpkg
+</code></pre>
+<p></p>
+<h3 id="example---deploying-a-data-package">Example - deploying a data package</h3>
+<p></p>
+<p>An example command line and output:</p>
+<p></p>
+<pre><code class="lang-txt">cotopaxi deploy my_package.cdbpkg
+</code></pre>
+<p></p>
+<pre><code class="lang-txt">Unpacking /home/vsts/work/1/a/my_package.cdbpkg
+Deploying the package to https://mycosmosdb.documents.azure.com:443
+Acquiring partition key paths for my_database\my_container - OK (HTTP 200, 2 RU)
+Deploying urn:cdbpkg:db93b376-c02e-4673-8ade-72485eb2c07c to my_database\my_container
+UPSERT urn:cdbpkg:db93b376-c02e-4673-8ade-72485eb2c07c:0 - OK (HTTP 200, 10.29 RU)
+Deploying the package to https://mycosmosdb.documents.azure.com:443 - DONE (12.29 RU)
+</code></pre>
+<p></p>
+<h3 id="project-json-schemas">Project JSON schemas</h3>
+<p></p>
+<p>A package project schema:</p>
+<p></p>
+<pre><code class="lang-json">{
+  &quot;$schema&quot;: &quot;http://json-schema.org/draft-07/schema#&quot;,
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;properties&quot;: {
+    &quot;databases&quot;: {
+      &quot;type&quot;: &quot;array&quot;,
+      &quot;items&quot;: {
+        &quot;type&quot;: &quot;object&quot;,
+        &quot;properties&quot;: {
+          &quot;name&quot;: {
+            &quot;type&quot;: &quot;string&quot;,
+            &quot;minLength&quot;: 1,
+            &quot;maxLength&quot;: 256
+          },
+          &quot;containers&quot;: {
+            &quot;type&quot;: &quot;array&quot;,
+            &quot;items&quot;: {
+              &quot;type&quot;: &quot;object&quot;,
+              &quot;properties&quot;: {
+                &quot;name&quot;: {
+                  &quot;type&quot;: &quot;string&quot;,
+                  &quot;minLength&quot;: 1,
+                  &quot;maxLength&quot;: 256
+                },
+                &quot;operations&quot;: {
+                  &quot;type&quot;: &quot;array&quot;,
+                  &quot;items&quot;: {
+                    &quot;type&quot;: &quot;object&quot;,
+                    &quot;properties&quot;: {
+                      &quot;name&quot;: {
+                        &quot;type&quot;: &quot;string&quot;,
+                        &quot;enum&quot;: [
+                          &quot;create&quot;,
+                          &quot;upsert&quot;,
+                          &quot;delete&quot;
+                        ]
+                      },
+                      &quot;sources&quot;: {
+                        &quot;type&quot;: &quot;array&quot;,
+                        &quot;items&quot;: {
+                          &quot;type&quot;: &quot;string&quot;,
+                          &quot;minLength&quot;: 1
+                        },
+                        &quot;uniqueItems&quot;: true
+                      }
+                    },
+                    &quot;required&quot;: [
+                      &quot;name&quot;,
+                      &quot;sources&quot;
+                    ]
+                  }
+                }
+              },
+              &quot;required&quot;: [
+                &quot;name&quot;,
+                &quot;operations&quot;
+              ]
+            }
+          }
+        },
+        &quot;required&quot;: [
+          &quot;name&quot;,
+          &quot;containers&quot;
+        ]
+      }
+    }
+  },
+  &quot;required&quot;: [
+    &quot;databases&quot;
+  ]
+}
+</code></pre>
+<p></p>
+<p>A package project source schema:</p>
+<p></p>
+<pre><code class="lang-json">{
+  &quot;$schema&quot;: &quot;http://json-schema.org/draft-07/schema#&quot;,
+  &quot;type&quot;: &quot;array&quot;,
+  &quot;items&quot;: {
+    &quot;type&quot;: &quot;object&quot;,
+    &quot;properties&quot;: {
+      &quot;id&quot;: {
+        &quot;type&quot;: &quot;string&quot;,
+        &quot;minLength&quot;: 1,
+        &quot;maxLength&quot;: 255
+      }
+    },
+    &quot;required&quot;: [
+      &quot;id&quot;
+    ]
+  }
+}
+</code></pre>
+
+</article>
+
+
+        <div class="next-article d-print-none border-top" id="nextArticle"></div>
+
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+    <div class="container-xxl search-results" id="search-results"></div>
+
+    <footer class="border-top text-secondary">
+      <div class="container-xxl">
+        <div class="flex-fill">
+          &copy; Oleksandr Kozlenko
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
