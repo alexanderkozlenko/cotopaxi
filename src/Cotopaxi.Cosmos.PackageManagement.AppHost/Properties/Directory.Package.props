@@ -6,7 +6,7 @@
     <PackageReadmeFile>PACKAGE.md</PackageReadmeFile>
     <Authors><![CDATA[Oleksandr Kozlenko]]></Authors>
     <Copyright><![CDATA[© Oleksandr Kozlenko. All rights reserved.]]></Copyright>
-    <PackageDescription><![CDATA[A toolset for deploying data packages to Azure Cosmos DB as part of a cloud-native application, designed for integration with Continuous Integration and Continuous Delivery (CI/CD) pipelines.]]></PackageDescription>
+    <PackageDescription><![CDATA[A toolset for deploying data to Azure Cosmos DB as part of a cloud-native application, designed for straightforward integration with CI/CD pipelines.]]></PackageDescription>
     <PackageTags><![CDATA[azure cosmosdb package cicd]]></PackageTags>
   </PropertyGroup>
 </Project>
