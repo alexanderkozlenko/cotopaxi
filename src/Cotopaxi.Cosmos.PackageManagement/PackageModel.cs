@@ -90,11 +90,10 @@ internal sealed class PackageModel : IAsyncDisposable
             var entryDatabaseDef = corpusDef.MakeObject<CdmTypeAttributeDefinition>(CdmObjectType.TypeAttributeDef, "database");
             var entryContainerDef = corpusDef.MakeObject<CdmTypeAttributeDefinition>(CdmObjectType.TypeAttributeDef, "container");
             var entryOperationDef = corpusDef.MakeObject<CdmTypeAttributeDefinition>(CdmObjectType.TypeAttributeDef, "operation");
-            var stringDataTypeRef = corpusDef.MakeObject<CdmDataTypeReference>(CdmObjectType.DataTypeRef, "string");
 
-            entryDatabaseDef.DataType = stringDataTypeRef;
-            entryContainerDef.DataType = stringDataTypeRef;
-            entryOperationDef.DataType = stringDataTypeRef;
+            entryDatabaseDef.DataFormat = CdmDataFormat.String;
+            entryContainerDef.DataFormat = CdmDataFormat.String;
+            entryOperationDef.DataFormat = CdmDataFormat.String;
             entryDef.Attributes.Add(entryDatabaseDef);
             entryDef.Attributes.Add(entryContainerDef);
             entryDef.Attributes.Add(entryOperationDef);
