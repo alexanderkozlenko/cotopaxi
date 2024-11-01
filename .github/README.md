@@ -1,6 +1,6 @@
 ## About
 
-A toolset for deploying data packages to Azure Cosmos DB as part of a cloud-native application, designed for integration with Continuous Integration and Continuous Delivery (CI/CD) pipelines. The package model is based on the Common Data Model (CDM) and the Open Packaging Conventions (OPC) standards.
+A toolset for deploying data to Azure Cosmos DB as part of a cloud-native application, designed for straightforward integration with Continuous Integration and Continuous Delivery (CI/CD) pipelines. The package model is based on the Common Data Model (CDM) and the Open Packaging Conventions (OPC) standards.
 
 ## Packages
 

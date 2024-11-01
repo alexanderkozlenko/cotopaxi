@@ -1,0 +1,31 @@
+{
+  "build": {
+    "content": [
+      {
+        "files": [
+          "index.md"
+        ]
+      },
+      {
+        "files": [
+          "topics/**/*.md",
+          "topics/**/*.yml"
+        ]
+      }
+    ],
+    "globalMetadata": {
+      "_appName": "Cotopaxi",
+      "_appLogoPath": "images/app-32.png",
+      "_appFaviconPath": "images/app-32.png",
+      "_appFooter": "&copy; Oleksandr Kozlenko",
+      "_enableSearch": true,
+      "_disableContribution": true
+    },
+    "output": ".",
+    "template": [
+      "default",
+      "modern",
+      "template"
+    ]
+  }
+}
