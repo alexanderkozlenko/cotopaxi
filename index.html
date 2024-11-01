@@ -88,7 +88,7 @@
 
 <h3 id="about">About</h3>
 <p></p>
-<p>A toolset for deploying data to Azure Cosmos DB as part of a cloud-native application, designed for straightforward integration with CI/CD pipelines. The package model is based on the Common Data Model (CDM) and the Open Packaging Conventions (OPC) standards.</p>
+<p>A toolset for deploying data to Azure Cosmos DB as part of a cloud-native application, designed for straightforward integration with CI/CD pipelines. The package format is based on the Common Data Model (CDM) and the Open Packaging Conventions (OPC) standards.</p>
 <p></p>
 <p>Supported deployment operations:</p>
 <p></p>
@@ -98,7 +98,7 @@
 <li><code>delete</code> - deletes the document with the partition key value and ID if it exists.</li>
 </ul>
 <p></p>
-<p>Command-line interface:</p>
+<p>The command-line interface:</p>
 <p></p>
 <pre><code class="lang-txt">Usage:
   cotopaxi [command] [options]
@@ -130,25 +130,25 @@ Options:
 <p></p>
 <div class="NOTE">
 <h5>Note</h5>
-<p>Any existing system generated properties <code>_attachments</code>, <code>_etag</code>, <code>_rid</code>, <code>_self</code>, and <code>_ts</code> are not included in a created package.</p>
+<p>Any existing system generated properties <code>_attachments</code>, <code>_etag</code>, <code>_rid</code>, <code>_self</code>, and <code>_ts</code> are not included in a package.</p>
 </div>
 <p></p>
 <h3 id="example---creating-a-data-package">Example - creating a data package</h3>
 <p></p>
-<p>An example project file content:</p>
+<p>An example project file:</p>
 <p></p>
 <pre><code class="lang-json">{
   &quot;databases&quot;: [
     {
-      &quot;name&quot;: &quot;my_database&quot;,
+      &quot;name&quot;: &quot;adventureworks&quot;,
       &quot;containers&quot;: [
         {
-          &quot;name&quot;: &quot;my_container&quot;,
+          &quot;name&quot;: &quot;products&quot;,
           &quot;operations&quot;: [
             {
               &quot;name&quot;: &quot;upsert&quot;,
               &quot;sources&quot;: [
-                &quot;my_documents.json&quot;
+                &quot;documents/adventureworks/products.json&quot;
               ]
             }
           ]
@@ -161,37 +161,37 @@ Options:
 <p></p>
 <p>An example command line and output:</p>
 <p></p>
-<pre><code class="lang-txt">cotopaxi pack my_project.json my_package.cdbpkg
+<pre><code class="lang-txt">cotopaxi pack project.json package.cdbpkg
 </code></pre>
 <p></p>
-<pre><code class="lang-txt">Reading /home/vsts/work/1/a/my_project.json
-Reading /home/vsts/work/1/a/my_documents.json
-Packing urn:cdbpkg:db93b376-c02e-4673-8ade-72485eb2c07c for UPSERT in my_database\my_container
+<pre><code class="lang-txt">Reading /home/vsts/work/1/s/contoso/project.json
+Reading /home/vsts/work/1/s/contoso/documents/adventureworks/products.json
+Packing urn:cdbpkg:db93b376-c02e-4673-8ade-72485eb2c07c for UPSERT in adventureworks\products
 Packing urn:cdbpkg:db93b376-c02e-4673-8ade-72485eb2c07c:0 - OK
-Created /home/vsts/work/1/a/my_package.cdbpkg
+Created /home/vsts/work/1/s/contoso/package.cdbpkg
 </code></pre>
 <p></p>
 <h3 id="example---deploying-a-data-package">Example - deploying a data package</h3>
 <p></p>
 <p>An example command line and output:</p>
 <p></p>
-<pre><code class="lang-txt">cotopaxi deploy my_package.cdbpkg
+<pre><code class="lang-txt">cotopaxi deploy package.cdbpkg
 </code></pre>
 <p></p>
-<pre><code class="lang-txt">Unpacking /home/vsts/work/1/a/my_package.cdbpkg
-Deploying the package to https://mycosmosdb.documents.azure.com:443
-Acquiring partition key paths for my_database\my_container - OK (HTTP 200, 2 RU)
-Deploying urn:cdbpkg:db93b376-c02e-4673-8ade-72485eb2c07c to my_database\my_container
+<pre><code class="lang-txt">Unpacking /home/vsts/work/1/a/contoso/package.cdbpkg
+Deploying the package to https://contoso.documents.azure.com:443
+Acquiring partition key paths for adventureworks\products - OK (HTTP 200, 2 RU)
+Deploying urn:cdbpkg:db93b376-c02e-4673-8ade-72485eb2c07c to adventureworks\products
 UPSERT urn:cdbpkg:db93b376-c02e-4673-8ade-72485eb2c07c:0 - OK (HTTP 200, 10.29 RU)
-Deploying the package to https://mycosmosdb.documents.azure.com:443 - DONE (12.29 RU)
+Deploying the package to https://contoso.documents.azure.com:443 - DONE (12.29 RU)
 </code></pre>
 <p></p>
 <h3 id="project-json-schemas">Project JSON schemas</h3>
 <p></p>
-<p>A package project schema:</p>
+<p>The package project schema:</p>
 <p></p>
 <pre><code class="lang-json">{
-  &quot;$schema&quot;: &quot;http://json-schema.org/draft-07/schema#&quot;,
+  &quot;$schema&quot;: &quot;https://json-schema.org/draft/2020-12&quot;,
   &quot;type&quot;: &quot;object&quot;,
   &quot;properties&quot;: {
     &quot;databases&quot;: {
@@ -263,10 +263,10 @@ Deploying the package to https://mycosmosdb.documents.azure.com:443 - DONE (12.2
 }
 </code></pre>
 <p></p>
-<p>A package project source schema:</p>
+<p>The package project source schema:</p>
 <p></p>
 <pre><code class="lang-json">{
-  &quot;$schema&quot;: &quot;http://json-schema.org/draft-07/schema#&quot;,
+  &quot;$schema&quot;: &quot;https://json-schema.org/draft/2020-12&quot;,
   &quot;type&quot;: &quot;array&quot;,
   &quot;items&quot;: {
     &quot;type&quot;: &quot;object&quot;,
