@@ -1,5 +1,6 @@
 ﻿// (c) Oleksandr Kozlenko. Licensed under the MIT license.
 
+using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json.Nodes;
 
@@ -9,6 +10,8 @@ internal static class JsonNodeExtensions
 {
     public static bool TryGetValue(this JsonNode root, JsonPointer pointer, out JsonNode? result)
     {
+        Debug.Assert(root is not null);
+
         if (pointer.Tokens.IsEmpty)
         {
             result = root;

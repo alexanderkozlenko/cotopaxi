@@ -1,5 +1,6 @@
 ﻿// (c) Oleksandr Kozlenko. Licensed under the MIT license.
 
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -26,6 +27,8 @@ internal static class CosmosResource
 
     public static bool TryGetPartitionKey(JsonObject documentNode, ReadOnlySpan<JsonPointer> partitionKeyPaths, out PartitionKey result)
     {
+        Debug.Assert(documentNode is not null);
+
         var builder = new PartitionKeyBuilder();
 
         foreach (var partitionKeyPath in partitionKeyPaths)
@@ -82,6 +85,8 @@ internal static class CosmosResource
 
     public static bool TryGetUniqueID(JsonObject documentNode, [NotNullWhen(true)] out string? result)
     {
+        Debug.Assert(documentNode is not null);
+
         if (documentNode.TryGetPropertyValue("id", out var valueNode) && (valueNode is JsonValue jsonValue) && jsonValue.TryGetValue(out result))
         {
             return true;
@@ -94,6 +99,8 @@ internal static class CosmosResource
 
     public static void RemoveSystemProperties(JsonObject documentNode)
     {
+        Debug.Assert(documentNode is not null);
+
         documentNode.Remove("_attachments");
         documentNode.Remove("_etag");
         documentNode.Remove("_rid");

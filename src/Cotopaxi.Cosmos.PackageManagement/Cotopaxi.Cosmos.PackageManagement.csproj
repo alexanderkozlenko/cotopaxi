@@ -8,7 +8,9 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Azure.Cosmos" />
     <PackageReference Include="Microsoft.CommonDataModel.ObjectModel" />
+    <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="System.IO.Hashing" />
     <PackageReference Include="System.IO.Packaging" />
   </ItemGroup>
 </Project>

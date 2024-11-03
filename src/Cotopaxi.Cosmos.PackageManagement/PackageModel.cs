@@ -1,5 +1,7 @@
 ﻿// (c) Oleksandr Kozlenko. Licensed under the MIT license.
 
+using System.Collections.Frozen;
+using System.Diagnostics;
 using System.IO.Packaging;
 using Microsoft.CommonDataModel.ObjectModel.Cdm;
 using Microsoft.CommonDataModel.ObjectModel.Enums;
@@ -46,6 +48,8 @@ internal sealed class PackageModel : IAsyncDisposable
 
     public string CreateEntry(Guid entryKey, PackageEntry entry)
     {
+        Debug.Assert(entry is not null);
+
         var entryPath = $"/cosmosdb.document/{entryKey}.json";
         var partitionDef = _corpusDef.MakeObject<CdmDataPartitionDefinition>(CdmObjectType.DataPartitionDef);
 
@@ -59,27 +63,29 @@ internal sealed class PackageModel : IAsyncDisposable
         return entryPath;
     }
 
-    public IReadOnlyDictionary<Guid, PackageEntry> ExtractEntries()
+    public FrozenSet<PackageEntry> ExtractEntries()
     {
-        var entries = new Dictionary<Guid, PackageEntry>(_entryDec.DataPartitions.Count);
+        var entries = new HashSet<PackageEntry>(_entryDec.DataPartitions.Count);
 
         foreach (var partitionDef in _entryDec.DataPartitions)
         {
             var entryPath = _corpusDef.Storage.CorpusPathToAdapterPath(partitionDef.Location);
-            var entryKey = Guid.Parse(Path.GetFileNameWithoutExtension(entryPath));
+            var entryUUID = Guid.Parse(Path.GetFileNameWithoutExtension(entryPath));
             var entryDatabaseName = partitionDef.Arguments["database"].Single();
             var entryContainerName = partitionDef.Arguments["container"].Single();
             var entryOperationName = partitionDef.Arguments["operation"].Single().ToUpperInvariant();
-            var entry = new PackageEntry(entryDatabaseName, entryContainerName, entryOperationName, entryPath);
+            var entry = new PackageEntry(entryUUID, entryDatabaseName, entryContainerName, entryOperationName, entryPath);
 
-            entries.Add(entryKey, entry);
+            entries.Add(entry);
         }
 
-        return entries;
+        return entries.ToFrozenSet();
     }
 
     public static async Task<PackageModel> OpenAsync(Package package, CompressionOption compressionOption, CancellationToken cancellationToken)
     {
+        Debug.Assert(package is not null);
+
         var corpusDef = CreateCorpus(package, compressionOption, cancellationToken);
 
         if (package.FileOpenAccess != FileAccess.Read)

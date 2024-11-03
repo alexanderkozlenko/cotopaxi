@@ -1,5 +1,7 @@
 ﻿// (c) Oleksandr Kozlenko. Licensed under the MIT license.
 
+using System.Diagnostics;
+
 namespace Cotopaxi.Cosmos.PackageManagement;
 
 internal readonly struct JsonPointer
@@ -8,7 +10,9 @@ internal readonly struct JsonPointer
 
     public JsonPointer(string value)
     {
-        var tokens = value[1..].Split('/');
+        Debug.Assert(value is not null);
+
+        var tokens = value.TrimStart('/').Split('/');
 
         for (var i = 0; i < tokens.Length; i++)
         {

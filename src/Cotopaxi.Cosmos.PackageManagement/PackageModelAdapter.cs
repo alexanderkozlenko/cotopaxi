@@ -1,5 +1,6 @@
 ﻿// (c) Oleksandr Kozlenko. Licensed under the MIT license.
 
+using System.Diagnostics;
 using System.IO.Packaging;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -17,6 +18,8 @@ internal sealed class PackageModelAdapter : StorageAdapterBase
 
     public PackageModelAdapter(Package package, CompressionOption compressionOption, CancellationToken cancellationToken)
     {
+        Debug.Assert(package is not null);
+
         _package = package;
         _compressionOption = compressionOption;
         _cancellationToken = cancellationToken;
@@ -34,6 +37,8 @@ internal sealed class PackageModelAdapter : StorageAdapterBase
 
     public override string CreateAdapterPath(string corpusPath)
     {
+        Debug.Assert(corpusPath is not null);
+
         var adapterPath = corpusPath;
 
         if (!adapterPath.StartsWith('/'))
@@ -46,6 +51,8 @@ internal sealed class PackageModelAdapter : StorageAdapterBase
 
     public override string CreateCorpusPath(string adapterPath)
     {
+        Debug.Assert(adapterPath is not null);
+
         var corpusPath = adapterPath;
 
         if (!corpusPath.StartsWith('/'))
@@ -58,6 +65,8 @@ internal sealed class PackageModelAdapter : StorageAdapterBase
 
     public override async Task<string> ReadAsync(string corpusPath)
     {
+        Debug.Assert(corpusPath is not null);
+
         var packagePartPath = CreateAdapterPath(corpusPath);
         var packagePartUri = new Uri(packagePartPath, UriKind.Relative);
         var packagePart = _package.GetPart(packagePartUri);
@@ -73,11 +82,14 @@ internal sealed class PackageModelAdapter : StorageAdapterBase
 
     public override async Task WriteAsync(string corpusPath, string data)
     {
+        Debug.Assert(corpusPath is not null);
+        Debug.Assert(data is not null);
+
         var packagePartPath = CreateAdapterPath(corpusPath);
         var packagePartUri = new Uri(packagePartPath, UriKind.Relative);
         var packagePart = _package.CreatePart(packagePartUri, "application/json", _compressionOption);
 
-        // NOTE: Additional JSON serialization enforces formatting without indentation
+        // Additional JSON serialization enforces formatting without indentation
 
         var dataNode = JsonSerializer.Deserialize<JsonNode>(data, JsonSerializerOptions.Default);
 

@@ -25,9 +25,9 @@ public static class Program
             new PackageDeployingCommand()
             {
                 PackageDeployingCommand.PackageArgument,
-                PackageDeployingCommand.ConnectionStringOption,
                 PackageDeployingCommand.EndpointOption,
                 PackageDeployingCommand.KeyOption,
+                PackageDeployingCommand.ConnectionStringOption,
             },
         };
 
@@ -37,7 +37,7 @@ public static class Program
             .UseParseErrorReporting()
             .UseExceptionHandler()
             .UseVersionOption()
-            .UseHelp(["-h", "--help"]);
+            .UseHelp(["-?", "-h", "--help"]);
 
         var parser = builder.Build();
 

@@ -1,6 +1,8 @@
 ﻿// (c) Oleksandr Kozlenko. Licensed under the MIT license.
 
 using System.CommandLine.Parsing;
+using Microsoft.Extensions.FileSystemGlobbing;
+using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 
 namespace Cotopaxi.Cosmos.PackageManagement.AppHost;
 
@@ -15,41 +17,56 @@ internal sealed class PackageDeployingHandler : HostCommandHandler
 
     protected override Task<bool> InvokeAsync(CommandResult commandResult, CancellationToken cancellationToken)
     {
-        var packagePath = commandResult.GetValueForArgument(PackageDeployingCommand.PackageArgument);
+        var packageFilePattern = commandResult.GetValueForArgument(PackageDeployingCommand.PackageArgument);
         var cosmosConnectionString = commandResult.GetValueForOption(PackageDeployingCommand.ConnectionStringOption);
+        var cosmosConnectionStringVariable = Environment.GetEnvironmentVariable("COSMOS_CONNECTION_STRING");
         var cosmosAccountEndpoint = commandResult.GetValueForOption(PackageDeployingCommand.EndpointOption);
+        var cosmosAccountEndpointVariable = default(Uri);
         var cosmosAuthKeyOrResourceToken = commandResult.GetValueForOption(PackageDeployingCommand.KeyOption);
+        var cosmosAuthKeyOrResourceTokenVariable = Environment.GetEnvironmentVariable("COSMOS_KEY");
 
-        packagePath = Path.GetFullPath(packagePath, Environment.CurrentDirectory);
-
-        if (string.IsNullOrEmpty(cosmosConnectionString))
-        {
-            cosmosConnectionString = Environment.GetEnvironmentVariable("COSMOS_CONNECTION_STRING");
-        }
-        if (string.IsNullOrEmpty(cosmosAccountEndpoint))
-        {
-            cosmosAccountEndpoint = Environment.GetEnvironmentVariable("COSMOS_ENDPOINT");
-        }
-        if (string.IsNullOrEmpty(cosmosAuthKeyOrResourceToken))
-        {
-            cosmosAuthKeyOrResourceToken = Environment.GetEnvironmentVariable("COSMOS_KEY");
-        }
+        Uri.TryCreate(Environment.GetEnvironmentVariable("COSMOS_ENDPOINT"), UriKind.Absolute, out cosmosAccountEndpointVariable);
 
         var cosmosCredential = default(CosmosCredential);
 
-        if (!string.IsNullOrEmpty(cosmosConnectionString))
+        if ((cosmosAccountEndpoint is not null) && !string.IsNullOrEmpty(cosmosAuthKeyOrResourceToken))
+        {
+            cosmosCredential = new(cosmosAccountEndpoint, cosmosAuthKeyOrResourceToken);
+        }
+        else if (!string.IsNullOrEmpty(cosmosConnectionString))
         {
             cosmosCredential = new(cosmosConnectionString);
         }
-        else if (!string.IsNullOrEmpty(cosmosAccountEndpoint) && !string.IsNullOrEmpty(cosmosAuthKeyOrResourceToken))
+        else if ((cosmosAccountEndpointVariable is not null) && !string.IsNullOrEmpty(cosmosAuthKeyOrResourceTokenVariable))
         {
-            cosmosCredential = new(cosmosAccountEndpoint, cosmosAuthKeyOrResourceToken);
+            cosmosCredential = new(cosmosAccountEndpointVariable, cosmosAuthKeyOrResourceTokenVariable);
+        }
+        else if (!string.IsNullOrEmpty(cosmosConnectionStringVariable))
+        {
+            cosmosCredential = new(cosmosConnectionStringVariable);
         }
         else
         {
             throw new InvalidOperationException("The Azure Cosmos DB authentication information is not provided");
         }
 
-        return _service.DeployPackageAsync(packagePath, cosmosCredential, cancellationToken);
+        var packageFiles = FindMatchingFiles(Environment.CurrentDirectory, packageFilePattern);
+
+        return _service.DeployPackageAsync(packageFiles, cosmosCredential, cancellationToken);
+    }
+
+    private static FileInfo[] FindMatchingFiles(string directoryPath, string pattern)
+    {
+        if (Path.IsPathRooted(pattern))
+        {
+            directoryPath = Path.GetPathRoot(pattern)!;
+            pattern = Path.GetRelativePath(directoryPath, pattern);
+        }
+
+        var directory = new DirectoryInfo(directoryPath);
+        var matcher = new Matcher(StringComparison.Ordinal).AddInclude(pattern);
+        var match = matcher.Execute(new DirectoryInfoWrapper(directory));
+
+        return match.Files.Select(x => new FileInfo(Path.GetFullPath(Path.Combine(directoryPath, x.Path)))).ToArray();
     }
 }

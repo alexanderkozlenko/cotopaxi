@@ -1,5 +1,6 @@
 ﻿// (c) Oleksandr Kozlenko. Licensed under the MIT license.
 
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Cotopaxi.Cosmos.PackageManagement;
@@ -8,16 +9,16 @@ public sealed class CosmosCredential
 {
     public CosmosCredential(string connectionString)
     {
-        ArgumentException.ThrowIfNullOrEmpty(connectionString);
+        Debug.Assert(connectionString is { Length: > 0 });
 
         ConnectionString = connectionString;
         IsConnectionString = true;
     }
 
-    public CosmosCredential(string accountEndpoint, string authKeyOrResourceToken)
+    public CosmosCredential(Uri accountEndpoint, string authKeyOrResourceToken)
     {
-        ArgumentException.ThrowIfNullOrEmpty(accountEndpoint);
-        ArgumentException.ThrowIfNullOrEmpty(authKeyOrResourceToken);
+        Debug.Assert(accountEndpoint is not null);
+        Debug.Assert(authKeyOrResourceToken is { Length: > 0 });
 
         AccountEndpoint = accountEndpoint;
         AuthKeyOrResourceToken = authKeyOrResourceToken;
@@ -36,7 +37,7 @@ public sealed class CosmosCredential
         get;
     }
 
-    public string? AccountEndpoint
+    public Uri? AccountEndpoint
     {
         get;
     }

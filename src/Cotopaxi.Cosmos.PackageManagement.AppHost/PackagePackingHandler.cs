@@ -18,9 +18,6 @@ internal sealed class PackagePackingHandler : HostCommandHandler
         var projectPath = commandResult.GetValueForArgument(PackagePackingCommand.ProjectArgument);
         var packagePath = commandResult.GetValueForArgument(PackagePackingCommand.PackageArgument);
 
-        projectPath = Path.GetFullPath(projectPath, Environment.CurrentDirectory);
-        packagePath = Path.GetFullPath(packagePath, Environment.CurrentDirectory);
-
         return _service.CreatePackageAsync(projectPath, packagePath, cancellationToken);
     }
 }

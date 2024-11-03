@@ -1,4 +1,6 @@
 - name: Overview
   href: ../index.md
+- name: Schemas
+  href: schemas.md
 - name: Package
   href: package.md

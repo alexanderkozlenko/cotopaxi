@@ -15,8 +15,8 @@ internal sealed class ProjectOperationNode
     }
 
     [JsonRequired]
-    [JsonPropertyName("sources")]
-    public required string?[] Sources
+    [JsonPropertyName("documents")]
+    public required string?[] Documents
     {
         get;
         set;
