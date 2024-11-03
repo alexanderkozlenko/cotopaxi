@@ -93,12 +93,16 @@
 <p>Supported deployment operations:</p>
 <p></p>
 <ul>
-<li><code>create</code> - creates the document with the partition key value and ID if it doesn't exist.</li>
-<li><code>update</code> - creates the document with the partition key value and ID if it doesn't exist, or update the document if it exists.</li>
-<li><code>delete</code> - deletes the document with the partition key value and ID if it exists.</li>
+<li><code>create</code> - creates a document with the <code>id</code> and a partition key value if the document doesn't exist.</li>
+<li><code>update</code> - creates a document with the <code>id</code> and a partition key value if the document doesn't exist, or update if it exists.</li>
+<li><code>delete</code> - deletes a document with the <code>id</code> and a partition key value if the document exists.</li>
 </ul>
 <p></p>
-<p>The command-line interface:</p>
+<p>Any existing system generated properties <code>_attachments</code>, <code>_etag</code>, <code>_rid</code>, <code>_self</code>, and <code>_ts</code> are not included in a package.</p>
+<p></p>
+<h3 id="usage">Usage</h3>
+<p></p>
+<p>The supported command-line interface:</p>
 <p></p>
 <pre><code class="lang-txt">Usage:
   cotopaxi [command] [options]
@@ -123,19 +127,24 @@ Arguments:
   &lt;package&gt;  Specifies the package to deploy
 
 Options:
-  --connection-string &lt;connection-string&gt;  Specifies the connection string (defaults to COSMOS_CONNECTION_STRING environment variable)
-  --endpoint &lt;endpoint&gt;                    Specifies the endpoint (defaults to COSMOS_ENDPOINT environment variable)
-  --key &lt;key&gt;                              Specifies the account key or resource token (defaults to COSMOS_KEY environment variable)
+  --endpoint &lt;endpoint&gt;                    Specifies the Azure Cosmos DB endpoint
+  --key &lt;key&gt;                              Specifies the Azure Cosmos DB account key or resource token
+  --connection-string &lt;connection-string&gt;  Specifies the Azure Cosmos DB connection string
 </code></pre>
 <p></p>
-<div class="NOTE">
-<h5>Note</h5>
-<p>Any existing system generated properties <code>_attachments</code>, <code>_etag</code>, <code>_rid</code>, <code>_self</code>, and <code>_ts</code> are not included in a package.</p>
-</div>
+<p>The environment variables can also be used to provide authentication information for deployment, however, they have lower precedence:</p>
 <p></p>
-<h3 id="example---creating-a-data-package">Example - creating a data package</h3>
+<ul>
+<li><code>COSMOS_ENDPOINT</code> - specifies the Azure Cosmos DB endpoint.</li>
+<li><code>COSMOS_KEY</code> - specifies the Azure Cosmos DB account key or resource token.</li>
+<li><code>COSMOS_CONNECTION_STRING</code> - specifies the Azure Cosmos DB connection string.</li>
+</ul>
 <p></p>
-<p>An example project file:</p>
+<p>The endpoint parameter takes precedence over the connection string parameter regardless of the configuration source.</p>
+<p></p>
+<h3 id="example-creating-a-package">Example: Creating a package</h3>
+<p></p>
+<p>An example package project <code>project.json</code>:</p>
 <p></p>
 <pre><code class="lang-json">{
   &quot;databases&quot;: [
@@ -147,8 +156,8 @@ Options:
           &quot;operations&quot;: [
             {
               &quot;name&quot;: &quot;upsert&quot;,
-              &quot;sources&quot;: [
-                &quot;documents/adventureworks/products.json&quot;
+              &quot;documents&quot;: [
+                &quot;adventureworks/products/**/*.json&quot;
               ]
             }
           ]
@@ -159,129 +168,43 @@ Options:
 }
 </code></pre>
 <p></p>
-<p>An example command line and output:</p>
+<p>An example document collection for update <code>adventureworks/products/bikes.json</code>:</p>
 <p></p>
-<pre><code class="lang-txt">cotopaxi pack project.json package.cdbpkg
-</code></pre>
-<p></p>
-<pre><code class="lang-txt">Reading /home/vsts/work/1/s/contoso/project.json
-Reading /home/vsts/work/1/s/contoso/documents/adventureworks/products.json
-Packing urn:cdbpkg:db93b376-c02e-4673-8ade-72485eb2c07c for UPSERT in adventureworks\products
-Packing urn:cdbpkg:db93b376-c02e-4673-8ade-72485eb2c07c:0 - OK
-Created /home/vsts/work/1/s/contoso/package.cdbpkg
-</code></pre>
-<p></p>
-<h3 id="example---deploying-a-data-package">Example - deploying a data package</h3>
-<p></p>
-<p>An example command line and output:</p>
-<p></p>
-<pre><code class="lang-txt">cotopaxi deploy package.cdbpkg
-</code></pre>
-<p></p>
-<pre><code class="lang-txt">Unpacking /home/vsts/work/1/a/contoso/package.cdbpkg
-Deploying the package to https://contoso.documents.azure.com:443
-Acquiring partition key paths for adventureworks\products - OK (HTTP 200, 2 RU)
-Deploying urn:cdbpkg:db93b376-c02e-4673-8ade-72485eb2c07c to adventureworks\products
-UPSERT urn:cdbpkg:db93b376-c02e-4673-8ade-72485eb2c07c:0 - OK (HTTP 200, 10.29 RU)
-Deploying the package to https://contoso.documents.azure.com:443 - DONE (12.29 RU)
-</code></pre>
-<p></p>
-<h3 id="project-json-schemas">Project JSON schemas</h3>
-<p></p>
-<p>The package project schema:</p>
-<p></p>
-<pre><code class="lang-json">{
-  &quot;$schema&quot;: &quot;https://json-schema.org/draft/2020-12&quot;,
-  &quot;type&quot;: &quot;object&quot;,
-  &quot;properties&quot;: {
-    &quot;databases&quot;: {
-      &quot;type&quot;: &quot;array&quot;,
-      &quot;items&quot;: {
-        &quot;type&quot;: &quot;object&quot;,
-        &quot;properties&quot;: {
-          &quot;name&quot;: {
-            &quot;type&quot;: &quot;string&quot;,
-            &quot;minLength&quot;: 1,
-            &quot;maxLength&quot;: 256
-          },
-          &quot;containers&quot;: {
-            &quot;type&quot;: &quot;array&quot;,
-            &quot;items&quot;: {
-              &quot;type&quot;: &quot;object&quot;,
-              &quot;properties&quot;: {
-                &quot;name&quot;: {
-                  &quot;type&quot;: &quot;string&quot;,
-                  &quot;minLength&quot;: 1,
-                  &quot;maxLength&quot;: 256
-                },
-                &quot;operations&quot;: {
-                  &quot;type&quot;: &quot;array&quot;,
-                  &quot;items&quot;: {
-                    &quot;type&quot;: &quot;object&quot;,
-                    &quot;properties&quot;: {
-                      &quot;name&quot;: {
-                        &quot;type&quot;: &quot;string&quot;,
-                        &quot;enum&quot;: [
-                          &quot;create&quot;,
-                          &quot;upsert&quot;,
-                          &quot;delete&quot;
-                        ]
-                      },
-                      &quot;sources&quot;: {
-                        &quot;type&quot;: &quot;array&quot;,
-                        &quot;items&quot;: {
-                          &quot;type&quot;: &quot;string&quot;,
-                          &quot;minLength&quot;: 1
-                        },
-                        &quot;uniqueItems&quot;: true
-                      }
-                    },
-                    &quot;required&quot;: [
-                      &quot;name&quot;,
-                      &quot;sources&quot;
-                    ]
-                  }
-                }
-              },
-              &quot;required&quot;: [
-                &quot;name&quot;,
-                &quot;operations&quot;
-              ]
-            }
-          }
-        },
-        &quot;required&quot;: [
-          &quot;name&quot;,
-          &quot;containers&quot;
-        ]
-      }
-    }
-  },
-  &quot;required&quot;: [
-    &quot;databases&quot;
-  ]
-}
-</code></pre>
-<p></p>
-<p>The package project source schema:</p>
-<p></p>
-<pre><code class="lang-json">{
-  &quot;$schema&quot;: &quot;https://json-schema.org/draft/2020-12&quot;,
-  &quot;type&quot;: &quot;array&quot;,
-  &quot;items&quot;: {
-    &quot;type&quot;: &quot;object&quot;,
-    &quot;properties&quot;: {
-      &quot;id&quot;: {
-        &quot;type&quot;: &quot;string&quot;,
-        &quot;minLength&quot;: 1,
-        &quot;maxLength&quot;: 255
-      }
-    },
-    &quot;required&quot;: [
-      &quot;id&quot;
-    ]
+<pre><code class="lang-json">[
+  {
+    &quot;id&quot;: &quot;3202cb6f-42af-4fe6-a3c5-d61927721e75&quot;,
+    &quot;category&quot;: &quot;bikes&quot;,
+    &quot;name&quot;: &quot;Mountain-100 Silver, 38&quot;,
+    &quot;price&quot;: &quot;3578.27&quot;
   }
-}
+]
+</code></pre>
+<p></p>
+<p>An example command line and output for an Azure DevOps pipeline:</p>
+<p></p>
+<pre><code class="lang-txt">cotopaxi pack $(Build.SourcesDirectory)/project.json $(Build.ArtifactStagingDirectory)/package.cdbpkg
+</code></pre>
+<p></p>
+<pre><code class="lang-txt">Reading /home/vsts/work/1/s/project.json
+Reading /home/vsts/work/1/s/adventureworks/products/bikes.json
+Packing urn:cdbpkg:db93b376-c02e-4673-8ade-72485eb2c07c for UPSERT in adventureworks.products
+Packing urn:cdbpkg:db93b376-c02e-4673-8ade-72485eb2c07c:0 - OK
+Successfully created /home/vsts/work/1/a/package.cdbpkg
+</code></pre>
+<p></p>
+<h3 id="example-deploying-a-package">Example: Deploying a package</h3>
+<p></p>
+<p>An example command line and output for an Azure DevOps release:</p>
+<p></p>
+<pre><code class="lang-txt">cotopaxi deploy $(Build.ArtifactStagingDirectory)/**/*.cdbpkg
+</code></pre>
+<p></p>
+<pre><code class="lang-txt">Deploying 1 packages to https://adventureworks.documents.azure.com:443
+Deploying /home/vsts/work/1/a/package.cdbpkg
+Acquiring partition key paths for adventureworks.products - OK (HTTP 200, 2 RU)
+Deploying urn:cdbpkg:db93b376-c02e-4673-8ade-72485eb2c07c to adventureworks.products
+Executing UPSERT urn:cdbpkg:db93b376-c02e-4673-8ade-72485eb2c07c:0 - OK (HTTP 200, 10.29 RU)
+Successfully deployed 1 packages to https://adventureworks.documents.azure.com:443 (12.29 RU)
 </code></pre>
 
 </article>
