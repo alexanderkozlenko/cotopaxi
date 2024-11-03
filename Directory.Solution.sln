@@ -13,6 +13,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cotopaxi.Cosmos.PackageMana
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cotopaxi.Cosmos.PackageManagement.AppHost", "src\Cotopaxi.Cosmos.PackageManagement.AppHost\Cotopaxi.Cosmos.PackageManagement.AppHost.csproj", "{2D576F88-38F4-4659-AB6F-EC78D9BA0B62}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cotopaxi.Cosmos.PackageManagement.UnitTests", "src\Cotopaxi.Cosmos.PackageManagement.UnitTests\Cotopaxi.Cosmos.PackageManagement.UnitTests.csproj", "{A4640E17-7F47-40E4-90AB-2E3BB8C057A7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{2D576F88-38F4-4659-AB6F-EC78D9BA0B62}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2D576F88-38F4-4659-AB6F-EC78D9BA0B62}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2D576F88-38F4-4659-AB6F-EC78D9BA0B62}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A4640E17-7F47-40E4-90AB-2E3BB8C057A7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A4640E17-7F47-40E4-90AB-2E3BB8C057A7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A4640E17-7F47-40E4-90AB-2E3BB8C057A7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A4640E17-7F47-40E4-90AB-2E3BB8C057A7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

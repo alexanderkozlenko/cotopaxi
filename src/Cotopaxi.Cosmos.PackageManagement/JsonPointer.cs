@@ -1,27 +1,26 @@
 ﻿// (c) Oleksandr Kozlenko. Licensed under the MIT license.
 
-using System.Diagnostics;
-
 namespace Cotopaxi.Cosmos.PackageManagement;
 
-internal readonly struct JsonPointer
+public readonly struct JsonPointer
 {
-    private readonly string[] _tokens;
+    private readonly string[]? _tokens;
 
-    public JsonPointer(string value)
+    public JsonPointer(string? value)
     {
-        Debug.Assert(value is not null);
-
-        var tokens = value.TrimStart('/').Split('/');
-
-        for (var i = 0; i < tokens.Length; i++)
+        if (value is { Length: > 0 })
         {
-            tokens[i] = tokens[i]
-                .Replace("~1", "/", StringComparison.Ordinal)
-                .Replace("~0", "~", StringComparison.Ordinal);
-        }
+            var tokens = value.TrimStart('/').Split('/');
 
-        _tokens = tokens;
+            for (var i = 0; i < tokens.Length; i++)
+            {
+                tokens[i] = tokens[i]
+                    .Replace("~1", "/", StringComparison.Ordinal)
+                    .Replace("~0", "~", StringComparison.Ordinal);
+            }
+
+            _tokens = tokens;
+        }
     }
 
     public ReadOnlySpan<string> Tokens

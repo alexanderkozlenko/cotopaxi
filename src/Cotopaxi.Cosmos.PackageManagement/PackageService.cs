@@ -43,18 +43,7 @@ public sealed class PackageService
 
         _logger.LogInformation("Reading {FilePath}", projectFile);
 
-        var packageEntries = default(FrozenSet<PackageEntry>);
-
-        try
-        {
-            packageEntries = await CollectPackageEntriesAsync(projectFile, cancellationToken).ConfigureAwait(false);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogError(ex, "Reading error: {Message}", ex.Message);
-
-            return false;
-        }
+        var packageEntries = await CollectPackageEntriesAsync(projectFile, cancellationToken).ConfigureAwait(false);
 
         packageFile.Directory!.Create();
 
@@ -72,16 +61,7 @@ public sealed class PackageService
 
                     using (var packageEntryStream = new FileStream(packageEntry.SourcePath, FileMode.Open, FileAccess.Read, FileShare.Read))
                     {
-                        try
-                        {
-                            documentNodes = await JsonSerializer.DeserializeAsync<JsonObject?[]>(packageEntryStream, s_readJsonSerializerOptions, cancellationToken).ConfigureAwait(false) ?? [];
-                        }
-                        catch (JsonException ex)
-                        {
-                            _logger.LogError(ex, "Reading error: {Message}", ex.Message);
-
-                            return false;
-                        }
+                        documentNodes = await JsonSerializer.DeserializeAsync<JsonObject?[]>(packageEntryStream, s_readJsonSerializerOptions, cancellationToken).ConfigureAwait(false) ?? [];
                     }
 
                     documentNodes = documentNodes.Where(static x => x is not null).ToArray();
@@ -334,21 +314,21 @@ public sealed class PackageService
             {
                 if (!CosmosResource.IsProperDatabaseName(projectDatabaseNode!.Name))
                 {
-                    throw new JsonException("A project database node has errors");
+                    throw new JsonException($"JSON deserialization for type '{typeof(ProjectDatabaseNode)}' encountered errors");
                 }
 
                 foreach (var projectContainerNode in projectDatabaseNode.Containers.Where(static x => x is not null))
                 {
                     if (!CosmosResource.IsProperContainerName(projectContainerNode!.Name))
                     {
-                        throw new JsonException("An project container node has errors");
+                        throw new JsonException($"JSON deserialization for type '{typeof(ProjectContainerNode)}' encountered errors");
                     }
 
                     foreach (var projectOperationNode in projectContainerNode.Operations.Where(static x => x is not null))
                     {
                         if (projectOperationNode!.Name is not { Length: > 0 })
                         {
-                            throw new JsonException("A project operation node has errors");
+                            throw new JsonException($"JSON deserialization for type '{typeof(ProjectOperationNode)}' encountered errors");
                         }
 
                         foreach (var collectionPathPattern in projectOperationNode.Documents.Where(static x => x is not null))

@@ -12,4 +12,18 @@ steps:
     -c Release
     -o $(Build.ArtifactStagingDirectory)
     --no-build
+- script: >
+    dotnet test $(Build.SourcesDirectory)
+    -p:ContinuousIntegrationBuild=true
+    -c Release
+    -l TRX
+    --results-directory $(Common.TestResultsDirectory)
+    --no-build
+- task: PublishTestResults@2
+  condition: succeededOrFailed()
+  inputs:
+    failTaskOnFailedTests: true
+    searchFolder: '$(Common.TestResultsDirectory)'
+    testResultsFiles: '*.trx'
+    testRunner: 'VSTest'
 - publish: '$(Build.ArtifactStagingDirectory)'
