@@ -11,17 +11,19 @@ public sealed class JsonPointerTest
     [DataRow("", new string[] { })]
     [DataRow("/foo", new string[] { "foo" })]
     [DataRow("/foo/0", new string[] { "foo", "0" })]
-    [DataRow("/~0", new string[] { "~" })]
-    [DataRow("/~1", new string[] { "/" })]
-    [DataRow("/~0~1", new string[] { "~/", })]
-    [DataRow("/a/b/c", new string[] { "a", "b", "c" })]
-    [DataRow("/a~1b~1c", new string[] { "a/b/c" })]
+    [DataRow("/", new string[] { "" })]
+    [DataRow("/a~1b", new string[] { "a/b" })]
+    [DataRow("/c%d", new string[] { "c%d" })]
+    [DataRow("/e^f", new string[] { "e^f" })]
+    [DataRow("/g|h", new string[] { "g|h" })]
+    [DataRow("/i\\\\j", new string[] { "i\\\\j" })]
+    [DataRow("/k\\\"l", new string[] { "k\\\"l" })]
+    [DataRow("/ ", new string[] { " " })]
     [DataRow("/m~0n", new string[] { "m~n" })]
-    public void RFC6901(string value, string[] expectedTokens)
+    public void RFC6901(string jsonPointerValue, string[] jsonPointerTokens)
     {
-        var jsonPointer = new JsonPointer(value);
-        var jsonPointerTokens = jsonPointer.Tokens.ToArray();
+        var jsonPointer = new JsonPointer(jsonPointerValue);
 
-        CollectionAssert.AreEqual(expectedTokens, jsonPointerTokens);
+        CollectionAssert.AreEqual(jsonPointerTokens, jsonPointer.Tokens.ToArray());
     }
 }

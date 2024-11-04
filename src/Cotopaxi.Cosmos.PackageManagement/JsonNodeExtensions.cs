@@ -6,33 +6,26 @@ using System.Text.Json.Nodes;
 
 namespace Cotopaxi.Cosmos.PackageManagement;
 
-internal static class JsonNodeExtensions
+public static class JsonNodeExtensions
 {
-    public static bool TryGetValue(this JsonNode root, JsonPointer pointer, out JsonNode? result)
+    public static bool TryGetValue(this JsonNode root, JsonPointer path, out JsonNode? value)
     {
         Debug.Assert(root is not null);
 
-        if (pointer.Tokens.IsEmpty)
-        {
-            result = root;
-
-            return true;
-        }
-
         var current = root;
 
-        for (var i = 0; i < pointer.Tokens.Length; i++)
+        for (var i = 0; i < path.Tokens.Length; i++)
         {
             if (current is JsonObject jsonObject)
             {
-                if (jsonObject.TryGetPropertyValue(pointer.Tokens[i], out current))
+                if (jsonObject.TryGetPropertyValue(path.Tokens[i], out current))
                 {
                     continue;
                 }
             }
             else if (current is JsonArray jsonArray)
             {
-                if (int.TryParse(pointer.Tokens[i], NumberStyles.None, CultureInfo.InvariantCulture, out var index))
+                if (int.TryParse(path.Tokens[i], NumberStyles.None, CultureInfo.InvariantCulture, out var index))
                 {
                     if (index < jsonArray.Count)
                     {
@@ -43,12 +36,12 @@ internal static class JsonNodeExtensions
                 }
             }
 
-            result = default;
+            value = default;
 
             return false;
         }
 
-        result = current;
+        value = current;
 
         return true;
     }

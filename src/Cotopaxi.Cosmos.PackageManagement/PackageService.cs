@@ -126,9 +126,9 @@ public sealed class PackageService
 
         using var cosmosClient = cosmosCredential.IsConnectionString ?
             new CosmosClient(cosmosCredential.ConnectionString, cosmosClientOptions) :
-            new CosmosClient(cosmosCredential.AccountEndpoint.OriginalString, cosmosCredential.AuthKeyOrResourceToken, cosmosClientOptions);
+            new CosmosClient(cosmosCredential.AccountEndpoint.AbsoluteUri, cosmosCredential.AuthKeyOrResourceToken, cosmosClientOptions);
 
-        _logger.LogInformation("Deploying {PackageCount} packages to {CosmosEndpoint}", packageFiles.Count, cosmosClient.Endpoint.OriginalString.TrimEnd('/'));
+        _logger.LogInformation("Deploying {PackageCount} packages to {CosmosEndpoint}", packageFiles.Count, cosmosClient.Endpoint.AbsoluteUri.TrimEnd('/'));
 
         var partitionKeyPathsRegistry = new Dictionary<(string, string), JsonPointer[]>();
         var deployCharge = 0.0;
@@ -219,7 +219,7 @@ public sealed class PackageService
 
                                         _logger.LogError(
                                             "Aborted a deployment to {CosmosEndpoint} ({RU} RU)",
-                                            cosmosClient.Endpoint.OriginalString.TrimEnd('/'),
+                                            cosmosClient.Endpoint.AbsoluteUri.TrimEnd('/'),
                                             Math.Round(deployCharge, 2));
 
                                         return false;
@@ -275,7 +275,7 @@ public sealed class PackageService
 
                                             _logger.LogError(
                                                 "Aborted a deployment to {CosmosEndpoint} ({RU} RU)",
-                                                cosmosClient.Endpoint.OriginalString.TrimEnd('/'),
+                                                cosmosClient.Endpoint.AbsoluteUri.TrimEnd('/'),
                                                 Math.Round(deployCharge, 2));
 
                                             return false;
@@ -292,7 +292,7 @@ public sealed class PackageService
         _logger.LogInformation(
             "Successfully deployed {PackageCount} packages to {CosmosEndpoint} ({RU} RU)",
             packageFiles.Count,
-            cosmosClient.Endpoint.OriginalString.TrimEnd('/'),
+            cosmosClient.Endpoint.AbsoluteUri.TrimEnd('/'),
             Math.Round(deployCharge, 2));
 
         return true;

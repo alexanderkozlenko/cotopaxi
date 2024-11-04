@@ -15,13 +15,13 @@ internal abstract class HostCommandHandler : ICommandHandler
 {
     public int Invoke(InvocationContext context)
     {
-        return InvokeAsync(context).GetAwaiter().GetResult();
+        throw new NotSupportedException();
     }
 
     public async Task<int> InvokeAsync(InvocationContext context)
     {
-        var logger = context.GetHost().Services.GetRequiredService<ILogger<HostCommandHandler>>();
         var version = typeof(Program).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+        var logger = context.GetHost().Services.GetRequiredService<ILogger<HostCommandHandler>>();
 
         logger.LogInformation("Cotopaxi {Version}", version);
         logger.LogInformation("");
