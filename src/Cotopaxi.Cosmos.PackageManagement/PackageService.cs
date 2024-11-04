@@ -367,7 +367,7 @@ public sealed class PackageService
 
     private static string[] FindMatchingFiles(DirectoryInfo directory, string pattern)
     {
-        var matcher = new Matcher(StringComparison.Ordinal).AddInclude(pattern);
+        var matcher = new Matcher().AddInclude(pattern);
         var match = matcher.Execute(new DirectoryInfoWrapper(directory));
 
         return match.Files.Select(x => Path.GetFullPath(Path.Combine(directory.FullName, x.Path))).ToArray();
