@@ -67,6 +67,9 @@ internal sealed class PackageDeployingHandler : HostCommandHandler
         var matcher = new Matcher().AddInclude(pattern);
         var match = matcher.Execute(new DirectoryInfoWrapper(directory));
 
-        return match.Files.Select(x => new FileInfo(Path.GetFullPath(Path.Combine(directoryPath, x.Path)))).ToArray();
+        return match.Files
+            .Select(x => new FileInfo(Path.GetFullPath(Path.Combine(directoryPath, x.Path))))
+            .OrderBy(static x => x.Name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
     }
 }

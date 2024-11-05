@@ -20,7 +20,7 @@ internal static class CosmosResource
         return value is { Length: > 0 and <= 256 };
     }
 
-    public static bool IsProperUniqueID(string? value)
+    public static bool IsProperDocumentID(string? value)
     {
         return value is { Length: > 0 and < 256 };
     }
@@ -83,7 +83,7 @@ internal static class CosmosResource
         return true;
     }
 
-    public static bool TryGetUniqueID(JsonObject documentNode, [NotNullWhen(true)] out string? result)
+    public static bool TryGetDocumentID(JsonObject documentNode, [NotNullWhen(true)] out string? result)
     {
         Debug.Assert(documentNode is not null);
 

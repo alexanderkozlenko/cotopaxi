@@ -47,65 +47,86 @@ public sealed class PackageService
 
         packageFile.Directory!.Create();
 
-        using (var package = Package.Open(packageFile.FullName, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
+        var packagingCompleted = false;
+
+        try
         {
-            var packageModel = await PackageModel.OpenAsync(package, default, cancellationToken).ConfigureAwait(false);
-
-            await using (packageModel.ConfigureAwait(false))
+            using (var package = Package.Open(packageFile.FullName, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
             {
-                foreach (var packageEntry in packageEntries)
+                var packageModel = await PackageModel.OpenAsync(package, default, cancellationToken).ConfigureAwait(false);
+
+                await using (packageModel.ConfigureAwait(false))
                 {
-                    _logger.LogInformation("Reading {FilePath}", packageEntry.SourcePath);
-
-                    var documentNodes = default(JsonObject?[]);
-
-                    using (var packageEntryStream = new FileStream(packageEntry.SourcePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    foreach (var packageEntry in packageEntries.OrderBy(static x => x.SourcePath, StringComparer.OrdinalIgnoreCase))
                     {
-                        documentNodes = await JsonSerializer.DeserializeAsync<JsonObject?[]>(packageEntryStream, s_readJsonSerializerOptions, cancellationToken).ConfigureAwait(false) ?? [];
-                    }
+                        _logger.LogInformation("Reading {FilePath}", packageEntry.SourcePath);
 
-                    documentNodes = documentNodes.Where(static x => x is not null).ToArray();
+                        var documentNodes = default(JsonObject?[]);
 
-                    if (documentNodes.Length == 0)
-                    {
-                        continue;
-                    }
-
-                    _logger.LogInformation(
-                        "Packing {PackageEntryUrn} for {OperationName} in {DatabaseName}.{ContainerName}",
-                        GetPackageEntryUrn(packageEntry.UUID),
-                        packageEntry.OperationName,
-                        packageEntry.DatabaseName,
-                        packageEntry.ContainerName);
-
-                    for (var i = 0; i < documentNodes.Length; i++)
-                    {
-                        var documentNode = documentNodes[i]!;
-
-                        if (!CosmosResource.TryGetUniqueID(documentNode, out var documentID) || !CosmosResource.IsProperUniqueID(documentID))
+                        using (var packageEntryStream = new FileStream(packageEntry.SourcePath, FileMode.Open, FileAccess.Read, FileShare.Read))
                         {
-                            _logger.LogError("Packing {PackageDocumentUrn} - ERROR (the document doesn't have a proper ID)", GetPackageDocumentUrn(packageEntry.UUID, i));
-
-                            return false;
+                            documentNodes = await JsonSerializer.DeserializeAsync<JsonObject?[]>(packageEntryStream, s_readJsonSerializerOptions, cancellationToken).ConfigureAwait(false) ?? [];
                         }
 
-                        CosmosResource.RemoveSystemProperties(documentNode);
+                        documentNodes = documentNodes.Where(static x => x is not null).ToArray();
 
-                        _logger.LogInformation("Packing {PackageDocumentUrn} - OK", GetPackageDocumentUrn(packageEntry.UUID, i));
+                        if (documentNodes.Length == 0)
+                        {
+                            continue;
+                        }
+
+                        var packageEntryPath = packageModel.CreateEntry(packageEntry.UUID, packageEntry);
+
+                        _logger.LogInformation(
+                            "Packing cdbpkg:{PackageEntryPath} for {OperationName} in {DatabaseName}.{ContainerName}",
+                            packageEntryPath,
+                            packageEntry.OperationName,
+                            packageEntry.DatabaseName,
+                            packageEntry.ContainerName);
+
+                        for (var i = 0; i < documentNodes.Length; i++)
+                        {
+                            var documentNode = documentNodes[i]!;
+
+                            if (!CosmosResource.TryGetDocumentID(documentNode, out var documentID) || !CosmosResource.IsProperDocumentID(documentID))
+                            {
+                                _logger.LogError("Packing cdbpkg:{PackageEntryPath}:$[{DocumentIndex}] - ERROR (the document doesn't have a proper ID)", packageEntryPath, i);
+
+                                return false;
+                            }
+
+                            CosmosResource.RemoveSystemProperties(documentNode);
+
+                            _logger.LogInformation("Packing cdbpkg:{PackageEntryPath}:$[{DocumentIndex}] - OK", packageEntryPath, i);
+                        }
+
+                        var packagePart = package.CreatePart(new(packageEntryPath, UriKind.Relative), "application/json", default);
+
+                        using (var packagePartStream = packagePart.GetStream(FileMode.Create, FileAccess.Write))
+                        {
+                            await JsonSerializer.SerializeAsync(packagePartStream, documentNodes, JsonSerializerOptions.Default, cancellationToken).ConfigureAwait(false);
+                        }
                     }
 
-                    var packagePartPath = packageModel.CreateEntry(packageEntry.UUID, packageEntry);
-                    var packagePart = package.CreatePart(new(packagePartPath, UriKind.Relative), "application/json", default);
+                    await packageModel.SaveAsync().ConfigureAwait(false);
 
-                    using (var packagePartStream = packagePart.GetStream(FileMode.Create, FileAccess.Write))
-                    {
-                        await JsonSerializer.SerializeAsync(packagePartStream, documentNodes, JsonSerializerOptions.Default, cancellationToken).ConfigureAwait(false);
-                    }
+                    packagingCompleted = true;
                 }
             }
         }
+        finally
+        {
+            if (packagingCompleted)
+            {
+                _logger.LogInformation("Successfully created {FilePath}", packageFile.FullName);
+            }
+            else
+            {
+                _logger.LogError("Aborted creation of {FilePath}", packageFile.FullName);
 
-        _logger.LogInformation("Successfully created {FilePath}", packageFile.FullName);
+                packageFile.Delete();
+            }
+        }
 
         return true;
     }
@@ -130,155 +151,154 @@ public sealed class PackageService
 
         _logger.LogInformation("Deploying {PackageCount} packages to {CosmosEndpoint}", packageFiles.Count, cosmosClient.Endpoint.AbsoluteUri.TrimEnd('/'));
 
+        var deploymentCompleted = false;
+        var deploymentCharge = 0.0;
+
         var partitionKeyPathsRegistry = new Dictionary<(string, string), JsonPointer[]>();
-        var deployCharge = 0.0;
 
-        foreach (var packageFile in packageFiles)
+        try
         {
-            _logger.LogInformation("Deploying {FilePath}", packageFile.FullName);
-
-            using (var package = Package.Open(packageFile.FullName, FileMode.Open, FileAccess.Read, FileShare.Read))
+            foreach (var packageFile in packageFiles)
             {
-                var packageEntries = default(FrozenSet<PackageEntry>);
-                var packageModel = await PackageModel.OpenAsync(package, default, cancellationToken).ConfigureAwait(false);
+                _logger.LogInformation("Deploying {FilePath}", packageFile.FullName);
 
-                await using (packageModel.ConfigureAwait(false))
+                using (var package = Package.Open(packageFile.FullName, FileMode.Open, FileAccess.Read, FileShare.Read))
                 {
-                    packageEntries = packageModel.ExtractEntries();
-                }
+                    var packageEntries = default(FrozenSet<PackageEntry>);
+                    var packageModel = await PackageModel.OpenAsync(package, default, cancellationToken).ConfigureAwait(false);
 
-                var packageEntryGroupsByDatabase = packageEntries
-                    .GroupBy(static x => x.DatabaseName, StringComparer.Ordinal)
-                    .OrderBy(static x => x.Key, StringComparer.Ordinal);
+                    await using (packageModel.ConfigureAwait(false))
+                    {
+                        packageEntries = packageModel.ExtractEntries();
+                    }
 
-                foreach (var packageEntryGroupByDatabase in packageEntryGroupsByDatabase)
-                {
-                    var packageEntryGroupsByContainer = packageEntryGroupByDatabase
-                        .GroupBy(static x => x.ContainerName, StringComparer.Ordinal)
+                    var packageEntryGroupsByDatabase = packageEntries
+                        .GroupBy(static x => x.DatabaseName, StringComparer.Ordinal)
                         .OrderBy(static x => x.Key, StringComparer.Ordinal);
 
-                    foreach (var packageEntryGroupByContainer in packageEntryGroupsByContainer)
+                    foreach (var packageEntryGroupByDatabase in packageEntryGroupsByDatabase)
                     {
-                        var container = cosmosClient.GetContainer(packageEntryGroupByDatabase.Key, packageEntryGroupByContainer.Key);
-                        var containerPartitionKeyPathsKey = (packageEntryGroupByDatabase.Key, packageEntryGroupByContainer.Key);
+                        var packageEntryGroupsByContainer = packageEntryGroupByDatabase
+                            .GroupBy(static x => x.ContainerName, StringComparer.Ordinal)
+                            .OrderBy(static x => x.Key, StringComparer.Ordinal);
 
-                        if (!partitionKeyPathsRegistry.TryGetValue(containerPartitionKeyPathsKey, out var containerPartitionKeyPaths))
+                        foreach (var packageEntryGroupByContainer in packageEntryGroupsByContainer)
                         {
-                            var containerResponse = await container.ReadContainerAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+                            var container = cosmosClient.GetContainer(packageEntryGroupByDatabase.Key, packageEntryGroupByContainer.Key);
+                            var containerPartitionKeyPathsKey = (packageEntryGroupByDatabase.Key, packageEntryGroupByContainer.Key);
 
-                            deployCharge += containerResponse.RequestCharge;
-                            containerPartitionKeyPaths = containerResponse.Resource.PartitionKeyPaths.Select(static x => new JsonPointer(x)).ToArray();
-                            partitionKeyPathsRegistry.Add(containerPartitionKeyPathsKey, containerPartitionKeyPaths);
-
-                            _logger.LogInformation(
-                                "Acquiring partition key paths for {DatabaseName}.{ContainerName} - OK (HTTP {StatusCode}, {RU} RU)",
-                                packageEntryGroupByDatabase.Key,
-                                packageEntryGroupByContainer.Key,
-                                (int)containerResponse.StatusCode,
-                                Math.Round(containerResponse.RequestCharge, 2));
-                        }
-
-                        var packageEntryGroupsByOperation = packageEntryGroupByContainer
-                            .GroupBy(static x => x.OperationName, StringComparer.Ordinal)
-                            .OrderBy(static x => x.Key, PackageOperationComparer.Instance);
-
-                        foreach (var packageEntryGroupByOperation in packageEntryGroupsByOperation)
-                        {
-                            foreach (var packageEntry in packageEntryGroupByOperation.OrderBy(static x => x.UUID))
+                            if (!partitionKeyPathsRegistry.TryGetValue(containerPartitionKeyPathsKey, out var containerPartitionKeyPaths))
                             {
-                                var packagePart = package.GetPart(new(packageEntry.SourcePath, UriKind.Relative));
-                                var documentNodes = default(JsonObject?[]);
+                                var containerResponse = await container.ReadContainerAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
 
-                                using (var packageEntryStream = packagePart.GetStream(FileMode.Open, FileAccess.Read))
-                                {
-                                    documentNodes = await JsonSerializer.DeserializeAsync<JsonObject?[]>(packageEntryStream, JsonSerializerOptions.Default, cancellationToken).ConfigureAwait(false) ?? [];
-                                }
+                                deploymentCharge += containerResponse.RequestCharge;
+                                containerPartitionKeyPaths = containerResponse.Resource.PartitionKeyPaths.Select(static x => new JsonPointer(x)).ToArray();
+                                partitionKeyPathsRegistry.Add(containerPartitionKeyPathsKey, containerPartitionKeyPaths);
 
                                 _logger.LogInformation(
-                                    "Deploying {PackageEntryUrn} to {DatabaseName}.{ContainerName}",
-                                    GetPackageEntryUrn(packageEntry.UUID),
-                                    packageEntry.DatabaseName,
-                                    packageEntry.ContainerName);
+                                    "Acquiring partition key paths for {DatabaseName}.{ContainerName} - OK (HTTP {StatusCode}, {RU} RU)",
+                                    packageEntryGroupByDatabase.Key,
+                                    packageEntryGroupByContainer.Key,
+                                    (int)containerResponse.StatusCode,
+                                    Math.Round(containerResponse.RequestCharge, 2));
+                            }
 
-                                for (var i = 0; i < documentNodes.Length; i++)
+                            var packageEntryGroupsByOperation = packageEntryGroupByContainer
+                                .GroupBy(static x => x.OperationName, StringComparer.Ordinal)
+                                .OrderBy(static x => x.Key, PackageOperationComparer.Instance);
+
+                            foreach (var packageEntryGroupByOperation in packageEntryGroupsByOperation)
+                            {
+                                foreach (var packageEntry in packageEntryGroupByOperation.OrderBy(static x => x.UUID))
                                 {
-                                    var documentNode = documentNodes[i];
+                                    var packagePart = package.GetPart(new(packageEntry.SourcePath, UriKind.Relative));
+                                    var documentNodes = default(JsonObject?[]);
 
-                                    if (documentNode is null)
+                                    using (var packageEntryStream = packagePart.GetStream(FileMode.Open, FileAccess.Read))
                                     {
-                                        continue;
+                                        documentNodes = await JsonSerializer.DeserializeAsync<JsonObject?[]>(packageEntryStream, s_readJsonSerializerOptions, cancellationToken).ConfigureAwait(false) ?? [];
                                     }
 
-                                    if (!CosmosResource.TryGetPartitionKey(documentNode, containerPartitionKeyPaths, out var documentPartitionKey) ||
-                                        !CosmosResource.TryGetUniqueID(documentNode, out var documentID))
+                                    _logger.LogInformation(
+                                        "Deploying cdbpkg:{PackageEntryPath} to {DatabaseName}.{ContainerName}",
+                                        packageEntry.SourcePath,
+                                        packageEntry.DatabaseName,
+                                        packageEntry.ContainerName);
+
+                                    for (var i = 0; i < documentNodes.Length; i++)
                                     {
-                                        _logger.LogError(
-                                            "Executing {OperationName} {PackageDocumentUrn} - ERROR (the document doesn't have proper partition key and ID)",
-                                            packageEntry.OperationName,
-                                            GetPackageDocumentUrn(packageEntry.UUID, i));
+                                        var documentNode = documentNodes[i];
 
-                                        _logger.LogError(
-                                            "Aborted a deployment to {CosmosEndpoint} ({RU} RU)",
-                                            cosmosClient.Endpoint.AbsoluteUri.TrimEnd('/'),
-                                            Math.Round(deployCharge, 2));
-
-                                        return false;
-                                    }
-
-                                    var documentResponse = default(ItemResponse<JsonObject>);
-
-                                    try
-                                    {
-                                        documentResponse = packageEntry.OperationName switch
+                                        if (documentNode is null)
                                         {
-                                            "DELETE" => await container.DeleteItemAsync<JsonObject>(documentID, documentPartitionKey, default, cancellationToken).ConfigureAwait(false),
-                                            "CREATE" => await container.CreateItemAsync(documentNode, documentPartitionKey, default, cancellationToken).ConfigureAwait(false),
-                                            "UPSERT" => await container.UpsertItemAsync(documentNode, documentPartitionKey, default, cancellationToken).ConfigureAwait(false),
-                                            _ => default,
-                                        };
-
-                                        if (documentResponse is not null)
-                                        {
-                                            deployCharge += documentResponse.RequestCharge;
-
-                                            _logger.LogInformation(
-                                                "Executing {OperationName} {PackageDocumentUrn} - OK (HTTP {StatusCode}, {RU} RU)",
-                                                packageEntry.OperationName,
-                                                GetPackageDocumentUrn(packageEntry.UUID, i),
-                                                (int)documentResponse.StatusCode,
-                                                Math.Round(documentResponse.RequestCharge, 2));
+                                            continue;
                                         }
-                                    }
-                                    catch (CosmosException ex)
-                                    {
-                                        deployCharge += ex.RequestCharge;
 
-                                        if (((packageEntry.OperationName == "DELETE") && (ex.StatusCode == HttpStatusCode.NotFound)) ||
-                                            ((packageEntry.OperationName == "CREATE") && (ex.StatusCode == HttpStatusCode.Conflict)))
-                                        {
-                                            _logger.LogInformation(
-                                                "Executing {OperationName} {PackageDocumentUrn} - OK (HTTP {StatusCode}, {RU} RU)",
-                                                packageEntry.OperationName,
-                                                GetPackageDocumentUrn(packageEntry.UUID, i),
-                                                (int)ex.StatusCode,
-                                                Math.Round(ex.RequestCharge, 2));
-                                        }
-                                        else
+                                        if (!CosmosResource.TryGetPartitionKey(documentNode, containerPartitionKeyPaths, out var documentPartitionKey) ||
+                                            !CosmosResource.TryGetDocumentID(documentNode, out var documentID))
                                         {
                                             _logger.LogError(
-                                                "Executing {OperationName} {PackageDocumentUrn} - ERROR (HTTP {StatusCode}, {RU} RU, Activity {ActivityID})",
+                                                "Executing {OperationName} cdbpkg:{PackageEntryPath}:$[{DocumentIndex}] - ERROR (the document doesn't have proper partition key and ID)",
                                                 packageEntry.OperationName,
-                                                GetPackageDocumentUrn(packageEntry.UUID, i),
-                                                (int)ex.StatusCode,
-                                                Math.Round(ex.RequestCharge, 2),
-                                                ex.ActivityId);
-
-                                            _logger.LogError(
-                                                "Aborted a deployment to {CosmosEndpoint} ({RU} RU)",
-                                                cosmosClient.Endpoint.AbsoluteUri.TrimEnd('/'),
-                                                Math.Round(deployCharge, 2));
+                                                packageEntry.SourcePath,
+                                                i);
 
                                             return false;
+                                        }
+
+                                        var documentResponse = default(ItemResponse<JsonObject>);
+
+                                        try
+                                        {
+                                            documentResponse = packageEntry.OperationName switch
+                                            {
+                                                "DELETE" => await container.DeleteItemAsync<JsonObject>(documentID, documentPartitionKey, default, cancellationToken).ConfigureAwait(false),
+                                                "CREATE" => await container.CreateItemAsync(documentNode, documentPartitionKey, default, cancellationToken).ConfigureAwait(false),
+                                                "UPSERT" => await container.UpsertItemAsync(documentNode, documentPartitionKey, default, cancellationToken).ConfigureAwait(false),
+                                                _ => default,
+                                            };
+
+                                            if (documentResponse is not null)
+                                            {
+                                                deploymentCharge += documentResponse.RequestCharge;
+
+                                                _logger.LogInformation(
+                                                    "Executing {OperationName} cdbpkg:{PackageEntryPath}:$[{DocumentIndex}] - OK (HTTP {StatusCode}, {RU} RU)",
+                                                    packageEntry.OperationName,
+                                                    packageEntry.SourcePath,
+                                                    i,
+                                                    (int)documentResponse.StatusCode,
+                                                    Math.Round(documentResponse.RequestCharge, 2));
+                                            }
+                                        }
+                                        catch (CosmosException ex)
+                                        {
+                                            deploymentCharge += ex.RequestCharge;
+
+                                            if (((packageEntry.OperationName == "DELETE") && (ex.StatusCode == HttpStatusCode.NotFound)) ||
+                                                ((packageEntry.OperationName == "CREATE") && (ex.StatusCode == HttpStatusCode.Conflict)))
+                                            {
+                                                _logger.LogInformation(
+                                                    "Executing {OperationName} cdbpkg:{PackageEntryPath}:$[{DocumentIndex}] - OK (HTTP {StatusCode}, {RU} RU)",
+                                                    packageEntry.OperationName,
+                                                    packageEntry.SourcePath,
+                                                    i,
+                                                    (int)ex.StatusCode,
+                                                    Math.Round(ex.RequestCharge, 2));
+                                            }
+                                            else
+                                            {
+                                                _logger.LogError(
+                                                    "Executing {OperationName} cdbpkg:{PackageEntryPath}:$[{DocumentIndex}] - ERROR (HTTP {StatusCode}, {RU} RU, Activity {ActivityID})",
+                                                    packageEntry.OperationName,
+                                                    packageEntry.SourcePath,
+                                                    i,
+                                                    (int)ex.StatusCode,
+                                                    Math.Round(ex.RequestCharge, 2),
+                                                    ex.ActivityId);
+
+                                                return false;
+                                            }
                                         }
                                     }
                                 }
@@ -287,13 +307,27 @@ public sealed class PackageService
                     }
                 }
             }
-        }
 
-        _logger.LogInformation(
-            "Successfully deployed {PackageCount} packages to {CosmosEndpoint} ({RU} RU)",
-            packageFiles.Count,
-            cosmosClient.Endpoint.AbsoluteUri.TrimEnd('/'),
-            Math.Round(deployCharge, 2));
+            deploymentCompleted = true;
+        }
+        finally
+        {
+            if (deploymentCompleted)
+            {
+                _logger.LogInformation(
+                    "Successfully deployed {PackageCount} packages to {CosmosEndpoint} ({RU} RU)",
+                    packageFiles.Count,
+                    cosmosClient.Endpoint.AbsoluteUri.TrimEnd('/'),
+                    Math.Round(deploymentCharge, 2));
+            }
+            else
+            {
+                _logger.LogError(
+                    "Aborted a deployment to {CosmosEndpoint} ({RU} RU)",
+                    cosmosClient.Endpoint.AbsoluteUri.TrimEnd('/'),
+                    Math.Round(deploymentCharge, 2));
+            }
+        }
 
         return true;
     }
@@ -370,7 +404,10 @@ public sealed class PackageService
         var matcher = new Matcher().AddInclude(pattern);
         var match = matcher.Execute(new DirectoryInfoWrapper(directory));
 
-        return match.Files.Select(x => Path.GetFullPath(Path.Combine(directory.FullName, x.Path))).ToArray();
+        return match.Files
+            .Select(x => Path.GetFullPath(Path.Combine(directory.FullName, x.Path)))
+            .Order(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
     }
 
     private static Guid GetPackageEntryUUID(string source)
@@ -383,15 +420,5 @@ public sealed class PackageService
         hash[8] = (byte)((hash[8] & 0x3F) | 0x80);
 
         return new(hash);
-    }
-
-    private static string GetPackageEntryUrn(Guid packageEntryUUID)
-    {
-        return FormattableString.Invariant($"urn:cdbpkg:{packageEntryUUID}");
-    }
-
-    private static string GetPackageDocumentUrn(Guid packageEntryUUID, int documentIndex)
-    {
-        return FormattableString.Invariant($"urn:cdbpkg:{packageEntryUUID}:{documentIndex}");
     }
 }

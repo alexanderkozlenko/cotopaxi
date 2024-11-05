@@ -14,14 +14,23 @@ internal sealed class PackageOperationComparer : IComparer<string?>
         return rankX.CompareTo(rankY);
     }
 
-    private static int ComputeRank(ReadOnlySpan<char> value)
+    private static int ComputeRank(string? value)
     {
-        return value switch
+        if (string.Equals(value, "DELETE", StringComparison.OrdinalIgnoreCase))
         {
-            "DELETE" => 0,
-            "CREATE" => 1,
-            "UPSERT" => 2,
-            _ => 3,
-        };
+            return 0;
+        }
+
+        if (string.Equals(value, "CREATE", StringComparison.OrdinalIgnoreCase))
+        {
+            return 1;
+        }
+
+        if (string.Equals(value, "UPSERT", StringComparison.OrdinalIgnoreCase))
+        {
+            return 2;
+        }
+
+        return 3;
     }
 }

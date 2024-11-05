@@ -16,17 +16,22 @@ internal sealed class PackageModel : IAsyncDisposable
     private readonly Package _package;
     private readonly CdmCorpusDefinition _corpusDef;
     private readonly CdmManifestDefinition _manifestDef;
-    private readonly CdmEntityDeclarationDefinition _entryDec;
 
-    private PackageModel(Package package, CdmCorpusDefinition corpusDef, CdmManifestDefinition manifestDef, CdmEntityDeclarationDefinition entryDec)
+    private PackageModel(Package package, CdmCorpusDefinition corpusDef, CdmManifestDefinition manifestDef)
     {
         _package = package;
         _corpusDef = corpusDef;
         _manifestDef = manifestDef;
-        _entryDec = entryDec;
     }
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
+    {
+        _corpusDef.Storage.Unmount(PackageModelAdapter.Scheme);
+
+        return ValueTask.CompletedTask;
+    }
+
+    public async Task SaveAsync()
     {
         if (_package.FileOpenAccess != FileAccess.Read)
         {
@@ -42,14 +47,13 @@ internal sealed class PackageModel : IAsyncDisposable
 
             _package.CreateRelationship(manifestUri, TargetMode.Internal, s_manifestRelType);
         }
-
-        _corpusDef.Storage.Unmount(PackageModelAdapter.Scheme);
     }
 
     public string CreateEntry(Guid entryKey, PackageEntry entry)
     {
         Debug.Assert(entry is not null);
 
+        var entryDec = _manifestDef.Entities.First(static x => x.EntityName == "cosmosdb.document");
         var entryPath = $"/cosmosdb.document/{entryKey}.json";
         var partitionDef = _corpusDef.MakeObject<CdmDataPartitionDefinition>(CdmObjectType.DataPartitionDef);
 
@@ -58,25 +62,31 @@ internal sealed class PackageModel : IAsyncDisposable
         partitionDef.Arguments.Add("container", [entry.ContainerName]);
         partitionDef.Arguments.Add("operation", [entry.OperationName.ToLowerInvariant()]);
 
-        _entryDec.DataPartitions.Add(partitionDef);
+        entryDec.DataPartitions.Add(partitionDef);
 
         return entryPath;
     }
 
     public FrozenSet<PackageEntry> ExtractEntries()
     {
-        var entries = new HashSet<PackageEntry>(_entryDec.DataPartitions.Count);
+        var entries = new HashSet<PackageEntry>();
+        var entryDec = _manifestDef.Entities.SingleOrDefault(static x => x.EntityName == "cosmosdb.document");
 
-        foreach (var partitionDef in _entryDec.DataPartitions)
+        if (entryDec is not null)
         {
-            var entryPath = _corpusDef.Storage.CorpusPathToAdapterPath(partitionDef.Location);
-            var entryUUID = Guid.Parse(Path.GetFileNameWithoutExtension(entryPath));
-            var entryDatabaseName = partitionDef.Arguments["database"].Single();
-            var entryContainerName = partitionDef.Arguments["container"].Single();
-            var entryOperationName = partitionDef.Arguments["operation"].Single().ToUpperInvariant();
-            var entry = new PackageEntry(entryUUID, entryDatabaseName, entryContainerName, entryOperationName, entryPath);
+            entries.EnsureCapacity(entryDec.DataPartitions.Count);
 
-            entries.Add(entry);
+            foreach (var partitionDef in entryDec.DataPartitions)
+            {
+                var entryPath = _corpusDef.Storage.CorpusPathToAdapterPath(partitionDef.Location);
+                var entryUUID = Guid.Parse(Path.GetFileNameWithoutExtension(entryPath));
+                var entryDatabaseName = partitionDef.Arguments["database"].Single();
+                var entryContainerName = partitionDef.Arguments["container"].Single();
+                var entryOperationName = partitionDef.Arguments["operation"].Single().ToUpperInvariant();
+                var entry = new PackageEntry(entryUUID, entryDatabaseName, entryContainerName, entryOperationName, entryPath);
+
+                entries.Add(entry);
+            }
         }
 
         return entries.ToFrozenSet();
@@ -115,16 +125,15 @@ internal sealed class PackageModel : IAsyncDisposable
 
             entryDec.EntityPath = corpusDef.Storage.AdapterPathToCorpusPath(entryDec.EntityPath);
 
-            return new(package, corpusDef, manifestDef, entryDec);
+            return new(package, corpusDef, manifestDef);
         }
         else
         {
             var manifestRel = package.GetRelationshipsByType(s_manifestRelType).Single();
             var manifestPath = corpusDef.Storage.AdapterPathToCorpusPath(manifestRel.TargetUri.OriginalString);
             var manifestDef = await corpusDef.FetchObjectAsync<CdmManifestDefinition>(manifestPath).ConfigureAwait(false);
-            var entryDec = manifestDef.Entities.Single(static x => x.EntityName == "cosmosdb.document");
 
-            return new(package, corpusDef, manifestDef, entryDec);
+            return new(package, corpusDef, manifestDef);
         }
     }
 
