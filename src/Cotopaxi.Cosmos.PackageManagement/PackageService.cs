@@ -41,7 +41,7 @@ public sealed class PackageService
         Debug.Assert(projectFile is not null);
         Debug.Assert(packageFile is not null);
 
-        _logger.LogInformation("Reading {FilePath}", projectFile);
+        _logger.LogInformation("Reading project {FilePath}", projectFile);
 
         var packageEntries = await CollectPackageEntriesAsync(projectFile, cancellationToken).ConfigureAwait(false);
 
@@ -59,7 +59,7 @@ public sealed class PackageService
                 {
                     foreach (var packageEntry in packageEntries.OrderBy(static x => x.SourcePath, StringComparer.OrdinalIgnoreCase))
                     {
-                        _logger.LogInformation("Reading {FilePath}", packageEntry.SourcePath);
+                        _logger.LogInformation("Reading document collection {FilePath}", packageEntry.SourcePath);
 
                         var documentNodes = default(JsonObject?[]);
 
@@ -118,11 +118,11 @@ public sealed class PackageService
         {
             if (packagingCompleted)
             {
-                _logger.LogInformation("Successfully created {FilePath}", packageFile.FullName);
+                _logger.LogInformation("Successfully created package {FilePath}", packageFile.FullName);
             }
             else
             {
-                _logger.LogError("Aborted creation of {FilePath}", packageFile.FullName);
+                _logger.LogError("Aborted creation of package {FilePath}", packageFile.FullName);
 
                 packageFile.Delete();
             }
@@ -135,6 +135,13 @@ public sealed class PackageService
     {
         Debug.Assert(packageFiles is not null);
         Debug.Assert(cosmosCredential is not null);
+
+        if (packageFiles.Count == 0)
+        {
+            _logger.LogInformation("No packages matching the specified pattern were found");
+
+            return true;
+        }
 
         var applicationVersion = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
 
@@ -149,19 +156,17 @@ public sealed class PackageService
             new CosmosClient(cosmosCredential.ConnectionString, cosmosClientOptions) :
             new CosmosClient(cosmosCredential.AccountEndpoint.AbsoluteUri, cosmosCredential.AuthKeyOrResourceToken, cosmosClientOptions);
 
-        _logger.LogInformation("Deploying {PackageCount} packages to {CosmosEndpoint}", packageFiles.Count, cosmosClient.Endpoint.AbsoluteUri.TrimEnd('/'));
-
-        var deploymentCompleted = false;
-        var deploymentCharge = 0.0;
-
         var partitionKeyPathsRegistry = new Dictionary<(string, string), JsonPointer[]>();
 
-        try
+        foreach (var packageFile in packageFiles)
         {
-            foreach (var packageFile in packageFiles)
-            {
-                _logger.LogInformation("Deploying {FilePath}", packageFile.FullName);
+            _logger.LogInformation("Deploying package {FilePath} to {CosmosEndpoint}", packageFile.FullName, cosmosClient.Endpoint.AbsoluteUri.TrimEnd('/'));
 
+            var deploymentCompleted = false;
+            var deploymentCharge = 0.0;
+
+            try
+            {
                 using (var package = Package.Open(packageFile.FullName, FileMode.Open, FileAccess.Read, FileShare.Read))
                 {
                     var packageEntries = default(FrozenSet<PackageEntry>);
@@ -196,7 +201,7 @@ public sealed class PackageService
                                 partitionKeyPathsRegistry.Add(containerPartitionKeyPathsKey, containerPartitionKeyPaths);
 
                                 _logger.LogInformation(
-                                    "Acquiring partition key paths for {DatabaseName}.{ContainerName} - OK (HTTP {StatusCode}, {RU} RU)",
+                                    "Acquiring partition key configuration for {DatabaseName}.{ContainerName} - OK (HTTP {StatusCode}, {RU} RU)",
                                     packageEntryGroupByDatabase.Key,
                                     packageEntryGroupByContainer.Key,
                                     (int)containerResponse.StatusCode,
@@ -306,26 +311,19 @@ public sealed class PackageService
                         }
                     }
                 }
-            }
 
-            deploymentCompleted = true;
-        }
-        finally
-        {
-            if (deploymentCompleted)
-            {
-                _logger.LogInformation(
-                    "Successfully deployed {PackageCount} packages to {CosmosEndpoint} ({RU} RU)",
-                    packageFiles.Count,
-                    cosmosClient.Endpoint.AbsoluteUri.TrimEnd('/'),
-                    Math.Round(deploymentCharge, 2));
+                deploymentCompleted = true;
             }
-            else
+            finally
             {
-                _logger.LogError(
-                    "Aborted a deployment to {CosmosEndpoint} ({RU} RU)",
-                    cosmosClient.Endpoint.AbsoluteUri.TrimEnd('/'),
-                    Math.Round(deploymentCharge, 2));
+                if (deploymentCompleted)
+                {
+                    _logger.LogInformation("Successfully deployed package {FilePath} ({RU} RU)", packageFile.FullName, Math.Round(deploymentCharge, 2));
+                }
+                else
+                {
+                    _logger.LogError("Failed to deploy package {FilePath} ({RU} RU)", packageFile.FullName, Math.Round(deploymentCharge, 2));
+                }
             }
         }
 
@@ -346,14 +344,14 @@ public sealed class PackageService
         {
             foreach (var projectDatabaseNode in projectNode.Databases.Where(static x => x is not null))
             {
-                if (!CosmosResource.IsProperDatabaseName(projectDatabaseNode!.Name))
+                if (!CosmosResource.IsProperSystemName(projectDatabaseNode!.Name))
                 {
                     throw new JsonException($"JSON deserialization for type '{typeof(ProjectDatabaseNode)}' encountered errors");
                 }
 
                 foreach (var projectContainerNode in projectDatabaseNode.Containers.Where(static x => x is not null))
                 {
-                    if (!CosmosResource.IsProperContainerName(projectContainerNode!.Name))
+                    if (!CosmosResource.IsProperSystemName(projectContainerNode!.Name))
                     {
                         throw new JsonException($"JSON deserialization for type '{typeof(ProjectContainerNode)}' encountered errors");
                     }
@@ -365,7 +363,7 @@ public sealed class PackageService
                             throw new JsonException($"JSON deserialization for type '{typeof(ProjectOperationNode)}' encountered errors");
                         }
 
-                        foreach (var collectionPathPattern in projectOperationNode.Documents.Where(static x => x is not null))
+                        foreach (var collectionPathPattern in projectOperationNode.Documents.Where(static x => x is not null).Distinct(StringComparer.OrdinalIgnoreCase))
                         {
                             var collectionPaths = FindMatchingFiles(projectFile.Directory!, collectionPathPattern!);
 

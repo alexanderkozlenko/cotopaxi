@@ -10,12 +10,7 @@ namespace Cotopaxi.Cosmos.PackageManagement;
 
 internal static class CosmosResource
 {
-    public static bool IsProperDatabaseName(string? value)
-    {
-        return value is { Length: > 0 and <= 256 };
-    }
-
-    public static bool IsProperContainerName(string? value)
+    public static bool IsProperSystemName(string? value)
     {
         return value is { Length: > 0 and <= 256 };
     }
@@ -25,7 +20,7 @@ internal static class CosmosResource
         return value is { Length: > 0 and < 256 };
     }
 
-    public static bool TryGetPartitionKey(JsonObject documentNode, ReadOnlySpan<JsonPointer> partitionKeyPaths, out PartitionKey result)
+    public static bool TryGetPartitionKey(JsonObject documentNode, IEnumerable<JsonPointer> partitionKeyPaths, out PartitionKey result)
     {
         Debug.Assert(documentNode is not null);
 

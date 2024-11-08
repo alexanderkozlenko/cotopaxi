@@ -63,9 +63,8 @@ internal sealed class PackageDeployingHandler : HostCommandHandler
             pattern = Path.GetRelativePath(directoryPath, pattern);
         }
 
-        var directory = new DirectoryInfo(directoryPath);
         var matcher = new Matcher().AddInclude(pattern);
-        var match = matcher.Execute(new DirectoryInfoWrapper(directory));
+        var match = matcher.Execute(new DirectoryInfoWrapper(new(directoryPath)));
 
         return match.Files
             .Select(x => new FileInfo(Path.GetFullPath(Path.Combine(directoryPath, x.Path))))

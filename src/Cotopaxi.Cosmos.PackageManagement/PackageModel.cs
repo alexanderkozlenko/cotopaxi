@@ -45,7 +45,7 @@ internal sealed class PackageModel : IAsyncDisposable
             var manifestPath = _corpusDef.Storage.CorpusPathToAdapterPath(_manifestDef.AtCorpusPath);
             var manifestUri = new Uri(manifestPath, UriKind.Relative);
 
-            _package.CreateRelationship(manifestUri, TargetMode.Internal, s_manifestRelType);
+            _package.CreateRelationship(manifestUri, TargetMode.Internal, s_manifestRelType, "r-f1ec98bc-727c-e28a-8c4e-60bd0572f390");
         }
     }
 

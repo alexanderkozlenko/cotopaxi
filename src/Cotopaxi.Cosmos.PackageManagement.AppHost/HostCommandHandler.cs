@@ -5,7 +5,6 @@
 using System.CommandLine.Hosting;
 using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
-using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -20,11 +19,7 @@ internal abstract class HostCommandHandler : ICommandHandler
 
     public async Task<int> InvokeAsync(InvocationContext context)
     {
-        var version = typeof(Program).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
         var logger = context.GetHost().Services.GetRequiredService<ILogger<HostCommandHandler>>();
-
-        logger.LogInformation("Cotopaxi {Version}", version);
-        logger.LogInformation("");
 
         try
         {
@@ -34,7 +29,7 @@ internal abstract class HostCommandHandler : ICommandHandler
         }
         catch (Exception ex)
         {
-            logger.LogCritical(ex, "ERROR: {Message}", ex.Message);
+            logger.LogCritical(ex, "An unexpected error: {Message}", ex.Message);
 
             return 1;
         }

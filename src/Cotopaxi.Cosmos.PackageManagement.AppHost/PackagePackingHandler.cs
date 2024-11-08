@@ -15,9 +15,9 @@ internal sealed class PackagePackingHandler : HostCommandHandler
 
     protected override Task<bool> InvokeAsync(CommandResult commandResult, CancellationToken cancellationToken)
     {
-        var projectPath = commandResult.GetValueForArgument(PackagePackingCommand.ProjectArgument);
-        var packagePath = commandResult.GetValueForArgument(PackagePackingCommand.PackageArgument);
+        var projectFile = commandResult.GetValueForArgument(PackagePackingCommand.ProjectArgument);
+        var packageFile = commandResult.GetValueForArgument(PackagePackingCommand.PackageArgument);
 
-        return _service.CreatePackageAsync(projectPath, packagePath, cancellationToken);
+        return _service.CreatePackageAsync(projectFile, packageFile, cancellationToken);
     }
 }

@@ -140,11 +140,11 @@ cotopaxi pack $(Build.SourcesDirectory)/project.json $(Build.ArtifactStagingDire
 <p />
 
 ```txt
-Reading /home/vsts/work/1/s/project.json
-Reading /home/vsts/work/1/s/adventureworks/products/bikes.json
+Reading project /home/vsts/work/1/s/project.json
+Reading document collection /home/vsts/work/1/s/adventureworks/products/bikes.json
 Packing cdbpkg:/cosmos.document/db93b376-c02e-4673-8ade-72485eb2c07c.json for UPSERT in adventureworks.products
 Packing cdbpkg:/cosmos.document/db93b376-c02e-4673-8ade-72485eb2c07c.json:$[0] - OK
-Successfully created /home/vsts/work/1/a/package.cdbpkg
+Successfully created package /home/vsts/work/1/a/package.cdbpkg
 ```
 
 <p />
@@ -164,10 +164,9 @@ cotopaxi deploy $(Build.ArtifactStagingDirectory)/**/*.cdbpkg
 <p />
 
 ```txt
-Deploying 1 packages to https://adventureworks.documents.azure.com:443
-Deploying /home/vsts/work/1/a/package.cdbpkg
-Acquiring partition key paths for adventureworks.products - OK (HTTP 200, 2 RU)
+Deploying package /home/vsts/work/1/a/package.cdbpkg to https://adventureworks.documents.azure.com:443
+Acquiring partition key configuration for adventureworks.products - OK (HTTP 200, 2 RU)
 Deploying cdbpkg:/cosmos.document/db93b376-c02e-4673-8ade-72485eb2c07c.json to adventureworks.products
 Executing UPSERT cdbpkg:/cosmos.document/db93b376-c02e-4673-8ade-72485eb2c07c.json:$[0] - OK (HTTP 200, 10.29 RU)
-Successfully deployed 1 packages to https://adventureworks.documents.azure.com:443 (12.29 RU)
+Successfully deployed package /home/vsts/work/1/a/package.cdbpkg (12.29 RU)
 ```

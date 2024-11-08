@@ -1,16 +1,3 @@
----
-uid: urn:topics:schemas
----
-
-### Project JSON schemas
-
-<p />
-
-The package project schema:
-
-<p />
-
-```json
 {
   "$schema": "https://json-schema.org/draft/2020-12",
   "$id": "https://alexanderkozlenko.github.io/cotopaxi/schemas/project.json",
@@ -81,30 +68,3 @@ The package project schema:
     "databases"
   ]
 }
-```
-
-<p />
-
-The document collection schema:
-
-<p />
-
-```json
-{
-  "$schema": "https://json-schema.org/draft/2020-12",
-  "type": "array",
-  "items": {
-    "type": "object",
-    "properties": {
-      "id": {
-        "type": "string",
-        "minLength": 1,
-        "maxLength": 255
-      }
-    },
-    "required": [
-      "id"
-    ]
-  }
-}
-```
