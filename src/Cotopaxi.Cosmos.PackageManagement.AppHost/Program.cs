@@ -15,7 +15,7 @@ public static class Program
 {
     public static Task<int> Main(string[] args)
     {
-        var command = new RootCommand("Cotopaxi - data package manager for Azure Cosmos DB")
+        var command = new RootCommand("The data package manager for Azure Cosmos DB")
         {
             new PackagePackingCommand()
             {
@@ -28,6 +28,7 @@ public static class Program
                 PackageDeployingCommand.EndpointOption,
                 PackageDeployingCommand.KeyOption,
                 PackageDeployingCommand.ConnectionStringOption,
+                PackageDeployingCommand.DryRun,
             },
         };
 

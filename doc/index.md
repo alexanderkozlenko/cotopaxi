@@ -33,8 +33,8 @@ Usage:
   cotopaxi [command] [options]
 
 Commands:
-  pack <project> <package>  Creates a data package for Azure Cosmos DB
-  deploy <package>          Deploys a data package to an Azure Cosmos DB instance
+  pack <project> <package>  Creates a package for an Azure Cosmos DB account
+  deploy <package>          Deploys a package to an Azure Cosmos DB account
 ```
 
 <p />
@@ -44,8 +44,8 @@ Usage:
   cotopaxi pack <project> <package> [options]
 
 Arguments:
-  <project>  Specifies the input project path
-  <package>  Specifies the output package path
+  <project>  The project to create a package from
+  <package>  The package to create
 ```
 
 <p />
@@ -55,27 +55,28 @@ Usage:
   cotopaxi deploy <package> [options]
 
 Arguments:
-  <package>  Specifies the package to deploy
+  <package>  The package to deploy to the Azure Cosmos DB account
 
 Options:
-  --endpoint <endpoint>                    Specifies the Azure Cosmos DB endpoint
-  --key <key>                              Specifies the Azure Cosmos DB account key or resource token
-  --connection-string <connection-string>  Specifies the Azure Cosmos DB connection string
-```
+  --endpoint <endpoint>                    The address of the Azure Cosmos DB account
+  --key <key>                              The account key or resource token for the Azure Cosmos DB account
+  --connection-string <connection-string>  The connection string for the Azure Cosmos DB account
+  --dry-run                                Show which operations would be executed, but don't execute them
+ ```
 
 <p />
 
-The environment variables can also be used to provide authentication information for deployment, however, they have lower precedence:
+Authorization parameters can be specified in environment variables:
 
 <p />
 
-- `COSMOS_ENDPOINT` - specifies the Azure Cosmos DB endpoint.
-- `COSMOS_KEY` - specifies the Azure Cosmos DB account key or resource token.
-- `COSMOS_CONNECTION_STRING` - specifies the Azure Cosmos DB connection string.
+- `AZURE_COSMOS_ENDPOINT` - the address of the Azure Cosmos DB account
+- `AZURE_COSMOS_KEY` - the account key or resource token for the Azure Cosmos DB account
+- `AZURE_COSMOS_CONNECTION_STRING` - the connection string for the Azure Cosmos DB account
 
 <p />
 
-The endpoint parameter takes precedence over the connection string parameter regardless of the configuration source.
+The command-line parameters take precedence over the environment variables and the endpoint parameter takes precedence over the connection string parameter.
 
 <p />
 
@@ -169,4 +170,27 @@ Acquiring partition key configuration for adventureworks.products - OK (HTTP 200
 Deploying cdbpkg:/cosmos.document/db93b376-c02e-4673-8ade-72485eb2c07c.json to adventureworks.products
 Executing UPSERT cdbpkg:/cosmos.document/db93b376-c02e-4673-8ade-72485eb2c07c.json:$[0] - OK (HTTP 200, 10.29 RU)
 Successfully deployed package /home/vsts/work/1/a/package.cdbpkg (12.29 RU)
+```
+
+<p />
+
+### Example: Deploying a package - "dry run" mode
+
+<p />
+
+An example command line and output for an Azure DevOps release:
+
+<p />
+
+```txt
+cotopaxi deploy $(Build.ArtifactStagingDirectory)/**/*.cdbpkg --dry-run
+```
+
+<p />
+
+```txt
+[DRY-RUN] Deploying package /home/vsts/work/1/a/package.cdbpkg
+[DRY-RUN] Deploying cdbpkg:/cosmos.document/db93b376-c02e-4673-8ade-72485eb2c07c.json to adventureworks.products
+[DRY-RUN] Executing UPSERT cdbpkg:/cosmos.document/db93b376-c02e-4673-8ade-72485eb2c07c.json:$[0] ($.id: "3202cb6f-42af-4fe6-a3c5-d61927721e75")
+[DRY-RUN] Successfully deployed package /home/vsts/work/1/a/package.cdbpkg
 ```
