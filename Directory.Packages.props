@@ -1,6 +1,6 @@
 <Project>
   <ItemGroup>
-    <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.45.0" />
+    <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.45.1" />
     <PackageVersion Include="Microsoft.CommonDataModel.ObjectModel" Version="1.7.6" />
     <PackageVersion Include="Microsoft.Extensions.FileSystemGlobbing" Version="8.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
