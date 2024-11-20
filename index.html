@@ -15,7 +15,7 @@
       
       <meta name="docfx:rel" content="">
       
-      
+      <meta name="docfx:disabletocfilter" content="true">
       <meta name="docfx:docurl" content="https://github.com/alexanderkozlenko/cotopaxi/blob/gh-pages/index.md/#L1">
       <meta name="loc:inThisArticle" content="In this article">
       <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
@@ -81,70 +81,17 @@
             <i class="bi bi-list"></i>
           </button>
 
-          <nav id="breadcrumb"></nav>
         </div>
 
         <article data-uid="">
 
-<h3 id="about">About</h3>
+<h2 id="about">About</h2>
 <p></p>
 <p>A toolset for deploying data to Azure Cosmos DB as part of a cloud-native application, designed for straightforward integration with CI/CD pipelines. The package format is based on the Common Data Model (CDM) and the Open Packaging Conventions (OPC) standards.</p>
 <p></p>
-<p>Supported deployment operations:</p>
+<h2 id="example">Example</h2>
 <p></p>
-<ul>
-<li><code>create</code> - creates a document with the <code>id</code> and a partition key value if the document doesn't exist.</li>
-<li><code>update</code> - creates a document with the <code>id</code> and a partition key value if the document doesn't exist, or update if it exists.</li>
-<li><code>delete</code> - deletes a document with the <code>id</code> and a partition key value if the document exists.</li>
-</ul>
-<p></p>
-<p>Any existing system generated properties <code>_attachments</code>, <code>_etag</code>, <code>_rid</code>, <code>_self</code>, and <code>_ts</code> are not included in a package.</p>
-<p></p>
-<h3 id="usage">Usage</h3>
-<p></p>
-<p>The supported command-line interface:</p>
-<p></p>
-<pre><code class="lang-txt">Usage:
-  cotopaxi [command] [options]
-
-Commands:
-  pack &lt;project&gt; &lt;package&gt;  Creates a data package for Azure Cosmos DB
-  deploy &lt;package&gt;          Deploys a data package to an Azure Cosmos DB instance
-</code></pre>
-<p></p>
-<pre><code class="lang-txt">Usage:
-  cotopaxi pack &lt;project&gt; &lt;package&gt; [options]
-
-Arguments:
-  &lt;project&gt;  Specifies the input project path
-  &lt;package&gt;  Specifies the output package path
-</code></pre>
-<p></p>
-<pre><code class="lang-txt">Usage:
-  cotopaxi deploy &lt;package&gt; [options]
-
-Arguments:
-  &lt;package&gt;  Specifies the package to deploy
-
-Options:
-  --endpoint &lt;endpoint&gt;                    Specifies the Azure Cosmos DB endpoint
-  --key &lt;key&gt;                              Specifies the Azure Cosmos DB account key or resource token
-  --connection-string &lt;connection-string&gt;  Specifies the Azure Cosmos DB connection string
-</code></pre>
-<p></p>
-<p>The environment variables can also be used to provide authentication information for deployment, however, they have lower precedence:</p>
-<p></p>
-<ul>
-<li><code>COSMOS_ENDPOINT</code> - specifies the Azure Cosmos DB endpoint.</li>
-<li><code>COSMOS_KEY</code> - specifies the Azure Cosmos DB account key or resource token.</li>
-<li><code>COSMOS_CONNECTION_STRING</code> - specifies the Azure Cosmos DB connection string.</li>
-</ul>
-<p></p>
-<p>The endpoint parameter takes precedence over the connection string parameter regardless of the configuration source.</p>
-<p></p>
-<h3 id="example-creating-a-package">Example: Creating a package</h3>
-<p></p>
-<p>An example package project <code>project.json</code>:</p>
+<p>Creating a package project:</p>
 <p></p>
 <pre><code class="lang-json">{
   &quot;databases&quot;: [
@@ -156,9 +103,7 @@ Options:
           &quot;operations&quot;: [
             {
               &quot;name&quot;: &quot;upsert&quot;,
-              &quot;documents&quot;: [
-                &quot;adventureworks/products/**/*.json&quot;
-              ]
+              &quot;documents&quot;: [ &quot;adventureworks/products/**/*.json&quot; ]
             }
           ]
         }
@@ -168,48 +113,35 @@ Options:
 }
 </code></pre>
 <p></p>
-<p>An example document collection for update <code>adventureworks/products/bikes.json</code>:</p>
+<p>Packing the database documents for deployment in Azure DevOps:</p>
 <p></p>
-<pre><code class="lang-json">[
-  {
-    &quot;id&quot;: &quot;3202cb6f-42af-4fe6-a3c5-d61927721e75&quot;,
-    &quot;category&quot;: &quot;bikes&quot;,
-    &quot;name&quot;: &quot;Mountain-100 Silver, 38&quot;,
-    &quot;price&quot;: &quot;3578.27&quot;
-  }
-]
+<pre><code class="lang-txt">cotopaxi pack $(Build.SourcesDirectory)/adventureworks.json $(Build.StagingDirectory)/adventureworks.cdbpkg
+
+Building package /home/vsts/work/1/a/adventureworks.cdbpkg for project /home/vsts/work/1/s/adventureworks.json
+Packing partition dfcf04cb-886e-ae82-9172-fa4a1acb5d8b for UPSERT in adventureworks\products
+Packing document /home/vsts/work/1/s/adventureworks/products/bikes.json:$[0]
 </code></pre>
 <p></p>
-<p>An example command line and output for an Azure DevOps pipeline:</p>
+<p>Deploying the package to an Azure Cosmos DB account in Azure DevOps:</p>
 <p></p>
-<pre><code class="lang-txt">cotopaxi pack $(Build.SourcesDirectory)/project.json $(Build.ArtifactStagingDirectory)/package.cdbpkg
+<pre><code class="lang-txt">cotopaxi deploy $(System.ArtifactsDirectory)/**/*.cdbpkg
+
+Deploying package /home/vsts/work/r1/a/adventureworks.cdbpkg to https://adventureworks.documents.azure.com:443
+Acquiring configuration for container adventureworks\products - HTTP 200 (2 RU)
+Deploying partition dfcf04cb-886e-ae82-9172-fa4a1acb5d8b for UPSERT in adventureworks\products
+Executing UPSERT dfcf04cb-886e-ae82-9172-fa4a1acb5d8b:$[0] - HTTP 200 (10.29 RU)
 </code></pre>
 <p></p>
-<pre><code class="lang-txt">Reading project /home/vsts/work/1/s/project.json
-Reading document collection /home/vsts/work/1/s/adventureworks/products/bikes.json
-Packing cdbpkg:/cosmos.document/db93b376-c02e-4673-8ade-72485eb2c07c.json for UPSERT in adventureworks.products
-Packing cdbpkg:/cosmos.document/db93b376-c02e-4673-8ade-72485eb2c07c.json:$[0] - OK
-Successfully created package /home/vsts/work/1/a/package.cdbpkg
-</code></pre>
+<h2 id="specifications">Specifications</h2>
 <p></p>
-<h3 id="example-deploying-a-package">Example: Deploying a package</h3>
-<p></p>
-<p>An example command line and output for an Azure DevOps release:</p>
-<p></p>
-<pre><code class="lang-txt">cotopaxi deploy $(Build.ArtifactStagingDirectory)/**/*.cdbpkg
-</code></pre>
-<p></p>
-<pre><code class="lang-txt">Deploying package /home/vsts/work/1/a/package.cdbpkg to https://adventureworks.documents.azure.com:443
-Acquiring partition key configuration for adventureworks.products - OK (HTTP 200, 2 RU)
-Deploying cdbpkg:/cosmos.document/db93b376-c02e-4673-8ade-72485eb2c07c.json to adventureworks.products
-Executing UPSERT cdbpkg:/cosmos.document/db93b376-c02e-4673-8ade-72485eb2c07c.json:$[0] - OK (HTTP 200, 10.29 RU)
-Successfully deployed package /home/vsts/work/1/a/package.cdbpkg (12.29 RU)
-</code></pre>
+<ul>
+<li><a href="https://learn.microsoft.com/en-us/common-data-model">Microsoft - Common Data Model</a></li>
+<li><a href="https://ecma-international.org/publications-and-standards/standards/ecma-376">ECMA - Open Packaging Conventions</a></li>
+</ul>
 
 </article>
 
 
-        <div class="next-article d-print-none border-top" id="nextArticle"></div>
 
       </div>
 

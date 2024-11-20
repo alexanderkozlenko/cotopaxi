@@ -2,9 +2,9 @@
 <html>
   <head>
     <meta charset="utf-8">
-      <title> </title>
+      <title>cotopaxi pack </title>
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <meta name="title" content=" ">
+      <meta name="title" content="cotopaxi pack ">
       
       
       <link rel="icon" href="../images/app-32.png">
@@ -15,8 +15,8 @@
       
       <meta name="docfx:rel" content="../">
       
-      
-      <meta name="docfx:docurl" content="https://github.com/alexanderkozlenko/cotopaxi/blob/gh-pages/topics/schemas.md/#L1">
+      <meta name="docfx:disabletocfilter" content="true">
+      <meta name="docfx:docurl" content="https://github.com/alexanderkozlenko/cotopaxi/blob/gh-pages/topics/cli-pack.md/#L1">
       <meta name="loc:inThisArticle" content="In this article">
       <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
       <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
@@ -81,15 +81,115 @@
             <i class="bi bi-list"></i>
           </button>
 
-          <nav id="breadcrumb"></nav>
         </div>
 
-        <article data-uid="urn:topics:schemas">
+        <article data-uid="">
+<h1 id="cotopaxi-pack">cotopaxi pack</h1>
 
-<h3 id="project-json-schemas">Project JSON schemas</h3>
 <p></p>
-<p>The package project schema:</p>
+<h2 id="name">Name</h2>
 <p></p>
+<p><code>cotopaxi pack</code> - Packs the documents into an Azure Cosmos DB package.</p>
+<p></p>
+<h2 id="synopsis">Synopsis</h2>
+<p></p>
+<pre><code class="lang-txt">cotopaxi pack &lt;project&gt; &lt;package&gt; [--version &lt;version&gt;]
+
+cotopaxi pack -h|--help
+</code></pre>
+<p></p>
+<h2 id="description">Description</h2>
+<p></p>
+<p>The package format supports the following deployment operations:</p>
+<p></p>
+<ul>
+<li><code>create</code><br>
+Creates a document with the identifier and partition key if the document does not exist.</li>
+<li><code>update</code><br>
+Creates a document with the identifier and partition key if the document does not exist, or update if it exists.</li>
+<li><code>delete</code><br>
+Deletes a document with the identifier and partition key if the document exists.</li>
+</ul>
+<p></p>
+<p>A documents file must be a JSON array of objects, where each object has the <code>$.id</code> property.</p>
+<p></p>
+<p>The project format supports relative globbing patterns in <code>$.databases[*].containers[*].operations[*].documents[*]</code>.</p>
+<p></p>
+<h2 id="arguments">Arguments</h2>
+<p></p>
+<ul>
+<li><code>project</code><br>
+The path to the project that specifies documents to pack.</li>
+<li><code>package</code><br>
+The path to the package to create.</li>
+</ul>
+<p></p>
+<h2 id="options">Options</h2>
+<p></p>
+<ul>
+<li><code>--version &lt;version&gt;</code><br>
+Sets the package version information.</li>
+</ul>
+<p></p>
+<ul>
+<li><code>-h|--help</code><br>
+Prints out a description of how to use the command.</li>
+</ul>
+<p></p>
+<h2 id="examples">Examples</h2>
+<p></p>
+<p>Packing documents locally:</p>
+<p></p>
+<pre><code class="lang-txt">cotopaxi pack example.json example.cdbpkg
+</code></pre>
+<p></p>
+<p>Packing documents with an Azure DevOps pipeline:</p>
+<p></p>
+<pre><code class="lang-txt">cotopaxi pack $(Build.SourcesDirectory)/example.json $(Build.StagingDirectory)/example.cdbpkg
+</code></pre>
+<p></p>
+<p>Packing documents with an Azure DevOps pipeline with commit ID as package version:</p>
+<p></p>
+<pre><code class="lang-txt">cotopaxi pack $(Build.SourcesDirectory)/example.json $(Build.StagingDirectory)/example.cdbpkg --version $(Build.SourceVersion)
+</code></pre>
+<p></p>
+<p>The corresponding project file <code>example.json</code>:</p>
+<p></p>
+<pre><code class="lang-json">{
+  &quot;databases&quot;: [
+    {
+      &quot;name&quot;: &quot;adventureworks&quot;,
+      &quot;containers&quot;: [
+        {
+          &quot;name&quot;: &quot;products&quot;,
+          &quot;operations&quot;: [
+            {
+              &quot;name&quot;: &quot;upsert&quot;,
+              &quot;documents&quot;: [ &quot;adventureworks/products/**/*.json&quot; ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+</code></pre>
+<p></p>
+<p>The corresponding documents file <code>adventureworks/products/bikes.json</code>:</p>
+<p></p>
+<pre><code class="lang-json">[
+  {
+    &quot;id&quot;: &quot;3202cb6f-42af-4fe6-a3c5-d61927721e75&quot;,
+    &quot;category&quot;: &quot;bikes&quot;,
+    &quot;name&quot;: &quot;Mountain-100 Silver, 38&quot;
+  }
+]
+</code></pre>
+<p></p>
+<h2 id="schemas">Schemas</h2>
+<p></p>
+<details>
+<summary>The project file schema</summary>
 <pre><code class="lang-json">{
   &quot;$schema&quot;: &quot;https://json-schema.org/draft/2020-12&quot;,
   &quot;$id&quot;: &quot;https://alexanderkozlenko.github.io/cotopaxi/schemas/project.json&quot;,
@@ -161,9 +261,10 @@
   ]
 }
 </code></pre>
+</details>
 <p></p>
-<p>The document collection schema:</p>
-<p></p>
+<details>
+<summary>The documents file schema</summary>
 <pre><code class="lang-json">{
   &quot;$schema&quot;: &quot;https://json-schema.org/draft/2020-12&quot;,
   &quot;type&quot;: &quot;array&quot;,
@@ -182,11 +283,11 @@
   }
 }
 </code></pre>
+</details>
 
 </article>
 
 
-        <div class="next-article d-print-none border-top" id="nextArticle"></div>
 
       </div>
 

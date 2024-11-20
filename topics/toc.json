@@ -1,2 +1,2 @@
 
-{"items":[{"name":"Overview","href":"../index.html","topicHref":"../index.html"},{"name":"Schemas","href":"schemas.html","topicHref":"schemas.html"},{"name":"Package","href":"package.html","topicHref":"package.html"}]}
+{"items":[{"name":"Overview","href":"../index.html","topicHref":"../index.html"},{"name":"cotopaxi pack","href":"cli-pack.html","topicHref":"cli-pack.html"},{"name":"cotopaxi deploy","href":"cli-deploy.html","topicHref":"cli-deploy.html"},{"name":"cotopaxi checkpoint","href":"cli-checkpoint.html","topicHref":"cli-checkpoint.html"}]}

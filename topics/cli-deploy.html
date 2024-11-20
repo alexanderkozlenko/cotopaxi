@@ -2,9 +2,9 @@
 <html>
   <head>
     <meta charset="utf-8">
-      <title> </title>
+      <title>cotopaxi deploy </title>
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <meta name="title" content=" ">
+      <meta name="title" content="cotopaxi deploy ">
       
       
       <link rel="icon" href="../images/app-32.png">
@@ -15,8 +15,8 @@
       
       <meta name="docfx:rel" content="../">
       
-      
-      <meta name="docfx:docurl" content="https://github.com/alexanderkozlenko/cotopaxi/blob/gh-pages/topics/package.md/#L1">
+      <meta name="docfx:disabletocfilter" content="true">
+      <meta name="docfx:docurl" content="https://github.com/alexanderkozlenko/cotopaxi/blob/gh-pages/topics/cli-deploy.md/#L1">
       <meta name="loc:inThisArticle" content="In this article">
       <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
       <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
@@ -81,58 +81,88 @@
             <i class="bi bi-list"></i>
           </button>
 
-          <nav id="breadcrumb"></nav>
         </div>
 
-        <article data-uid="urn:topics:package">
+        <article data-uid="">
+<h1 id="cotopaxi-deploy">cotopaxi deploy</h1>
 
-<h3 id="format">Format</h3>
 <p></p>
-<ul>
-<li>The CDM manifest has a package-level OPC relationship of role <code>http://microsoft.com/cdm/schema.manifest.cdm.json</code>.</li>
-<li>The CDM entities are defined in the <code>/cosmosdb.entities.cdm.json</code> document:</li>
-</ul>
+<h2 id="name">Name</h2>
 <p></p>
-<pre><code class="lang-json">{
-  &quot;jsonSchemaSemanticVersion&quot;: &quot;1.1.0&quot;,
-  &quot;imports&quot;: [
-    {
-      &quot;corpusPath&quot;: &quot;cdm:/foundations.cdm.json&quot;
-    }
-  ],
-  &quot;definitions&quot;: [
-    {
-      &quot;entityName&quot;: &quot;cosmosdb.document&quot;,
-      &quot;hasAttributes&quot;: [
-        {
-          &quot;name&quot;: &quot;database&quot;,
-          &quot;dataFormat&quot;: &quot;String&quot;
-        },
-        {
-          &quot;name&quot;: &quot;container&quot;,
-          &quot;dataFormat&quot;: &quot;String&quot;
-        },
-        {
-          &quot;name&quot;: &quot;operation&quot;,
-          &quot;dataFormat&quot;: &quot;String&quot;
-        }
-      ]
-    }
-  ]
-}
+<p><code>cotopaxi deploy</code> - Deploys the package or packages to the Azure Cosmos DB account.</p>
+<p></p>
+<h2 id="synopsis">Synopsis</h2>
+<p></p>
+<pre><code class="lang-txt">cotopaxi deploy &lt;package&gt;
+  [--endpoint &lt;endpoint&gt; --key &lt;key&gt;|--connection-string &lt;connection-string&gt;]
+  [--dry-run]
+
+cotopaxi deploy -h|--help
 </code></pre>
 <p></p>
-<h3 id="references">References</h3>
+<h2 id="description">Description</h2>
+<p></p>
+<p>The command uses a connection to the Azure Cosmos DB account to get partition keys configuration for regular and &quot;dry run&quot; modes.</p>
+<p></p>
+<h2 id="arguments">Arguments</h2>
 <p></p>
 <ul>
-<li><a href="https://learn.microsoft.com/en-us/common-data-model">Microsoft - Common Data Model</a></li>
-<li><a href="https://ecma-international.org/publications-and-standards/standards/ecma-376">ECMA - Open Packaging Conventions</a></li>
+<li><code>package</code><br>
+The path to a package or packages to deploy to the Azure Cosmos DB account (globbing patterns are supported).</li>
 </ul>
+<p></p>
+<h2 id="options">Options</h2>
+<p></p>
+<ul>
+<li><code>--endpoint &lt;endpoint&gt;</code><br>
+The address of the Azure Cosmos DB account. Can be specified with <code>AZURE_COSMOS_ENDPOINT</code> environment variable. Must be used with <code>--key</code> option or <code>AZURE_COSMOS_KEY</code> environment variable.</li>
+</ul>
+<p></p>
+<ul>
+<li><code>--key &lt;key&gt;</code><br>
+The account key or resource token for the Azure Cosmos DB account. Can be specified with <code>AZURE_COSMOS_KEY</code> environment variable. Must be used with <code>--endpoint</code> option.</li>
+</ul>
+<p></p>
+<ul>
+<li><code>--connection-string &lt;connection-string&gt;</code><br>
+The connection string for the Azure Cosmos DB account. Can be specified with <code>AZURE_COSMOS_CONNECTION_STRING</code> environment variable.</li>
+</ul>
+<p></p>
+<ul>
+<li><code>--dry-run</code><br>
+Show which operations would be executed instead of actually executing them.</li>
+</ul>
+<p></p>
+<ul>
+<li><code>-h|--help</code><br>
+Prints out a description of how to use the command.</li>
+</ul>
+<p></p>
+<h2 id="examples">Examples</h2>
+<p></p>
+<p>Deploying a package locally:</p>
+<p></p>
+<pre><code class="lang-txt">cotopaxi deploy example.cdbpkg --endpoint https://example.documents.azure.com:443 --key $key$
+</code></pre>
+<p></p>
+<p>Deploying a package locally using <code>AZURE_COSMOS_KEY</code> environment variable:</p>
+<p></p>
+<pre><code class="lang-txt">cotopaxi deploy example.cdbpkg --endpoint https://example.documents.azure.com:443
+</code></pre>
+<p></p>
+<p>Deploying packages with an Azure DevOps release using <code>AZURE_COSMOS_ENDPOINT</code> and <code>AZURE_COSMOS_KEY</code> environment variables:</p>
+<p></p>
+<pre><code class="lang-txt">cotopaxi deploy $(System.ArtifactsDirectory)/**/*.cdbpkg
+</code></pre>
+<p></p>
+<p>Showing operations for deployment with an Azure DevOps release using <code>AZURE_COSMOS_ENDPOINT</code> and <code>AZURE_COSMOS_KEY</code> environment variables:</p>
+<p></p>
+<pre><code class="lang-txt">cotopaxi deploy $(System.ArtifactsDirectory)/**/*.cdbpkg --dry-run
+</code></pre>
 
 </article>
 
 
-        <div class="next-article d-print-none border-top" id="nextArticle"></div>
 
       </div>
 
