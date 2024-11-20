@@ -2,7 +2,7 @@
 
 namespace Cotopaxi.Cosmos.PackageManagement;
 
-internal sealed class PackageOperationComparer : IComparer<string?>
+public sealed class PackageOperationComparer : IComparer<string?>
 {
     public static readonly IComparer<string?> Instance = new PackageOperationComparer();
 

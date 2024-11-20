@@ -1,6 +1,8 @@
 - name: Overview
   href: ../index.md
-- name: Schemas
-  href: schemas.md
-- name: Package
-  href: package.md
+- name: cotopaxi pack
+  href: cli-pack.md
+- name: cotopaxi deploy
+  href: cli-deploy.md
+- name: cotopaxi checkpoint
+  href: cli-checkpoint.md

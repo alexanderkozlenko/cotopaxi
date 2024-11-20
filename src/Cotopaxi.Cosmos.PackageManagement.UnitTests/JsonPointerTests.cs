@@ -5,7 +5,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cotopaxi.Cosmos.PackageManagement.UnitTests;
 
 [TestClass]
-public sealed class JsonPointerTest
+public sealed class JsonPointerTests
 {
     [DataTestMethod]
     [DataRow("", new string[] { })]

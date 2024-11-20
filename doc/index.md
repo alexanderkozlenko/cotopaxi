@@ -1,4 +1,4 @@
-### About
+## About
 
 <p />
 
@@ -6,85 +6,11 @@ A toolset for deploying data to Azure Cosmos DB as part of a cloud-native applic
 
 <p />
 
-Supported deployment operations:
+## Example
 
 <p />
 
-- `create` - creates a document with the `id` and a partition key value if the document doesn't exist.
-- `update` - creates a document with the `id` and a partition key value if the document doesn't exist, or update if it exists.
-- `delete` - deletes a document with the `id` and a partition key value if the document exists.
-
-<p />
-
-Any existing system generated properties `_attachments`, `_etag`, `_rid`, `_self`, and `_ts` are not included in a package.
-
-<p />
-
-### Usage
-
-<p />
-
-The supported command-line interface:
-
-<p />
-
-```txt
-Usage:
-  cotopaxi [command] [options]
-
-Commands:
-  pack <project> <package>  Creates a package for an Azure Cosmos DB account
-  deploy <package>          Deploys a package to an Azure Cosmos DB account
-```
-
-<p />
-
-```txt
-Usage:
-  cotopaxi pack <project> <package> [options]
-
-Arguments:
-  <project>  The project to create a package from
-  <package>  The package to create
-```
-
-<p />
-
-```txt
-Usage:
-  cotopaxi deploy <package> [options]
-
-Arguments:
-  <package>  The package to deploy to the Azure Cosmos DB account
-
-Options:
-  --endpoint <endpoint>                    The address of the Azure Cosmos DB account
-  --key <key>                              The account key or resource token for the Azure Cosmos DB account
-  --connection-string <connection-string>  The connection string for the Azure Cosmos DB account
-  --dry-run                                Show which operations would be executed, but don't execute them
- ```
-
-<p />
-
-Authorization parameters can be specified in environment variables:
-
-<p />
-
-- `AZURE_COSMOS_ENDPOINT` - the address of the Azure Cosmos DB account
-- `AZURE_COSMOS_KEY` - the account key or resource token for the Azure Cosmos DB account
-- `AZURE_COSMOS_CONNECTION_STRING` - the connection string for the Azure Cosmos DB account
-
-<p />
-
-The command-line parameters take precedence over the environment variables and the endpoint parameter takes precedence over the connection string parameter.
-
-<p />
-
-### Example: Creating a package
-
-<p />
-
-An example package project `project.json`:
+Creating a package project:
 
 <p />
 
@@ -99,9 +25,7 @@ An example package project `project.json`:
           "operations": [
             {
               "name": "upsert",
-              "documents": [
-                "adventureworks/products/**/*.json"
-              ]
+              "documents": [ "adventureworks/products/**/*.json" ]
             }
           ]
         }
@@ -113,84 +37,38 @@ An example package project `project.json`:
 
 <p />
 
-An example document collection for update `adventureworks/products/bikes.json`:
-
-<p />
-
-```json
-[
-  {
-    "id": "3202cb6f-42af-4fe6-a3c5-d61927721e75",
-    "category": "bikes",
-    "name": "Mountain-100 Silver, 38",
-    "price": "3578.27"
-  }
-]
-```
-
-<p />
-
-An example command line and output for an Azure DevOps pipeline:
+Packing the database documents for deployment in Azure DevOps:
 
 <p />
 
 ```txt
-cotopaxi pack $(Build.SourcesDirectory)/project.json $(Build.ArtifactStagingDirectory)/package.cdbpkg
+cotopaxi pack $(Build.SourcesDirectory)/adventureworks.json $(Build.StagingDirectory)/adventureworks.cdbpkg
+
+Building package /home/vsts/work/1/a/adventureworks.cdbpkg for project /home/vsts/work/1/s/adventureworks.json
+Packing partition dfcf04cb-886e-ae82-9172-fa4a1acb5d8b for UPSERT in adventureworks\products
+Packing document /home/vsts/work/1/s/adventureworks/products/bikes.json:$[0]
 ```
+
+<p />
+
+Deploying the package to an Azure Cosmos DB account in Azure DevOps:
 
 <p />
 
 ```txt
-Reading project /home/vsts/work/1/s/project.json
-Reading document collection /home/vsts/work/1/s/adventureworks/products/bikes.json
-Packing cdbpkg:/cosmos.document/db93b376-c02e-4673-8ade-72485eb2c07c.json for UPSERT in adventureworks.products
-Packing cdbpkg:/cosmos.document/db93b376-c02e-4673-8ade-72485eb2c07c.json:$[0] - OK
-Successfully created package /home/vsts/work/1/a/package.cdbpkg
+cotopaxi deploy $(System.ArtifactsDirectory)/**/*.cdbpkg
+
+Deploying package /home/vsts/work/r1/a/adventureworks.cdbpkg to https://adventureworks.documents.azure.com:443
+Acquiring configuration for container adventureworks\products - HTTP 200 (2 RU)
+Deploying partition dfcf04cb-886e-ae82-9172-fa4a1acb5d8b for UPSERT in adventureworks\products
+Executing UPSERT dfcf04cb-886e-ae82-9172-fa4a1acb5d8b:$[0] - HTTP 200 (10.29 RU)
 ```
 
 <p />
 
-### Example: Deploying a package
+## Specifications
 
 <p />
 
-An example command line and output for an Azure DevOps release:
-
-<p />
-
-```txt
-cotopaxi deploy $(Build.ArtifactStagingDirectory)/**/*.cdbpkg
-```
-
-<p />
-
-```txt
-Deploying package /home/vsts/work/1/a/package.cdbpkg to https://adventureworks.documents.azure.com:443
-Acquiring partition key configuration for adventureworks.products - OK (HTTP 200, 2 RU)
-Deploying cdbpkg:/cosmos.document/db93b376-c02e-4673-8ade-72485eb2c07c.json to adventureworks.products
-Executing UPSERT cdbpkg:/cosmos.document/db93b376-c02e-4673-8ade-72485eb2c07c.json:$[0] - OK (HTTP 200, 10.29 RU)
-Successfully deployed package /home/vsts/work/1/a/package.cdbpkg (12.29 RU)
-```
-
-<p />
-
-### Example: Deploying a package - "dry run" mode
-
-<p />
-
-An example command line and output for an Azure DevOps release:
-
-<p />
-
-```txt
-cotopaxi deploy $(Build.ArtifactStagingDirectory)/**/*.cdbpkg --dry-run
-```
-
-<p />
-
-```txt
-[DRY-RUN] Deploying package /home/vsts/work/1/a/package.cdbpkg
-[DRY-RUN] Deploying cdbpkg:/cosmos.document/db93b376-c02e-4673-8ade-72485eb2c07c.json to adventureworks.products
-[DRY-RUN] Executing UPSERT cdbpkg:/cosmos.document/db93b376-c02e-4673-8ade-72485eb2c07c.json:$[0] ($.id: "3202cb6f-42af-4fe6-a3c5-d61927721e75")
-[DRY-RUN] Successfully deployed package /home/vsts/work/1/a/package.cdbpkg
-```
+- [Microsoft - Common Data Model](https://learn.microsoft.com/en-us/common-data-model)
+- [ECMA - Open Packaging Conventions](https://ecma-international.org/publications-and-standards/standards/ecma-376)

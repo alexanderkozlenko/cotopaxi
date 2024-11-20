@@ -2,11 +2,10 @@
 
 namespace Cotopaxi.Cosmos.PackageManagement;
 
-internal sealed record class PackageEntry
+public sealed record class ProjectSource
 (
-    Guid UUID,
+    string FilePath,
     string DatabaseName,
     string ContainerName,
-    string OperationName,
-    string SourcePath
+    string OperationName
 );

@@ -15,20 +15,29 @@ public static class Program
 {
     public static Task<int> Main(string[] args)
     {
-        var command = new RootCommand("The data package manager for Azure Cosmos DB")
+        var command = new RootCommand("The package manager for Azure Cosmos DB")
         {
-            new PackagePackingCommand()
+            new AppPackCommand()
             {
-                PackagePackingCommand.ProjectArgument,
-                PackagePackingCommand.PackageArgument,
+                AppPackCommand.ProjectArgument,
+                AppPackCommand.PackageArgument,
+                AppPackCommand.VersionOption,
             },
-            new PackageDeployingCommand()
+            new AppDeployCommand()
             {
-                PackageDeployingCommand.PackageArgument,
-                PackageDeployingCommand.EndpointOption,
-                PackageDeployingCommand.KeyOption,
-                PackageDeployingCommand.ConnectionStringOption,
-                PackageDeployingCommand.DryRun,
+                AppDeployCommand.PackageArgument,
+                AppDeployCommand.EndpointOption,
+                AppDeployCommand.KeyOption,
+                AppDeployCommand.ConnectionStringOption,
+                AppDeployCommand.DryRunOption,
+            },
+            new AppCheckpointCommand()
+            {
+                AppCheckpointCommand.SourcePackageArgument,
+                AppCheckpointCommand.RevertPackageArgument,
+                AppCheckpointCommand.EndpointOption,
+                AppCheckpointCommand.KeyOption,
+                AppCheckpointCommand.ConnectionStringOption,
             },
         };
 
@@ -38,7 +47,7 @@ public static class Program
             .UseParseErrorReporting()
             .UseExceptionHandler()
             .UseVersionOption()
-            .UseHelp(["-?", "-h", "--help"]);
+            .UseHelp(["-h", "--help"]);
 
         var parser = builder.Build();
 
@@ -55,14 +64,15 @@ public static class Program
         builder
             .ConfigureLogging(ConfigureLogging)
             .ConfigureServices(ConfigureServices)
-            .UseCommandHandler<PackagePackingCommand, PackagePackingHandler>()
-            .UseCommandHandler<PackageDeployingCommand, PackageDeployingHandler>();
+            .UseCommandHandler<AppPackCommand, AppPackHandler>()
+            .UseCommandHandler<AppDeployCommand, AppDeployHandler>()
+            .UseCommandHandler<AppCheckpointCommand, AppCheckpointHandler>();
     }
 
     private static void ConfigureServices(IServiceCollection services)
     {
         services
-            .AddSingleton<PackageService>();
+            .AddSingleton<PackagingService>();
     }
 
     private static void ConfigureLogging(ILoggingBuilder builder)

@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cotopaxi.Cosmos.PackageManagement.UnitTests;
 
 [TestClass]
-public sealed class JsonNodeExtensionsTest
+public sealed class JsonNodeExtensionsTests
 {
     [DataTestMethod]
     [DataRow("", "$")]

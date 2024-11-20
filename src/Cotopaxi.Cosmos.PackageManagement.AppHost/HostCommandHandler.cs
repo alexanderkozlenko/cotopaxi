@@ -6,6 +6,8 @@ using System.CommandLine.Hosting;
 using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileSystemGlobbing;
+using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 using Microsoft.Extensions.Logging;
 
 namespace Cotopaxi.Cosmos.PackageManagement.AppHost;
@@ -29,11 +31,28 @@ internal abstract class HostCommandHandler : ICommandHandler
         }
         catch (Exception ex)
         {
-            logger.LogCritical(ex, "An unexpected error: {Message}", ex.Message);
+            logger.LogCritical(ex, "Error: {Message}", ex.Message);
 
             return 1;
         }
     }
 
     protected abstract Task<bool> InvokeAsync(CommandResult commandResult, CancellationToken cancellationToken);
+
+    protected static string[] GetFiles(string path, string searchPattern)
+    {
+        if (Path.IsPathRooted(searchPattern))
+        {
+            path = Path.GetPathRoot(searchPattern)!;
+            searchPattern = Path.GetRelativePath(path, searchPattern);
+        }
+
+        var matcher = new Matcher().AddInclude(searchPattern);
+        var match = matcher.Execute(new DirectoryInfoWrapper(new(path)));
+
+        return match.Files
+            .Select(x => Path.GetFullPath(Path.Combine(path, x.Path)))
+            .Order(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
 }
