@@ -2,11 +2,10 @@
 
 A toolset for deploying data to Azure Cosmos DB as part of a cloud-native application, designed for straightforward integration with CI/CD pipelines. The package format is based on the Common Data Model (CDM) and the Open Packaging Conventions (OPC) standards.
 
-## Packages
+## Packages Status
 
-|ID|Stable|Preview|
-|:-|:-|:-|
-|cotopaxi|[![NuGet](https://img.shields.io/nuget/v/cotopaxi?style=flat-square)](https://nuget.org/packages/cotopaxi)|[![NuGet](https://img.shields.io/nuget/vpre/cotopaxi?style=flat-square)](https://nuget.org/packages/cotopaxi)|
+[![NuGet Status (Stable)](https://img.shields.io/nuget/v/cotopaxi.svg?label=nuget%3A%20stable&style=flat-square)](https://www.nuget.org/packages/cotopaxi)
+[![NuGet Status (Latest)](https://img.shields.io/nuget/vpre/cotopaxi.svg?label=nuget%3A%20latest&style=flat-square)](https://www.nuget.org/packages/cotopaxi/absoluteLatest)
 
 ## Documentation
 
