@@ -10,7 +10,7 @@ A toolset for deploying data to Azure Cosmos DB as part of a cloud-native applic
 
 <p />
 
-## Example
+## How to Use
 
 <p />
 
