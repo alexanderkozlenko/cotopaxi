@@ -7,7 +7,7 @@
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.1" />
     <PackageVersion Include="MSTest" Version="3.7.1" />
     <PackageVersion Include="System.CommandLine.Hosting" Version="0.4.0-alpha.22272.1" />
-    <PackageVersion Include="System.IO.Hashing" Version="9.0.0" />
+    <PackageVersion Include="System.IO.Hashing" Version="9.0.1" />
     <PackageVersion Include="System.IO.Packaging" Version="9.0.1" />
   </ItemGroup>
 </Project>
