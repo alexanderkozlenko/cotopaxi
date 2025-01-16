@@ -51,7 +51,7 @@ The address of the Azure Cosmos DB account. Can be specified with `AZURE_COSMOS_
 <p />
 
 - `--key <key>`  
-The account key or resource token for the Azure Cosmos DB account. Can be specified with `AZURE_COSMOS_KEY` environment variable. Must be used with `--endpoint` option.
+The account key or resource token for the Azure Cosmos DB account. Can be specified with `AZURE_COSMOS_KEY` environment variable. Must be used with `--endpoint` option or `AZURE_COSMOS_ENDPOINT` environment variable.
 
 <p />
 
