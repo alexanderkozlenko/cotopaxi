@@ -37,6 +37,8 @@ public sealed partial class PackagingService
             new CosmosClient(cosmosCredential.ConnectionString, cosmosClientOptions) :
             new CosmosClient(cosmosCredential.AccountEndpoint.AbsoluteUri, cosmosCredential.AuthKeyOrResourceToken, cosmosClientOptions);
 
+        _logger.LogInformation("Building rollback package {RevertPath} using {CosmosEndpoint}", revertPackagePath, cosmosClient.Endpoint);
+
         var partitionKeyPathsRegistry = new Dictionary<(string, string), JsonPointer[]>();
 
         Directory.CreateDirectory(Path.GetDirectoryName(revertPackagePath)!);
@@ -54,11 +56,7 @@ public sealed partial class PackagingService
 
             foreach (var sourcePackagePath in sourcePackagePaths)
             {
-                _logger.LogInformation(
-                    "Building rollback package {SourcePath} for package {RevertPath} using {CosmosEndpoint}",
-                    sourcePackagePath,
-                    revertPackagePath,
-                    cosmosClient.Endpoint);
+                _logger.LogInformation("Adding rollback operations for package {SourcePath}", sourcePackagePath);
 
                 using var sourcePackage = Package.Open(sourcePackagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
 
