@@ -49,7 +49,7 @@ Packing the database documents for deployment in Azure DevOps:
 cotopaxi pack $(Build.SourcesDirectory)/adventureworks.json $(Build.StagingDirectory)/adventureworks.cdbpkg
 
 Building package /home/vsts/work/1/a/adventureworks.cdbpkg for project /home/vsts/work/1/s/adventureworks.json
-Packing partition dfcf04cb-886e-ae82-9172-fa4a1acb5d8b for UPSERT in adventureworks\products
+Packing document collection dfcf04cb-886e-ae82-9172-fa4a1acb5d8b as UPSERT operations for adventureworks\products
 Packing document /home/vsts/work/1/s/adventureworks/products/bikes.json:$[0]
 ```
 
@@ -63,9 +63,9 @@ Deploying the package to an Azure Cosmos DB account in Azure DevOps:
 cotopaxi deploy $(System.ArtifactsDirectory)/**/*.cdbpkg
 
 Deploying package /home/vsts/work/r1/a/adventureworks.cdbpkg to https://adventureworks.documents.azure.com:443
-Acquiring configuration for container adventureworks\products - HTTP 200 (2 RU)
-Deploying partition dfcf04cb-886e-ae82-9172-fa4a1acb5d8b for UPSERT in adventureworks\products
-Executing UPSERT dfcf04cb-886e-ae82-9172-fa4a1acb5d8b:$[0] - HTTP 200 (10.29 RU)
+Acquiring container properties for adventureworks\products - HTTP 200 (2 RU)
+Deploying document collection dfcf04cb-886e-ae82-9172-fa4a1acb5d8b as UPSERT operations in adventureworks\products
+Executing UPSERT document dfcf04cb-886e-ae82-9172-fa4a1acb5d8b:$[0] - HTTP 200 (10.29 RU)
 ```
 
 <p />

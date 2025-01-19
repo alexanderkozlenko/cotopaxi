@@ -107,7 +107,7 @@ public sealed partial class PackagingService
                             partitionKeyPathsRegistry.Add(containerPartitionKeyPathsKey, containerPartitionKeyPaths);
 
                             _logger.LogInformation(
-                                "Acquiring configuration for container {DatabaseName}\\{ContainerName} - HTTP {StatusCode} ({RU} RU)",
+                                "Acquiring container properties for {DatabaseName}\\{ContainerName} - HTTP {StatusCode} ({RU} RU)",
                                 sourcePackagePartitionGroupByDatabase.Key,
                                 sourcePackagePartitionGroupByContainer.Key,
                                 (int)containerResponse.StatusCode,
@@ -129,7 +129,7 @@ public sealed partial class PackagingService
                             foreach (var sourcePackagePartition in sourcePackagePartitionsByOperation)
                             {
                                 _logger.LogInformation(
-                                    "Fetching snapshots for partition {PartitionName} from {DatabaseName}\\{ContainerName}",
+                                    "Fetching snapshots for document collection {PartitionName} from {DatabaseName}\\{ContainerName}",
                                     sourcePackagePartition.PartitionName,
                                     sourcePackagePartition.DatabaseName,
                                     sourcePackagePartition.ContainerName);

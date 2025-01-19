@@ -102,7 +102,7 @@ public sealed partial class PackagingService
                         if (!dryRun)
                         {
                             _logger.LogInformation(
-                               "Acquiring configuration for container {DatabaseName}\\{ContainerName} - HTTP {StatusCode} ({RU} RU)",
+                               "Acquiring container properties for {DatabaseName}\\{ContainerName} - HTTP {StatusCode} ({RU} RU)",
                                packagePartitionGroupByDatabase.Key,
                                packagePartitionGroupByContainer.Key,
                                (int)containerResponse.StatusCode,
@@ -111,7 +111,7 @@ public sealed partial class PackagingService
                         else
                         {
                             _logger.LogInformation(
-                                "[dry-run] Acquiring configuration for container {DatabaseName}\\{ContainerName} - HTTP {StatusCode} ({RU} RU)",
+                                "[dry-run] Acquiring container properties for {DatabaseName}\\{ContainerName} - HTTP {StatusCode} ({RU} RU)",
                                 packagePartitionGroupByDatabase.Key,
                                 packagePartitionGroupByContainer.Key,
                                 (int)containerResponse.StatusCode,
@@ -133,7 +133,7 @@ public sealed partial class PackagingService
                             if (!dryRun)
                             {
                                 _logger.LogInformation(
-                                    "Deploying partition {PartitionName} for {OperationName} in {DatabaseName}\\{ContainerName}",
+                                    "Deploying document collection {PartitionName} as {OperationName} operations in {DatabaseName}\\{ContainerName}",
                                     packagePartition.PartitionName,
                                     packagePartition.OperationName.ToUpperInvariant(),
                                     packagePartition.DatabaseName,
@@ -142,7 +142,7 @@ public sealed partial class PackagingService
                             else
                             {
                                 _logger.LogInformation(
-                                    "[dry-run] Deploying partition {PartitionName} for {OperationName} in {DatabaseName}\\{ContainerName}",
+                                    "[dry-run] Deploying document collection {PartitionName} as {OperationName} operations in {DatabaseName}\\{ContainerName}",
                                     packagePartition.PartitionName,
                                     packagePartition.OperationName.ToUpperInvariant(),
                                     packagePartition.DatabaseName,
@@ -195,7 +195,7 @@ public sealed partial class PackagingService
                                         };
 
                                         _logger.LogInformation(
-                                            "Executing {OperationName} {PartitionName}:$[{DocumentIndex}] - HTTP {StatusCode} ({RU} RU)",
+                                            "Executing {OperationName} document {PartitionName}:$[{DocumentIndex}] - HTTP {StatusCode} ({RU} RU)",
                                             packagePartition.OperationName.ToUpperInvariant(),
                                             packagePartition.PartitionName,
                                             i,
@@ -209,7 +209,7 @@ public sealed partial class PackagingService
                                             (string.Equals(packagePartition.OperationName, "CREATE", StringComparison.OrdinalIgnoreCase) && (ex.StatusCode == HttpStatusCode.Conflict)))
                                         {
                                             _logger.LogWarning(
-                                                "Executing {OperationName} {PartitionName}:$[{DocumentIndex}] - HTTP {StatusCode} ({RU} RU)",
+                                                "Executing {OperationName} document {PartitionName}:$[{DocumentIndex}] - HTTP {StatusCode} ({RU} RU)",
                                                 packagePartition.OperationName.ToUpperInvariant(),
                                                 packagePartition.PartitionName,
                                                 i,
@@ -225,7 +225,7 @@ public sealed partial class PackagingService
                                 else
                                 {
                                     _logger.LogInformation(
-                                        "[dry-run] Executing {OperationName} {PartitionName}:$[{DocumentIndex}] - HTTP ? (0 RU)",
+                                        "[dry-run] Executing {OperationName} document {PartitionName}:$[{DocumentIndex}] - HTTP ??? (0 RU)",
                                         packagePartition.OperationName.ToUpperInvariant(),
                                         packagePartition.PartitionName,
                                         i);
