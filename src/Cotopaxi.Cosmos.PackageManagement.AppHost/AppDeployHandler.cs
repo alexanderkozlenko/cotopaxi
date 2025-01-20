@@ -43,7 +43,11 @@ internal sealed class AppDeployHandler : HostCommandHandler
         }
         else if (cosmosAccountEndpointVariable is not null)
         {
-            if (!string.IsNullOrEmpty(cosmosAuthKeyOrResourceTokenVariable))
+            if (!string.IsNullOrEmpty(cosmosAuthKeyOrResourceToken))
+            {
+                cosmosCredential = new(cosmosAccountEndpointVariable, cosmosAuthKeyOrResourceToken);
+            }
+            else if (!string.IsNullOrEmpty(cosmosAuthKeyOrResourceTokenVariable))
             {
                 cosmosCredential = new(cosmosAccountEndpointVariable, cosmosAuthKeyOrResourceTokenVariable);
             }
