@@ -104,6 +104,15 @@ cotopaxi deploy -h|--help
 <p></p>
 <p>The command uses a connection to the Azure Cosmos DB account to get partition keys configuration for regular and &quot;dry run&quot; modes.</p>
 <p></p>
+<p>The operations on the same document defined by a unique identifier and partition key values are executed in the following order:</p>
+<p></p>
+<ol>
+<li>Delete</li>
+<li>Create</li>
+<li>Upsert</li>
+<li>Patch</li>
+</ol>
+<p></p>
 <h2 id="arguments">Arguments</h2>
 <p></p>
 <ul>

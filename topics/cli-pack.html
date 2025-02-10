@@ -104,16 +104,35 @@ cotopaxi pack -h|--help
 <p></p>
 <ul>
 <li><code>create</code><br>
-Creates a document with the identifier and partition key if the document does not exist.</li>
-<li><code>update</code><br>
-Creates a document with the identifier and partition key if the document does not exist, or update if it exists.</li>
+Given a unique identifier and partition key values, creates a document if it does not exist.</li>
+<li><code>upsert</code><br>
+Given a unique identifier and partition key values, creates a document if it does not exist, or update if it exists.</li>
+<li><code>patch</code><br>
+Given a unique identifier and partition key values, performs partial document update if it exists.</li>
 <li><code>delete</code><br>
-Deletes a document with the identifier and partition key if the document exists.</li>
+Given a unique identifier and partition key values, deletes a document if it exists.</li>
 </ul>
 <p></p>
-<p>A documents file must be a JSON array of objects, where each object has the <code>$.id</code> property.</p>
+<p>Partial document update performs Azure Cosmos DB <code>set</code> operation on specified root-level document properties.</p>
 <p></p>
-<p>The project format supports relative globbing patterns in <code>$.databases[*].containers[*].operations[*].documents[*]</code>.</p>
+<p>The project format supports relative globbing patterns and the following variables in document paths:</p>
+<p></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Name</th>
+<th style="text-align: left;">Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>Version</code></td>
+<td style="text-align: left;">The value specified with the <code>--version &lt;version&gt;</code> option</td>
+</tr>
+</tbody>
+</table>
+<p></p>
+<p>A documents file must be a JSON array of objects, where each object has the <code>id</code> property and partition key properties specified.</p>
 <p></p>
 <h2 id="arguments">Arguments</h2>
 <p></p>
@@ -165,7 +184,10 @@ Prints out a description of how to use the command.</li>
           &quot;operations&quot;: [
             {
               &quot;name&quot;: &quot;upsert&quot;,
-              &quot;documents&quot;: [ &quot;adventureworks/products/**/*.json&quot; ]
+              &quot;documents&quot;: [
+                &quot;adventureworks/products/**/*.json&quot;,
+                &quot;adventureworks/products/**/*-$(Version).json&quot;
+              ]
             }
           ]
         }
