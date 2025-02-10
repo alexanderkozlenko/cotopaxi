@@ -27,7 +27,7 @@ cotopaxi checkpoint -h|--help
 
 <p />
 
-| Deploy Operation | Rollback Operation | Condition |
+| Deploy Operation | Revert Operation | Condition |
 |:-:|:-:|:- |
 | `delete` | N/A | The document does not exist in the container |
 | `delete` | `upsert` | The document does exist in the container |
@@ -36,7 +36,7 @@ cotopaxi checkpoint -h|--help
 | `upsert` | `delete` | The document does not exist in the container |
 | `upsert` | `upsert` | The document does exist in the container |
 | `patch` | N/A | The document does not exist in the container |
-| `patch` | `upsert` | The document does exist in the container |
+| `patch` | `patch` | The document does exist in the container |
 
 <p />
 

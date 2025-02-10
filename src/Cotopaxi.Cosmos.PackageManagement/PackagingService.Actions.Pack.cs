@@ -70,7 +70,7 @@ public sealed partial class PackagingService
                             projectSourceGroupByOperations.Key.ToLowerInvariant());
 
                         _logger.LogInformation(
-                            "Packing document collection {PartitionName} as {OperationName} operations for {DatabaseName}\\{ContainerName}",
+                            "Packing document collection {PartitionName} as {OperationName} operations in {DatabaseName}\\{ContainerName}",
                             packagePartitionName,
                             projectSourceGroupByOperations.Key,
                             projectSourceGroupByDatabase.Key,

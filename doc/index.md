@@ -51,7 +51,7 @@ Packing the database documents for deployment in Azure DevOps:
 cotopaxi pack $(Build.SourcesDirectory)/adventureworks.json $(Build.StagingDirectory)/adventureworks.cdbpkg
 
 Building package /home/vsts/work/1/a/adventureworks.cdbpkg for project /home/vsts/work/1/s/adventureworks.json
-Packing document collection dfcf04cb-886e-ae82-9172-fa4a1acb5d8b as UPSERT operations for adventureworks\products
+Packing document collection dfcf04cb-886e-ae82-9172-fa4a1acb5d8b as UPSERT operations in adventureworks\products
 Packing document /home/vsts/work/1/s/adventureworks/products/bikes.json:$[0]
 ```
 

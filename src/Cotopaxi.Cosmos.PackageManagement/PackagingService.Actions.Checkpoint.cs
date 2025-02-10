@@ -39,7 +39,7 @@ public sealed partial class PackagingService
 
         var cosmosAccount = await cosmosClient.ReadAccountAsync().ConfigureAwait(false);
 
-        _logger.LogInformation("Building rollback package {RevertPath} using {CosmosAccount}", revertPackagePath, cosmosAccount.Id);
+        _logger.LogInformation("Building rollback package {RevertPath} for {CosmosAccount}", revertPackagePath, cosmosAccount.Id);
 
         var partitionKeyPathsRegistry = new Dictionary<(string, string), JsonPointer[]>();
 
@@ -58,7 +58,7 @@ public sealed partial class PackagingService
 
             foreach (var sourcePackagePath in sourcePackagePaths)
             {
-                _logger.LogInformation("Adding rollback operations for package {SourcePath}", sourcePackagePath);
+                _logger.LogInformation("Packing rollback documents for package {SourcePath}", sourcePackagePath);
 
                 using var sourcePackage = Package.Open(sourcePackagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
 
@@ -115,6 +115,7 @@ public sealed partial class PackagingService
 
                         var documentsToDelete = new List<JsonObject>();
                         var documentsToUpsert = new List<JsonObject>();
+                        var documentsToPatch = new List<JsonObject>();
 
                         var sourcePackagePartitionGroupsByOperation = sourcePackagePartitionGroupByContainer
                             .GroupBy(static x => x.OperationName, StringComparer.OrdinalIgnoreCase)
@@ -128,7 +129,7 @@ public sealed partial class PackagingService
                             foreach (var sourcePackagePartition in sourcePackagePartitionsByOperation)
                             {
                                 _logger.LogInformation(
-                                    "Fetching snapshots for document collection {PartitionName} from {DatabaseName}\\{ContainerName}",
+                                    "Fetching document collection {PartitionName} snapshots from {DatabaseName}\\{ContainerName}",
                                     sourcePackagePartition.PartitionName,
                                     sourcePackagePartition.DatabaseName,
                                     sourcePackagePartition.ContainerName);
@@ -167,27 +168,27 @@ public sealed partial class PackagingService
                                         throw new InvalidOperationException($"Cannot get document partition key for {sourcePackagePartition.PartitionUri}:$[{i}]");
                                     }
 
-                                    var currentDocument = default(JsonObject?);
+                                    var snapshotDocument = default(JsonObject?);
 
                                     try
                                     {
                                         var operationResponse = await container.ReadItemAsync<JsonObject?>(documentUID, documentPartitionKey, default, cancellationToken).ConfigureAwait(false);
 
                                         _logger.LogInformation(
-                                            "Fetching snapshot for document {PartitionName}:$[{DocumentIndex}] - HTTP {StatusCode} ({RU} RU)",
+                                            "Fetching document {PartitionName}:$[{DocumentIndex}] snapshot - HTTP {StatusCode} ({RU} RU)",
                                             sourcePackagePartition.PartitionName,
                                             i,
                                             (int)operationResponse.StatusCode,
                                             Math.Round(operationResponse.RequestCharge, 2));
 
-                                        currentDocument = operationResponse.Resource;
+                                        snapshotDocument = operationResponse.Resource;
                                     }
                                     catch (CosmosException ex)
                                     {
                                         if (ex.StatusCode == HttpStatusCode.NotFound)
                                         {
                                             _logger.LogInformation(
-                                                "Fetching snapshot for document {PartitionName}:$[{DocumentIndex}] - HTTP {StatusCode} ({RU} RU)",
+                                                "Fetching document {PartitionName}:$[{DocumentIndex}] snapshot - HTTP {StatusCode} ({RU} RU)",
                                                 sourcePackagePartition.PartitionName,
                                                 i,
                                                 (int)ex.StatusCode,
@@ -199,48 +200,83 @@ public sealed partial class PackagingService
                                         }
                                     }
 
-                                    if (currentDocument is not null)
+                                    if (snapshotDocument is not null)
                                     {
-                                        currentDocument.Remove("_attachments");
-                                        currentDocument.Remove("_rid");
-                                        currentDocument.Remove("_self");
+                                        snapshotDocument.Remove("_attachments");
+                                        snapshotDocument.Remove("_rid");
+                                        snapshotDocument.Remove("_self");
                                     }
 
                                     switch (sourcePackagePartitionOperationName)
                                     {
                                         case CosmosOperation.Delete:
                                             {
-                                                if (currentDocument is not null)
+                                                if (snapshotDocument is not null)
                                                 {
-                                                    documentsToUpsert.Add(currentDocument);
+                                                    _logger.LogInformation(
+                                                        "Packing document {PartitionName}:$[{DocumentIndex}] snapshot for UPSERT operation",
+                                                        sourcePackagePartition.PartitionName,
+                                                        i);
+
+                                                    documentsToUpsert.Add(snapshotDocument);
                                                 }
                                             }
                                             break;
                                         case CosmosOperation.Create:
                                             {
-                                                if (currentDocument is null)
+                                                if (snapshotDocument is null)
                                                 {
+                                                    _logger.LogInformation(
+                                                        "Packing document {PartitionName}:$[{DocumentIndex}] for DELETE operation",
+                                                        sourcePackagePartition.PartitionName,
+                                                        i);
+
                                                     documentsToDelete.Add(sourceDocument);
                                                 }
                                             }
                                             break;
                                         case CosmosOperation.Upsert:
                                             {
-                                                if (currentDocument is not null)
+                                                if (snapshotDocument is not null)
                                                 {
-                                                    documentsToUpsert.Add(currentDocument);
+                                                    _logger.LogInformation(
+                                                        "Packing document {PartitionName}:$[{DocumentIndex}] snapshot for UPSERT operation",
+                                                        sourcePackagePartition.PartitionName,
+                                                        i);
+
+                                                    documentsToUpsert.Add(snapshotDocument);
                                                 }
                                                 else
                                                 {
+                                                    _logger.LogInformation(
+                                                        "Packing document {PartitionName}:$[{DocumentIndex}] for DELETE operation",
+                                                        sourcePackagePartition.PartitionName,
+                                                        i);
+
                                                     documentsToDelete.Add(sourceDocument);
                                                 }
                                             }
                                             break;
                                         case CosmosOperation.Patch:
                                             {
-                                                if (currentDocument is not null)
+                                                if (snapshotDocument is not null)
                                                 {
-                                                    documentsToUpsert.Add(currentDocument);
+                                                    _logger.LogInformation(
+                                                        "Packing document {PartitionName}:$[{DocumentIndex}] snapshot for PATCH operation",
+                                                        sourcePackagePartition.PartitionName,
+                                                        i);
+
+                                                    var propertyNamesToExclude = snapshotDocument
+                                                        .Where(x => !sourceDocument.ContainsKey(x.Key) && (x.Key is not ("_etag" or "_ts")))
+                                                        .Select(static x => x.Key)
+                                                        .ToArray();
+
+                                                    foreach (var propertyName in propertyNamesToExclude)
+                                                    {
+                                                        snapshotDocument.Remove(propertyName);
+                                                    }
+
+                                                    documentsToPatch.Add(snapshotDocument);
                                                 }
                                             }
                                             break;
@@ -282,6 +318,22 @@ public sealed partial class PackagingService
                             using (var revertPackagePartStream = revertPackagePart.GetStream(FileMode.Create, FileAccess.Write))
                             {
                                 await JsonSerializer.SerializeAsync(revertPackagePartStream, documentsToUpsert, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+                            }
+                        }
+
+                        if (documentsToPatch.Count > 0)
+                        {
+                            var revertPackagePartitionUri = revertPackageModel.CreatePartition(
+                                Guid.CreateVersion7().ToString(),
+                                sourcePackagePartitionGroupByDatabase.Key,
+                                sourcePackagePartitionGroupByContainer.Key,
+                                CosmosOperation.Patch.ToLowerInvariant());
+
+                            var revertPackagePart = revertPackage.CreatePart(revertPackagePartitionUri, "application/json", default);
+
+                            using (var revertPackagePartStream = revertPackagePart.GetStream(FileMode.Create, FileAccess.Write))
+                            {
+                                await JsonSerializer.SerializeAsync(revertPackagePartStream, documentsToPatch, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
                             }
                         }
                     }
