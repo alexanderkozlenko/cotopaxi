@@ -37,7 +37,9 @@ public sealed partial class PackagingService
             new CosmosClient(cosmosCredential.ConnectionString, cosmosClientOptions) :
             new CosmosClient(cosmosCredential.AccountEndpoint.AbsoluteUri, cosmosCredential.AuthKeyOrResourceToken, cosmosClientOptions);
 
-        _logger.LogInformation("Building rollback package {RevertPath} using {CosmosEndpoint}", revertPackagePath, cosmosClient.Endpoint);
+        var cosmosAccount = await cosmosClient.ReadAccountAsync().ConfigureAwait(false);
+
+        _logger.LogInformation("Building rollback package {RevertPath} using {CosmosAccount}", revertPackagePath, cosmosAccount.Id);
 
         var partitionKeyPathsRegistry = new Dictionary<(string, string), JsonPointer[]>();
 
@@ -78,10 +80,7 @@ public sealed partial class PackagingService
                 }
 
                 sourcePackagePartitions = sourcePackagePartitions
-                    .Where(static x =>
-                        string.Equals(x.OperationName, "DELETE", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(x.OperationName, "CREATE", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(x.OperationName, "UPSERT", StringComparison.OrdinalIgnoreCase))
+                    .Where(static x => CosmosOperation.IsSupported(x.OperationName))
                     .ToArray();
 
                 var sourcePackagePartitionGroupsByDatabase = sourcePackagePartitions
@@ -101,7 +100,7 @@ public sealed partial class PackagingService
 
                         if (!partitionKeyPathsRegistry.TryGetValue(containerPartitionKeyPathsKey, out var containerPartitionKeyPaths))
                         {
-                            var containerResponse = await container.ReadContainerAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+                            var containerResponse = await container.ReadContainerAsync(default, cancellationToken).ConfigureAwait(false);
 
                             containerPartitionKeyPaths = containerResponse.Resource.PartitionKeyPaths.Select(static x => new JsonPointer(x)).ToArray();
                             partitionKeyPathsRegistry.Add(containerPartitionKeyPathsKey, containerPartitionKeyPaths);
@@ -119,7 +118,7 @@ public sealed partial class PackagingService
 
                         var sourcePackagePartitionGroupsByOperation = sourcePackagePartitionGroupByContainer
                             .GroupBy(static x => x.OperationName, StringComparer.OrdinalIgnoreCase)
-                            .OrderBy(static x => x.Key, PackageOperationComparer.Instance);
+                            .OrderBy(static x => x.Key, CosmosOperationComparer.Instance);
 
                         foreach (var sourcePackagePartitionGroupByOperation in sourcePackagePartitionGroupsByOperation)
                         {
@@ -134,6 +133,7 @@ public sealed partial class PackagingService
                                     sourcePackagePartition.DatabaseName,
                                     sourcePackagePartition.ContainerName);
 
+                                var sourcePackagePartitionOperationName = sourcePackagePartition.OperationName.ToUpperInvariant();
                                 var sourcePackagePart = sourcePackage.GetPart(sourcePackagePartition.PartitionUri);
                                 var sourceDocuments = default(JsonObject?[]);
 
@@ -206,9 +206,9 @@ public sealed partial class PackagingService
                                         currentDocument.Remove("_self");
                                     }
 
-                                    switch (sourcePackagePartition.OperationName.ToUpperInvariant())
+                                    switch (sourcePackagePartitionOperationName)
                                     {
-                                        case "DELETE":
+                                        case CosmosOperation.Delete:
                                             {
                                                 if (currentDocument is not null)
                                                 {
@@ -216,7 +216,7 @@ public sealed partial class PackagingService
                                                 }
                                             }
                                             break;
-                                        case "CREATE":
+                                        case CosmosOperation.Create:
                                             {
                                                 if (currentDocument is null)
                                                 {
@@ -224,7 +224,7 @@ public sealed partial class PackagingService
                                                 }
                                             }
                                             break;
-                                        case "UPSERT":
+                                        case CosmosOperation.Upsert:
                                             {
                                                 if (currentDocument is not null)
                                                 {
@@ -236,6 +236,18 @@ public sealed partial class PackagingService
                                                 }
                                             }
                                             break;
+                                        case CosmosOperation.Patch:
+                                            {
+                                                if (currentDocument is not null)
+                                                {
+                                                    documentsToUpsert.Add(currentDocument);
+                                                }
+                                            }
+                                            break;
+                                        default:
+                                            {
+                                                throw new NotSupportedException();
+                                            }
                                     }
                                 }
                             }
@@ -247,7 +259,7 @@ public sealed partial class PackagingService
                                 Guid.CreateVersion7().ToString(),
                                 sourcePackagePartitionGroupByDatabase.Key,
                                 sourcePackagePartitionGroupByContainer.Key,
-                                "delete");
+                                CosmosOperation.Delete.ToLowerInvariant());
 
                             var revertPackagePart = revertPackage.CreatePart(revertPackagePartitionUri, "application/json", default);
 
@@ -263,7 +275,7 @@ public sealed partial class PackagingService
                                 Guid.CreateVersion7().ToString(),
                                 sourcePackagePartitionGroupByDatabase.Key,
                                 sourcePackagePartitionGroupByContainer.Key,
-                                "upsert");
+                                CosmosOperation.Upsert.ToLowerInvariant());
 
                             var revertPackagePart = revertPackage.CreatePart(revertPackagePartitionUri, "application/json", default);
 
@@ -276,7 +288,7 @@ public sealed partial class PackagingService
                 }
             }
 
-            await revertPackageModel.SaveAsync().ConfigureAwait(false);
+            await revertPackageModel.SaveAsync(cancellationToken).ConfigureAwait(false);
 
             revertPackage.PackageProperties.Modified = DateTime.UtcNow;
             revertPackage.PackageProperties.Description = string.Join(';', sourcePackageIdentifiers);

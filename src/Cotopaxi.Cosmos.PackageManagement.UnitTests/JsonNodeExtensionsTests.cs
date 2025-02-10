@@ -19,7 +19,7 @@ public sealed class JsonNodeExtensionsTests
     [DataRow("/k\\\"l", "$['k\\\"l']")]
     [DataRow("/ ", "$[' ']")]
     [DataRow("/m~0n", "$.m~n")]
-    public void TryGetValue(string jsonPointerValue, string jsonPath)
+    public void TryGetNode(string jsonPointerValue, string jsonPath)
     {
         var jsonObject = new JsonObject
         {
@@ -40,10 +40,10 @@ public sealed class JsonNodeExtensionsTests
         };
 
         var jsonPointer = new JsonPointer(jsonPointerValue);
-        var result = jsonObject.TryGetValue(jsonPointer, out var value);
+        var result = jsonObject.TryGetNode(jsonPointer, out var node);
 
         Assert.IsTrue(result);
-        Assert.IsNotNull(value);
-        Assert.AreEqual(jsonPath, value.GetPath());
+        Assert.IsNotNull(node);
+        Assert.AreEqual(jsonPath, node.GetPath());
     }
 }

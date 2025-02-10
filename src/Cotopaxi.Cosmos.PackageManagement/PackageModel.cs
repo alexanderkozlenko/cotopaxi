@@ -28,8 +28,10 @@ public sealed class PackageModel : IDisposable
         _corpusDef.Storage.Unmount(PackageAdapter.Scheme);
     }
 
-    public async Task SaveAsync()
+    public async Task SaveAsync(CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         if (_package.FileOpenAccess != FileAccess.Read)
         {
             var corpusSaveOptions = new CopyOptions

@@ -7,7 +7,7 @@ namespace Cotopaxi.Cosmos.PackageManagement.UnitTests;
 public sealed class PackageModelTests
 {
     [TestMethod]
-    public async Task Universal()
+    public async Task OpenSaveOpen()
     {
         using var memoryStream = new MemoryStream();
 
@@ -24,7 +24,7 @@ public sealed class PackageModelTests
                 Assert.IsNotNull(partitionUri);
                 Assert.IsFalse(partitionUri.IsAbsoluteUri);
 
-                await packageModel.SaveAsync().ConfigureAwait(false);
+                await packageModel.SaveAsync(default).ConfigureAwait(false);
             }
         }
 

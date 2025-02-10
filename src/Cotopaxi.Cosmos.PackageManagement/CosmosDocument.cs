@@ -19,7 +19,7 @@ public static class CosmosDocument
 
         foreach (var partitionKeyPath in partitionKeyPaths)
         {
-            if (documentNode.TryGetValue(partitionKeyPath, out var partitionKeyNode))
+            if (documentNode.TryGetNode(partitionKeyPath, out var partitionKeyNode))
             {
                 if (partitionKeyNode is not null)
                 {

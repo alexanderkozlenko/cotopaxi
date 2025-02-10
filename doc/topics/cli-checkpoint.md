@@ -35,6 +35,8 @@ cotopaxi checkpoint -h|--help
 | `create` | N/A | The document does exist in the container |
 | `upsert` | `delete` | The document does not exist in the container |
 | `upsert` | `upsert` | The document does exist in the container |
+| `patch` | N/A | The document does not exist in the container |
+| `patch` | `upsert` | The document does exist in the container |
 
 <p />
 

@@ -40,15 +40,17 @@ public sealed partial class PackagingService
         var partitionKeyPathsRegistry = new Dictionary<(string, string), JsonPointer[]>();
         var packageIdentifiers = new HashSet<string>(packagePaths.Count, StringComparer.OrdinalIgnoreCase);
 
+        var cosmosAccount = await cosmosClient.ReadAccountAsync().ConfigureAwait(false);
+
         foreach (var packagePath in packagePaths)
         {
             if (!dryRun)
             {
-                _logger.LogInformation("Deploying package {PackagePath} to {CosmosEndpoint}", packagePath, cosmosClient.Endpoint);
+                _logger.LogInformation("Deploying package {PackagePath} to {CosmosAccount}", packagePath, cosmosAccount.Id);
             }
             else
             {
-                _logger.LogInformation("[dry-run] Deploying package {PackagePath} to {CosmosEndpoint}", packagePath, cosmosClient.Endpoint);
+                _logger.LogInformation("[dry-run] Deploying package {PackagePath} to {CosmosAccount}", packagePath, cosmosAccount.Id);
             }
 
             using var package = Package.Open(packagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -70,14 +72,8 @@ public sealed partial class PackagingService
                 packagePartitions = packageModel.GetPartitions();
             }
 
-            packagePartitions = packagePartitions
-                .Where(static x =>
-                    string.Equals(x.OperationName, "DELETE", StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(x.OperationName, "CREATE", StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(x.OperationName, "UPSERT", StringComparison.OrdinalIgnoreCase))
-                .ToArray();
-
             var packagePartitionGroupsByDatabase = packagePartitions
+                .Where(static x => CosmosOperation.IsSupported(x.OperationName))
                 .GroupBy(static x => x.DatabaseName, StringComparer.Ordinal)
                 .OrderBy(static x => x.Key, StringComparer.Ordinal);
 
@@ -94,7 +90,7 @@ public sealed partial class PackagingService
 
                     if (!partitionKeyPathsRegistry.TryGetValue(containerPartitionKeyPathsKey, out var containerPartitionKeyPaths))
                     {
-                        var containerResponse = await container.ReadContainerAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+                        var containerResponse = await container.ReadContainerAsync(default, cancellationToken).ConfigureAwait(false);
 
                         containerPartitionKeyPaths = containerResponse.Resource.PartitionKeyPaths.Select(static x => new JsonPointer(x)).ToArray();
                         partitionKeyPathsRegistry[containerPartitionKeyPathsKey] = containerPartitionKeyPaths;
@@ -121,7 +117,7 @@ public sealed partial class PackagingService
 
                     var packagePartitionGroupsByOperation = packagePartitionGroupByContainer
                         .GroupBy(static x => x.OperationName, StringComparer.OrdinalIgnoreCase)
-                        .OrderBy(static x => x.Key, PackageOperationComparer.Instance);
+                        .OrderBy(static x => x.Key, CosmosOperationComparer.Instance);
 
                     foreach (var packagePartitionGroupByOperation in packagePartitionGroupsByOperation)
                     {
@@ -130,12 +126,14 @@ public sealed partial class PackagingService
 
                         foreach (var packagePartition in packagePartitionsByOperation)
                         {
+                            var packagePartitionOperationName = packagePartition.OperationName.ToUpperInvariant();
+
                             if (!dryRun)
                             {
                                 _logger.LogInformation(
                                     "Deploying document collection {PartitionName} as {OperationName} operations in {DatabaseName}\\{ContainerName}",
                                     packagePartition.PartitionName,
-                                    packagePartition.OperationName.ToUpperInvariant(),
+                                    packagePartitionOperationName,
                                     packagePartition.DatabaseName,
                                     packagePartition.ContainerName);
                             }
@@ -144,7 +142,7 @@ public sealed partial class PackagingService
                                 _logger.LogInformation(
                                     "[dry-run] Deploying document collection {PartitionName} as {OperationName} operations in {DatabaseName}\\{ContainerName}",
                                     packagePartition.PartitionName,
-                                    packagePartition.OperationName.ToUpperInvariant(),
+                                    packagePartitionOperationName,
                                     packagePartition.DatabaseName,
                                     packagePartition.ContainerName);
                             }
@@ -186,17 +184,44 @@ public sealed partial class PackagingService
                                 {
                                     try
                                     {
-                                        var operationResponse = packagePartition.OperationName.ToUpperInvariant() switch
+                                        var operationResponse = default(ItemResponse<JsonObject?>);
+
+                                        switch (packagePartitionOperationName)
                                         {
-                                            "DELETE" => await container.DeleteItemAsync<JsonObject?>(documentUID, documentPartitionKey, default, cancellationToken).ConfigureAwait(false),
-                                            "CREATE" => await container.CreateItemAsync<JsonObject?>(document, documentPartitionKey, default, cancellationToken).ConfigureAwait(false),
-                                            "UPSERT" => await container.UpsertItemAsync<JsonObject?>(document, documentPartitionKey, default, cancellationToken).ConfigureAwait(false),
-                                            _ => throw new NotSupportedException(),
-                                        };
+                                            case CosmosOperation.Delete:
+                                                {
+                                                    operationResponse = await container.DeleteItemAsync<JsonObject?>(documentUID, documentPartitionKey, default, cancellationToken).ConfigureAwait(false);
+                                                }
+                                                break;
+                                            case CosmosOperation.Create:
+                                                {
+                                                    operationResponse = await container.CreateItemAsync<JsonObject?>(document, documentPartitionKey, default, cancellationToken).ConfigureAwait(false);
+                                                }
+                                                break;
+                                            case CosmosOperation.Upsert:
+                                                {
+                                                    operationResponse = await container.UpsertItemAsync<JsonObject?>(document, documentPartitionKey, default, cancellationToken).ConfigureAwait(false);
+                                                }
+                                                break;
+                                            case CosmosOperation.Patch:
+                                                {
+                                                    var patchOperations = document
+                                                        .Where(static x => x.Key != "id")
+                                                        .Select(static x => PatchOperation.Set("/" + x.Key, x.Value))
+                                                        .ToArray();
+
+                                                    operationResponse = await container.PatchItemAsync<JsonObject?>(documentUID, documentPartitionKey, patchOperations, default, cancellationToken).ConfigureAwait(false);
+                                                }
+                                                break;
+                                            default:
+                                                {
+                                                    throw new NotSupportedException();
+                                                }
+                                        }
 
                                         _logger.LogInformation(
                                             "Executing {OperationName} document {PartitionName}:$[{DocumentIndex}] - HTTP {StatusCode} ({RU} RU)",
-                                            packagePartition.OperationName.ToUpperInvariant(),
+                                            packagePartitionOperationName,
                                             packagePartition.PartitionName,
                                             i,
                                             (int)operationResponse.StatusCode,
@@ -205,12 +230,13 @@ public sealed partial class PackagingService
                                     }
                                     catch (CosmosException ex)
                                     {
-                                        if ((string.Equals(packagePartition.OperationName, "DELETE", StringComparison.OrdinalIgnoreCase) && (ex.StatusCode == HttpStatusCode.NotFound)) ||
-                                            (string.Equals(packagePartition.OperationName, "CREATE", StringComparison.OrdinalIgnoreCase) && (ex.StatusCode == HttpStatusCode.Conflict)))
+                                        if (((packagePartitionOperationName == CosmosOperation.Create) && (ex.StatusCode == HttpStatusCode.Conflict)) ||
+                                            ((packagePartitionOperationName == CosmosOperation.Patch) && (ex.StatusCode == HttpStatusCode.NotFound)) ||
+                                            ((packagePartitionOperationName == CosmosOperation.Delete) && (ex.StatusCode == HttpStatusCode.NotFound)))
                                         {
                                             _logger.LogWarning(
                                                 "Executing {OperationName} document {PartitionName}:$[{DocumentIndex}] - HTTP {StatusCode} ({RU} RU)",
-                                                packagePartition.OperationName.ToUpperInvariant(),
+                                                packagePartitionOperationName,
                                                 packagePartition.PartitionName,
                                                 i,
                                                 (int)ex.StatusCode,
@@ -226,7 +252,7 @@ public sealed partial class PackagingService
                                 {
                                     _logger.LogInformation(
                                         "[dry-run] Executing {OperationName} document {PartitionName}:$[{DocumentIndex}] - HTTP ??? (0 RU)",
-                                        packagePartition.OperationName.ToUpperInvariant(),
+                                        packagePartitionOperationName,
                                         packagePartition.PartitionName,
                                         i);
                                 }

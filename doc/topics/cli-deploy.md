@@ -32,6 +32,17 @@ The command uses a connection to the Azure Cosmos DB account to get partition ke
 
 <p />
 
+The operations on the same document defined by a unique identifier and partition key values are executed in the following order:
+
+<p />
+
+1. Delete
+2. Create
+3. Upsert
+4. Patch
+
+<p />
+
 ## Arguments
 
 <p />

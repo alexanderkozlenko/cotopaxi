@@ -39,14 +39,14 @@ internal sealed class PackageAdapter : StorageAdapterBase
     {
         Debug.Assert(corpusPath is not null);
 
-        return corpusPath.StartsWith('/') ? corpusPath : '/' + corpusPath;
+        return corpusPath.StartsWith('/') ? corpusPath : "/" + corpusPath;
     }
 
     public override string CreateCorpusPath(string adapterPath)
     {
         Debug.Assert(adapterPath is not null);
 
-        return adapterPath.StartsWith('/') ? adapterPath : '/' + adapterPath;
+        return adapterPath.StartsWith('/') ? adapterPath : "/" + adapterPath;
     }
 
     public override async Task<string> ReadAsync(string corpusPath)

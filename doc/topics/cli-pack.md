@@ -31,19 +31,31 @@ The package format supports the following deployment operations:
 <p />
 
 - `create`  
-Creates a document with the identifier and partition key if the document does not exist.
-- `update`  
-Creates a document with the identifier and partition key if the document does not exist, or update if it exists.
+Given a unique identifier and partition key values, creates a document if it does not exist.
+- `upsert`  
+Given a unique identifier and partition key values, creates a document if it does not exist, or update if it exists.
+- `patch`  
+Given a unique identifier and partition key values, performs partial document update if it exists.
 - `delete`  
-Deletes a document with the identifier and partition key if the document exists.
+Given a unique identifier and partition key values, deletes a document if it exists.
 
 <p />
 
-A documents file must be a JSON array of objects, where each object has the `$.id` property.
+Partial document update performs Azure Cosmos DB `set` operation on specified root-level document properties.
 
 <p />
 
-The project format supports relative globbing patterns in `$.databases[*].containers[*].operations[*].documents[*]`.
+The project format supports relative globbing patterns and the following variables in document paths:
+
+<p />
+
+| Name | Value |
+|:- |:- |
+| `Version` | The value specified with the `--version <version>` option |
+
+<p />
+
+A documents file must be a JSON array of objects, where each object has the `id` property and partition key properties specified.
 
 <p />
 
@@ -121,7 +133,10 @@ The corresponding project file `example.json`:
           "operations": [
             {
               "name": "upsert",
-              "documents": [ "adventureworks/products/**/*.json" ]
+              "documents": [
+                "adventureworks/products/**/*.json",
+                "adventureworks/products/**/*-$(Version).json"
+              ]
             }
           ]
         }

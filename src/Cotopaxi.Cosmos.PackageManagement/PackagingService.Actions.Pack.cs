@@ -23,7 +23,12 @@ public sealed partial class PackagingService
 
         try
         {
-            var projectSources = await ListProjectSourcesAsync(projectPath, cancellationToken).ConfigureAwait(false);
+            var projectVariables = new Dictionary<string, string?>
+            {
+                ["Version"] = packageVersion,
+            };
+
+            var projectSources = await ListProjectSourcesAsync(projectPath, projectVariables.ToFrozenDictionary(), cancellationToken).ConfigureAwait(false);
 
             Directory.CreateDirectory(Path.GetDirectoryName(packagePath)!);
 
@@ -44,7 +49,7 @@ public sealed partial class PackagingService
                 {
                     var projectSourceGroupsByOperations = projectSourceGroupByContainer
                         .GroupBy(static x => x.OperationName, StringComparer.OrdinalIgnoreCase)
-                        .OrderBy(static x => x.Key, PackageOperationComparer.Instance);
+                        .OrderBy(static x => x.Key, CosmosOperationComparer.Instance);
 
                     foreach (var projectSourceGroupByOperations in projectSourceGroupsByOperations)
                     {
@@ -123,7 +128,7 @@ public sealed partial class PackagingService
                 }
             }
 
-            await packageModel.SaveAsync().ConfigureAwait(false);
+            await packageModel.SaveAsync(cancellationToken).ConfigureAwait(false);
 
             package.PackageProperties.Identifier = Guid.CreateVersion7().ToString();
             package.PackageProperties.Version = packageVersion;
@@ -139,7 +144,7 @@ public sealed partial class PackagingService
         return true;
     }
 
-    private static async Task<FrozenSet<ProjectSource>> ListProjectSourcesAsync(string projectPath, CancellationToken cancellationToken)
+    private static async Task<FrozenSet<ProjectSource>> ListProjectSourcesAsync(string projectPath, FrozenDictionary<string, string?> projectVariables, CancellationToken cancellationToken)
     {
         var projectSources = new HashSet<ProjectSource>(ProjectSourceComparer.Instance);
         var projectNode = default(ProjectNode);
@@ -151,6 +156,8 @@ public sealed partial class PackagingService
 
         if (projectNode is not null)
         {
+            var projectSearchPath = Path.GetDirectoryName(projectPath)!;
+
             foreach (var projectDatabaseNode in projectNode.Databases.Where(static x => x is not null))
             {
                 if (projectDatabaseNode!.Name is not { Length: > 0 and <= 256 })
@@ -172,9 +179,23 @@ public sealed partial class PackagingService
                             throw new JsonException($"JSON deserialization for type '{typeof(ProjectOperationNode)}' encountered errors");
                         }
 
-                        foreach (var projectSourcePattern in projectOperationNode.Documents.Where(static x => x is not null).Distinct(StringComparer.OrdinalIgnoreCase))
+                        if (!CosmosOperation.IsSupported(projectOperationNode.Name))
                         {
-                            var projectSearchPath = Path.GetDirectoryName(projectPath)!;
+                            continue;
+                        }
+
+                        foreach (var projectSourcePatternValue in projectOperationNode.Documents.Where(static x => x is not null).Distinct(StringComparer.OrdinalIgnoreCase))
+                        {
+                            var projectSourcePattern = projectSourcePatternValue!;
+
+                            foreach (var (variableName, variableValue) in projectVariables)
+                            {
+                                if (!string.IsNullOrEmpty(variableValue))
+                                {
+                                    projectSourcePattern = projectSourcePattern.Replace($"$({variableName})", variableValue, StringComparison.OrdinalIgnoreCase);
+                                }
+                            }
+
                             var projectSourcePaths = GetFiles(projectSearchPath, projectSourcePattern!);
 
                             foreach (var projectSourcePath in projectSourcePaths)

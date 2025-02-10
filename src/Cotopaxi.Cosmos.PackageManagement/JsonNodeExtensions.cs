@@ -8,7 +8,7 @@ namespace Cotopaxi.Cosmos.PackageManagement;
 
 public static class JsonNodeExtensions
 {
-    public static bool TryGetValue(this JsonNode root, JsonPointer path, out JsonNode? value)
+    public static bool TryGetNode(this JsonNode root, JsonPointer path, out JsonNode? node)
     {
         Debug.Assert(root is not null);
 
@@ -36,12 +36,12 @@ public static class JsonNodeExtensions
                 }
             }
 
-            value = default;
+            node = default;
 
             return false;
         }
 
-        value = current;
+        node = current;
 
         return true;
     }

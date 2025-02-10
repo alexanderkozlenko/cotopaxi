@@ -29,7 +29,9 @@ Creating a package project:
           "operations": [
             {
               "name": "upsert",
-              "documents": [ "adventureworks/products/**/*.json" ]
+              "documents": [
+                "adventureworks/products/**/*.json"
+              ]
             }
           ]
         }
@@ -62,7 +64,7 @@ Deploying the package to an Azure Cosmos DB account in Azure DevOps:
 ```txt
 cotopaxi deploy $(System.ArtifactsDirectory)/**/*.cdbpkg
 
-Deploying package /home/vsts/work/r1/a/adventureworks.cdbpkg to https://adventureworks.documents.azure.com:443
+Deploying package /home/vsts/work/r1/a/adventureworks.cdbpkg to cosmos-adventureworks
 Acquiring container properties for adventureworks\products - HTTP 200 (2 RU)
 Deploying document collection dfcf04cb-886e-ae82-9172-fa4a1acb5d8b as UPSERT operations in adventureworks\products
 Executing UPSERT document dfcf04cb-886e-ae82-9172-fa4a1acb5d8b:$[0] - HTTP 200 (10.29 RU)
