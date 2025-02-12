@@ -5,7 +5,7 @@
     <PackageVersion Include="Microsoft.Extensions.FileSystemGlobbing" Version="9.0.2" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="9.0.2" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.2" />
-    <PackageVersion Include="MSTest" Version="3.7.3" />
+    <PackageVersion Include="MSTest" Version="3.8.0" />
     <PackageVersion Include="System.CommandLine.Hosting" Version="0.4.0-alpha.22272.1" />
     <PackageVersion Include="System.IO.Hashing" Version="9.0.2" />
     <PackageVersion Include="System.IO.Packaging" Version="9.0.2" />
