@@ -47,12 +47,11 @@ public sealed class PackageModel : IDisposable
         }
     }
 
-    public Uri CreatePartition(string partitionName, string databaseName, string containerName, string operationName)
+    public Uri CreatePartition(string partitionName, string databaseName, string containerName, CosmosOperationType operationType)
     {
         Debug.Assert(partitionName is { Length: > 0 });
         Debug.Assert(databaseName is { Length: > 0 });
         Debug.Assert(containerName is { Length: > 0 });
-        Debug.Assert(operationName is { Length: > 0 });
 
         var partitionPath = $"/cosmosdb.document/{partitionName}.json";
         var partitionDec = _manifestDef.Entities.First(static x => x.EntityName == "cosmosdb.document");
@@ -61,7 +60,7 @@ public sealed class PackageModel : IDisposable
         partitionDef.Location = _corpusDef.Storage.CreateAbsoluteCorpusPath(partitionPath);
         partitionDef.Arguments.Add("database", [databaseName]);
         partitionDef.Arguments.Add("container", [containerName]);
-        partitionDef.Arguments.Add("operation", [operationName]);
+        partitionDef.Arguments.Add("operation", [CosmosOperation.Format(operationType)]);
 
         partitionDec.DataPartitions.Add(partitionDef);
 
@@ -83,14 +82,19 @@ public sealed class PackageModel : IDisposable
                 var partitionName = Path.GetFileNameWithoutExtension(partitionPath);
                 var partitionDatabaseName = partitionDef.Arguments["database"].Single();
                 var partitionContainerName = partitionDef.Arguments["container"].Single();
-                var partitionOperationName = partitionDef.Arguments["operation"].Single();
+                var partitionOperationTypeName = partitionDef.Arguments["operation"].Single();
+
+                if (!CosmosOperation.TryParse(partitionOperationTypeName, out var partitionOperationType))
+                {
+                    continue;
+                }
 
                 var partition = new PackagePartition(
                     new(partitionPath, UriKind.Relative),
                     partitionName,
                     partitionDatabaseName,
                     partitionContainerName,
-                    partitionOperationName);
+                    partitionOperationType);
 
                 partitions.Add(partitionPath, partition);
             }

@@ -48,8 +48,8 @@ public sealed partial class PackagingService
                 foreach (var projectSourceGroupByContainer in projectSourceGroupsByContainer)
                 {
                     var projectSourceGroupsByOperations = projectSourceGroupByContainer
-                        .GroupBy(static x => x.OperationName, StringComparer.OrdinalIgnoreCase)
-                        .OrderBy(static x => x.Key, CosmosOperationComparer.Instance);
+                        .GroupBy(static x => x.OperationType)
+                        .OrderBy(static x => x.Key);
 
                     foreach (var projectSourceGroupByOperations in projectSourceGroupsByOperations)
                     {
@@ -67,7 +67,7 @@ public sealed partial class PackagingService
                             packagePartitionName,
                             projectSourceGroupByDatabase.Key,
                             projectSourceGroupByContainer.Key,
-                            projectSourceGroupByOperations.Key.ToLowerInvariant());
+                            projectSourceGroupByOperations.Key);
 
                         _logger.LogInformation(
                             "Packing document collection {PartitionName} as {OperationName} operations in {DatabaseName}\\{ContainerName}",
@@ -101,7 +101,7 @@ public sealed partial class PackagingService
                                     continue;
                                 }
 
-                                if (!CosmosDocument.TryGetUniqueID(document, out var documentUID) || (documentUID is not { Length: > 0 and < 256 }))
+                                if (!CosmosResource.TryGetDocumentID(document, out var documentID) || !CosmosResource.IsValidResourceID(documentID))
                                 {
                                     throw new InvalidOperationException($"Cannot get document identifier for {projectSource.FilePath}:$[{i}]");
                                 }
@@ -160,28 +160,23 @@ public sealed partial class PackagingService
 
             foreach (var projectDatabaseNode in projectNode.Databases.Where(static x => x is not null))
             {
-                if (projectDatabaseNode!.Name is not { Length: > 0 and <= 256 })
+                if (!CosmosResource.IsValidResourceID(projectDatabaseNode!.Name))
                 {
                     throw new JsonException($"JSON deserialization for type '{typeof(ProjectDatabaseNode)}' encountered errors");
                 }
 
                 foreach (var projectContainerNode in projectDatabaseNode.Containers.Where(static x => x is not null))
                 {
-                    if (projectContainerNode!.Name is not { Length: > 0 and <= 256 })
+                    if (!CosmosResource.IsValidResourceID(projectContainerNode!.Name))
                     {
                         throw new JsonException($"JSON deserialization for type '{typeof(ProjectContainerNode)}' encountered errors");
                     }
 
                     foreach (var projectOperationNode in projectContainerNode.Operations.Where(static x => x is not null))
                     {
-                        if (projectOperationNode!.Name is not { Length: > 0 })
+                        if (!CosmosOperation.TryParse(projectOperationNode!.Name, out var projectOperationType))
                         {
                             throw new JsonException($"JSON deserialization for type '{typeof(ProjectOperationNode)}' encountered errors");
-                        }
-
-                        if (!CosmosOperation.IsSupported(projectOperationNode.Name))
-                        {
-                            continue;
                         }
 
                         foreach (var projectSourcePatternValue in projectOperationNode.Documents.Where(static x => x is not null).Distinct(StringComparer.OrdinalIgnoreCase))
@@ -204,7 +199,7 @@ public sealed partial class PackagingService
                                     projectSourcePath,
                                     projectDatabaseNode.Name,
                                     projectContainerNode.Name,
-                                    projectOperationNode.Name.ToUpperInvariant());
+                                    projectOperationType);
 
                                 projectSources.Add(projectSource);
                             }

@@ -8,5 +8,5 @@ public sealed record class PackagePartition
     string PartitionName,
     string DatabaseName,
     string ContainerName,
-    string OperationName
+    CosmosOperationType OperationType
 );

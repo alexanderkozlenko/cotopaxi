@@ -19,7 +19,7 @@ public sealed class PackageModelTests
                     "0c2deaa0-9517-4958-9bb9-2444ca352705",
                     "adventureworks",
                     "products",
-                    "upsert");
+                    CosmosOperationType.Upsert);
 
                 Assert.IsNotNull(partitionUri);
                 Assert.IsFalse(partitionUri.IsAbsoluteUri);
@@ -46,7 +46,7 @@ public sealed class PackageModelTests
                 Assert.AreEqual("0c2deaa0-9517-4958-9bb9-2444ca352705", packagePartition.PartitionName);
                 Assert.AreEqual("adventureworks", packagePartition.DatabaseName);
                 Assert.AreEqual("products", packagePartition.ContainerName);
-                Assert.AreEqual("upsert", packagePartition.OperationName);
+                Assert.AreEqual(CosmosOperationType.Upsert, packagePartition.OperationType);
             }
         }
     }

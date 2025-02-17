@@ -79,10 +79,6 @@ public sealed partial class PackagingService
                     sourcePackagePartitions = sourcePackageModel.GetPartitions();
                 }
 
-                sourcePackagePartitions = sourcePackagePartitions
-                    .Where(static x => CosmosOperation.IsSupported(x.OperationName))
-                    .ToArray();
-
                 var sourcePackagePartitionGroupsByDatabase = sourcePackagePartitions
                     .GroupBy(static x => x.DatabaseName, StringComparer.Ordinal)
                     .OrderBy(static x => x.Key, StringComparer.Ordinal);
@@ -118,8 +114,8 @@ public sealed partial class PackagingService
                         var documentsToPatch = new List<JsonObject>();
 
                         var sourcePackagePartitionGroupsByOperation = sourcePackagePartitionGroupByContainer
-                            .GroupBy(static x => x.OperationName, StringComparer.OrdinalIgnoreCase)
-                            .OrderBy(static x => x.Key, CosmosOperationComparer.Instance);
+                            .GroupBy(static x => x.OperationType)
+                            .OrderBy(static x => x.Key);
 
                         foreach (var sourcePackagePartitionGroupByOperation in sourcePackagePartitionGroupsByOperation)
                         {
@@ -134,7 +130,7 @@ public sealed partial class PackagingService
                                     sourcePackagePartition.DatabaseName,
                                     sourcePackagePartition.ContainerName);
 
-                                var sourcePackagePartitionOperationName = sourcePackagePartition.OperationName.ToUpperInvariant();
+                                var sourcePackagePartitionOperationName = CosmosOperation.Format(sourcePackagePartition.OperationType);
                                 var sourcePackagePart = sourcePackage.GetPart(sourcePackagePartition.PartitionUri);
                                 var sourceDocuments = default(JsonObject?[]);
 
@@ -158,12 +154,12 @@ public sealed partial class PackagingService
                                     sourceDocument.Remove("_self");
                                     sourceDocument.Remove("_ts");
 
-                                    if (!CosmosDocument.TryGetUniqueID(sourceDocument, out var documentUID))
+                                    if (!CosmosResource.TryGetDocumentID(sourceDocument, out var documentID))
                                     {
                                         throw new InvalidOperationException($"Cannot get document identifier for {sourcePackagePartition.PartitionUri}:$[{i}]");
                                     }
 
-                                    if (!CosmosDocument.TryGetPartitionKey(sourceDocument, containerPartitionKeyPaths!, out var documentPartitionKey))
+                                    if (!CosmosResource.TryGetPartitionKey(sourceDocument, containerPartitionKeyPaths!, out var documentPartitionKey))
                                     {
                                         throw new InvalidOperationException($"Cannot get document partition key for {sourcePackagePartition.PartitionUri}:$[{i}]");
                                     }
@@ -172,7 +168,7 @@ public sealed partial class PackagingService
 
                                     try
                                     {
-                                        var operationResponse = await container.ReadItemAsync<JsonObject?>(documentUID, documentPartitionKey, default, cancellationToken).ConfigureAwait(false);
+                                        var operationResponse = await container.ReadItemAsync<JsonObject?>(documentID, documentPartitionKey, default, cancellationToken).ConfigureAwait(false);
 
                                         _logger.LogInformation(
                                             "Fetching document {PartitionName}:$[{DocumentIndex}] snapshot - HTTP {StatusCode} ({RU} RU)",
@@ -207,9 +203,9 @@ public sealed partial class PackagingService
                                         snapshotDocument.Remove("_self");
                                     }
 
-                                    switch (sourcePackagePartitionOperationName)
+                                    switch (sourcePackagePartition.OperationType)
                                     {
-                                        case CosmosOperation.Delete:
+                                        case CosmosOperationType.Delete:
                                             {
                                                 if (snapshotDocument is not null)
                                                 {
@@ -222,7 +218,7 @@ public sealed partial class PackagingService
                                                 }
                                             }
                                             break;
-                                        case CosmosOperation.Create:
+                                        case CosmosOperationType.Create:
                                             {
                                                 if (snapshotDocument is null)
                                                 {
@@ -235,7 +231,7 @@ public sealed partial class PackagingService
                                                 }
                                             }
                                             break;
-                                        case CosmosOperation.Upsert:
+                                        case CosmosOperationType.Upsert:
                                             {
                                                 if (snapshotDocument is not null)
                                                 {
@@ -257,7 +253,7 @@ public sealed partial class PackagingService
                                                 }
                                             }
                                             break;
-                                        case CosmosOperation.Patch:
+                                        case CosmosOperationType.Patch:
                                             {
                                                 if (snapshotDocument is not null)
                                                 {
@@ -295,7 +291,7 @@ public sealed partial class PackagingService
                                 Guid.CreateVersion7().ToString(),
                                 sourcePackagePartitionGroupByDatabase.Key,
                                 sourcePackagePartitionGroupByContainer.Key,
-                                CosmosOperation.Delete.ToLowerInvariant());
+                                CosmosOperationType.Delete);
 
                             var revertPackagePart = revertPackage.CreatePart(revertPackagePartitionUri, "application/json", default);
 
@@ -311,7 +307,7 @@ public sealed partial class PackagingService
                                 Guid.CreateVersion7().ToString(),
                                 sourcePackagePartitionGroupByDatabase.Key,
                                 sourcePackagePartitionGroupByContainer.Key,
-                                CosmosOperation.Upsert.ToLowerInvariant());
+                                CosmosOperationType.Upsert);
 
                             var revertPackagePart = revertPackage.CreatePart(revertPackagePartitionUri, "application/json", default);
 
@@ -327,7 +323,7 @@ public sealed partial class PackagingService
                                 Guid.CreateVersion7().ToString(),
                                 sourcePackagePartitionGroupByDatabase.Key,
                                 sourcePackagePartitionGroupByContainer.Key,
-                                CosmosOperation.Patch.ToLowerInvariant());
+                                CosmosOperationType.Patch);
 
                             var revertPackagePart = revertPackage.CreatePart(revertPackagePartitionUri, "application/json", default);
 

@@ -5,7 +5,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cotopaxi.Cosmos.PackageManagement.UnitTests;
 
 [TestClass]
-public sealed class CosmosDocumentTests
+public sealed class CosmosResourceTests
 {
     [TestMethod]
     public void TryGetPartitionKeyReturnsTrue1()
@@ -24,7 +24,7 @@ public sealed class CosmosDocumentTests
             .Add("bikes")
             .Build();
 
-        var result = CosmosDocument.TryGetPartitionKey(document, partitionKeyPaths, out var actual);
+        var result = CosmosResource.TryGetPartitionKey(document, partitionKeyPaths, out var actual);
 
         Assert.IsTrue(result);
         Assert.AreEqual(expected, actual);
@@ -50,7 +50,7 @@ public sealed class CosmosDocumentTests
             .Add("hybrid")
             .Build();
 
-        var result = CosmosDocument.TryGetPartitionKey(document, partitionKeyPaths, out var actual);
+        var result = CosmosResource.TryGetPartitionKey(document, partitionKeyPaths, out var actual);
 
         Assert.IsTrue(result);
         Assert.AreEqual(expected, actual);
@@ -79,7 +79,7 @@ public sealed class CosmosDocumentTests
             .Add("gravel")
             .Build();
 
-        var result = CosmosDocument.TryGetPartitionKey(document, partitionKeyPaths, out var actual);
+        var result = CosmosResource.TryGetPartitionKey(document, partitionKeyPaths, out var actual);
 
         Assert.IsTrue(result);
         Assert.AreEqual(expected, actual);
@@ -106,7 +106,7 @@ public sealed class CosmosDocumentTests
             .AddNoneType()
             .Build();
 
-        var result = CosmosDocument.TryGetPartitionKey(document, partitionKeyPaths, out var actual);
+        var result = CosmosResource.TryGetPartitionKey(document, partitionKeyPaths, out var actual);
 
         Assert.IsTrue(result);
         Assert.AreEqual(expected, actual);
@@ -127,7 +127,7 @@ public sealed class CosmosDocumentTests
 
         var expected = default(PartitionKey);
 
-        var result = CosmosDocument.TryGetPartitionKey(document, partitionKeyPaths, out var actual);
+        var result = CosmosResource.TryGetPartitionKey(document, partitionKeyPaths, out var actual);
 
         Assert.IsFalse(result);
         Assert.AreEqual(expected, actual);
@@ -141,7 +141,7 @@ public sealed class CosmosDocumentTests
             ["id"] = "5f3edc36-17c0-4e11-a6da-a81440214abe",
         };
 
-        var result = CosmosDocument.TryGetUniqueID(document, out var documentID);
+        var result = CosmosResource.TryGetDocumentID(document, out var documentID);
 
         Assert.IsTrue(result);
         Assert.AreEqual("5f3edc36-17c0-4e11-a6da-a81440214abe", documentID);
@@ -154,7 +154,7 @@ public sealed class CosmosDocumentTests
         {
         };
 
-        var result = CosmosDocument.TryGetUniqueID(document, out var documentID);
+        var result = CosmosResource.TryGetDocumentID(document, out var documentID);
 
         Assert.IsFalse(result);
         Assert.IsNull(documentID);
@@ -168,9 +168,28 @@ public sealed class CosmosDocumentTests
             ["id"] = new JsonObject(),
         };
 
-        var result = CosmosDocument.TryGetUniqueID(document, out var documentID);
+        var result = CosmosResource.TryGetDocumentID(document, out var documentID);
 
         Assert.IsFalse(result);
         Assert.IsNull(documentID);
+    }
+
+    [DataTestMethod]
+    [DataRow(default(string), false)]
+    [DataRow("", false)]
+    [DataRow("1", true)]
+    [DataRow("a", true)]
+    [DataRow("?", false)]
+    [DataRow("/", false)]
+    [DataRow("\\", false)]
+    [DataRow("#", false)]
+    [DataRow(" ", false)]
+    [DataRow(" a", true)]
+    [DataRow("a ", false)]
+    public void IsValidUniqueID(string value, bool expected)
+    {
+        var result = CosmosResource.IsValidResourceID(value);
+
+        Assert.AreEqual(expected, result);
     }
 }

@@ -73,7 +73,6 @@ public sealed partial class PackagingService
             }
 
             var packagePartitionGroupsByDatabase = packagePartitions
-                .Where(static x => CosmosOperation.IsSupported(x.OperationName))
                 .GroupBy(static x => x.DatabaseName, StringComparer.Ordinal)
                 .OrderBy(static x => x.Key, StringComparer.Ordinal);
 
@@ -116,8 +115,8 @@ public sealed partial class PackagingService
                     }
 
                     var packagePartitionGroupsByOperation = packagePartitionGroupByContainer
-                        .GroupBy(static x => x.OperationName, StringComparer.OrdinalIgnoreCase)
-                        .OrderBy(static x => x.Key, CosmosOperationComparer.Instance);
+                        .GroupBy(static x => x.OperationType)
+                        .OrderBy(static x => x.Key);
 
                     foreach (var packagePartitionGroupByOperation in packagePartitionGroupsByOperation)
                     {
@@ -126,7 +125,7 @@ public sealed partial class PackagingService
 
                         foreach (var packagePartition in packagePartitionsByOperation)
                         {
-                            var packagePartitionOperationName = packagePartition.OperationName.ToUpperInvariant();
+                            var packagePartitionOperationName = CosmosOperation.Format(packagePartition.OperationType);
 
                             if (!dryRun)
                             {
@@ -170,12 +169,12 @@ public sealed partial class PackagingService
                                 document.Remove("_self");
                                 document.Remove("_ts");
 
-                                if (!CosmosDocument.TryGetUniqueID(document, out var documentUID))
+                                if (!CosmosResource.TryGetDocumentID(document, out var documentID))
                                 {
                                     throw new InvalidOperationException($"Cannot get document identifier for {packagePartition.PartitionUri}:$[{i}]");
                                 }
 
-                                if (!CosmosDocument.TryGetPartitionKey(document, containerPartitionKeyPaths, out var documentPartitionKey))
+                                if (!CosmosResource.TryGetPartitionKey(document, containerPartitionKeyPaths, out var documentPartitionKey))
                                 {
                                     throw new InvalidOperationException($"Cannot get document partition key for {packagePartition.PartitionUri}:$[{i}]");
                                 }
@@ -186,31 +185,31 @@ public sealed partial class PackagingService
                                     {
                                         var operationResponse = default(ItemResponse<JsonObject?>);
 
-                                        switch (packagePartitionOperationName)
+                                        switch (packagePartition.OperationType)
                                         {
-                                            case CosmosOperation.Delete:
+                                            case CosmosOperationType.Delete:
                                                 {
-                                                    operationResponse = await container.DeleteItemAsync<JsonObject?>(documentUID, documentPartitionKey, default, cancellationToken).ConfigureAwait(false);
+                                                    operationResponse = await container.DeleteItemAsync<JsonObject?>(documentID, documentPartitionKey, default, cancellationToken).ConfigureAwait(false);
                                                 }
                                                 break;
-                                            case CosmosOperation.Create:
+                                            case CosmosOperationType.Create:
                                                 {
                                                     operationResponse = await container.CreateItemAsync<JsonObject?>(document, documentPartitionKey, default, cancellationToken).ConfigureAwait(false);
                                                 }
                                                 break;
-                                            case CosmosOperation.Upsert:
+                                            case CosmosOperationType.Upsert:
                                                 {
                                                     operationResponse = await container.UpsertItemAsync<JsonObject?>(document, documentPartitionKey, default, cancellationToken).ConfigureAwait(false);
                                                 }
                                                 break;
-                                            case CosmosOperation.Patch:
+                                            case CosmosOperationType.Patch:
                                                 {
                                                     var patchOperations = document
                                                         .Where(static x => x.Key != "id")
                                                         .Select(static x => PatchOperation.Set("/" + x.Key, x.Value))
                                                         .ToArray();
 
-                                                    operationResponse = await container.PatchItemAsync<JsonObject?>(documentUID, documentPartitionKey, patchOperations, default, cancellationToken).ConfigureAwait(false);
+                                                    operationResponse = await container.PatchItemAsync<JsonObject?>(documentID, documentPartitionKey, patchOperations, default, cancellationToken).ConfigureAwait(false);
                                                 }
                                                 break;
                                             default:
@@ -221,7 +220,7 @@ public sealed partial class PackagingService
 
                                         _logger.LogInformation(
                                             "Executing {OperationName} document {PartitionName}:$[{DocumentIndex}] - HTTP {StatusCode} ({RU} RU)",
-                                            packagePartitionOperationName,
+                                    packagePartitionOperationName,
                                             packagePartition.PartitionName,
                                             i,
                                             (int)operationResponse.StatusCode,
@@ -230,9 +229,9 @@ public sealed partial class PackagingService
                                     }
                                     catch (CosmosException ex)
                                     {
-                                        if (((packagePartitionOperationName == CosmosOperation.Create) && (ex.StatusCode == HttpStatusCode.Conflict)) ||
-                                            ((packagePartitionOperationName == CosmosOperation.Patch) && (ex.StatusCode == HttpStatusCode.NotFound)) ||
-                                            ((packagePartitionOperationName == CosmosOperation.Delete) && (ex.StatusCode == HttpStatusCode.NotFound)))
+                                        if (((packagePartition.OperationType == CosmosOperationType.Create) && (ex.StatusCode == HttpStatusCode.Conflict)) ||
+                                            ((packagePartition.OperationType == CosmosOperationType.Patch) && (ex.StatusCode == HttpStatusCode.NotFound)) ||
+                                            ((packagePartition.OperationType == CosmosOperationType.Delete) && (ex.StatusCode == HttpStatusCode.NotFound)))
                                         {
                                             _logger.LogWarning(
                                                 "Executing {OperationName} document {PartitionName}:$[{DocumentIndex}] - HTTP {StatusCode} ({RU} RU)",

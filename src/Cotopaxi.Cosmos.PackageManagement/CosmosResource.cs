@@ -8,8 +8,10 @@ using Microsoft.Azure.Cosmos;
 
 namespace Cotopaxi.Cosmos.PackageManagement;
 
-public static class CosmosDocument
+public static class CosmosResource
 {
+    private static readonly char[] s_invalidResourceIDChars = ['/', '\\', '#', '?'];
+
     public static bool TryGetPartitionKey(JsonObject documentNode, IEnumerable<JsonPointer> partitionKeyPaths, out PartitionKey value)
     {
         Debug.Assert(documentNode is not null);
@@ -64,7 +66,7 @@ public static class CosmosDocument
         return true;
     }
 
-    public static bool TryGetUniqueID(JsonObject documentNode, [NotNullWhen(true)] out string? value)
+    public static bool TryGetDocumentID(JsonObject documentNode, [NotNullWhen(true)] out string? value)
     {
         Debug.Assert(documentNode is not null);
 
@@ -82,5 +84,25 @@ public static class CosmosDocument
         value = default;
 
         return false;
+    }
+
+    public static bool IsValidResourceID(string? value)
+    {
+        if (value is not { Length: > 0 and < 256 })
+        {
+            return false;
+        }
+
+        if (value[^1] == ' ')
+        {
+            return false;
+        }
+
+        if (value.IndexOfAny(s_invalidResourceIDChars) >= 0)
+        {
+            return false;
+        }
+
+        return true;
     }
 }

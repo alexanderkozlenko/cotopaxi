@@ -12,9 +12,9 @@ public sealed class ProjectSourceComparer : IEqualityComparer<ProjectSource?>
     public bool Equals(ProjectSource? x, ProjectSource? y)
     {
         return
+            (x?.OperationType == y?.OperationType) &&
             string.Equals(x?.DatabaseName, y?.DatabaseName, StringComparison.Ordinal) &&
             string.Equals(x?.ContainerName, y?.ContainerName, StringComparison.Ordinal) &&
-            string.Equals(x?.OperationName, y?.OperationName, StringComparison.OrdinalIgnoreCase) &&
             string.Equals(x?.FilePath, y?.FilePath, StringComparison.OrdinalIgnoreCase);
 
     }
@@ -26,7 +26,7 @@ public sealed class ProjectSourceComparer : IEqualityComparer<ProjectSource?>
         return HashCode.Combine(
             obj.DatabaseName,
             obj.ContainerName,
-            obj.OperationName.ToUpperInvariant(),
+            obj.OperationType,
             obj.FilePath.ToUpperInvariant());
     }
 }
