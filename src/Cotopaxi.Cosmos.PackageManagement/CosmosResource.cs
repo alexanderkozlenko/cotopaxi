@@ -10,7 +10,7 @@ namespace Cotopaxi.Cosmos.PackageManagement;
 
 public static class CosmosResource
 {
-    private static readonly char[] s_invalidResourceIDChars = ['/', '\\', '#', '?'];
+    private static readonly char[] s_invalidChars = ['/', '\\', '#', '?'];
 
     public static bool TryGetPartitionKey(JsonObject documentNode, IEnumerable<JsonPointer> partitionKeyPaths, out PartitionKey value)
     {
@@ -93,12 +93,7 @@ public static class CosmosResource
             return false;
         }
 
-        if (value[^1] == ' ')
-        {
-            return false;
-        }
-
-        if (value.IndexOfAny(s_invalidResourceIDChars) >= 0)
+        if (value.IndexOfAny(s_invalidChars) >= 0)
         {
             return false;
         }

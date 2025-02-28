@@ -175,17 +175,14 @@ public sealed class CosmosResourceTests
     }
 
     [DataTestMethod]
-    [DataRow(default(string), false)]
-    [DataRow("", false)]
+    [DataRow(null, false)]
     [DataRow("1", true)]
     [DataRow("a", true)]
-    [DataRow("?", false)]
+    [DataRow("", false)]
     [DataRow("/", false)]
     [DataRow("\\", false)]
     [DataRow("#", false)]
-    [DataRow(" ", false)]
-    [DataRow(" a", true)]
-    [DataRow("a ", false)]
+    [DataRow("?", false)]
     public void IsValidUniqueID(string value, bool expected)
     {
         var result = CosmosResource.IsValidResourceID(value);

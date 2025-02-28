@@ -220,7 +220,7 @@ public sealed partial class PackagingService
 
                                         _logger.LogInformation(
                                             "Executing {OperationName} document {PartitionName}:$[{DocumentIndex}] - HTTP {StatusCode} ({RU} RU)",
-                                    packagePartitionOperationName,
+                                            packagePartitionOperationName,
                                             packagePartition.PartitionName,
                                             i,
                                             (int)operationResponse.StatusCode,

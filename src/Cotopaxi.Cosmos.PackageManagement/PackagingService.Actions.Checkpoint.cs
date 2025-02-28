@@ -130,7 +130,6 @@ public sealed partial class PackagingService
                                     sourcePackagePartition.DatabaseName,
                                     sourcePackagePartition.ContainerName);
 
-                                var sourcePackagePartitionOperationName = CosmosOperation.Format(sourcePackagePartition.OperationType);
                                 var sourcePackagePart = sourcePackage.GetPart(sourcePackagePartition.PartitionUri);
                                 var sourceDocuments = default(JsonObject?[]);
 
