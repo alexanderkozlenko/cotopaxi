@@ -121,19 +121,19 @@
 <p></p>
 <pre><code class="lang-txt">cotopaxi pack $(Build.SourcesDirectory)/adventureworks.json $(Build.StagingDirectory)/adventureworks.cdbpkg
 
-Building package /home/vsts/work/1/a/adventureworks.cdbpkg for project /home/vsts/work/1/s/adventureworks.json
-Packing document collection dfcf04cb-886e-ae82-9172-fa4a1acb5d8b as UPSERT operations in adventureworks\products
-Packing document /home/vsts/work/1/s/adventureworks/products/bikes.json:$[0]
+Building deployment package /home/vsts/work/1/a/adventureworks.cdbpkg for project /home/vsts/work/1/s/adventureworks.json
+Packing deployment entries dfcf04cb-886e-ae82-9172-fa4a1acb5d8b for container adventureworks\products (upsert)
+Packing deployment entry /home/vsts/work/1/s/adventureworks/products/bikes.json:$[0]
 </code></pre>
 <p></p>
 <p>Deploying the package to an Azure Cosmos DB account in Azure DevOps:</p>
 <p></p>
 <pre><code class="lang-txt">cotopaxi deploy $(System.ArtifactsDirectory)/**/*.cdbpkg
 
-Deploying package /home/vsts/work/r1/a/adventureworks.cdbpkg to cosmos-adventureworks
-Acquiring container properties for adventureworks\products - HTTP 200 (2 RU)
-Deploying document collection dfcf04cb-886e-ae82-9172-fa4a1acb5d8b as UPSERT operations in adventureworks\products
-Executing UPSERT document dfcf04cb-886e-ae82-9172-fa4a1acb5d8b:$[0] - HTTP 200 (10.29 RU)
+Deploying package /home/vsts/work/r1/a/adventureworks.cdbpkg to account cosmos-adventureworks
+Requesting properties for container adventureworks\products - HTTP 200
+Deploying entries cdbpkg:dfcf04cb-886e-ae82-9172-fa4a1acb5d8b to container adventureworks\products (upsert)
+Deploying entry cdbpkg:dfcf04cb-886e-ae82-9172-fa4a1acb5d8b:$[0] (upsert) - HTTP 200
 </code></pre>
 <p></p>
 <h2 id="specifications">Specifications</h2>
