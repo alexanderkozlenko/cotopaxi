@@ -63,8 +63,8 @@ internal sealed class AppCheckpointHandler : HostCommandHandler
 
         var sourcePackagePathPattern = commandResult.GetValueForArgument(AppCheckpointCommand.SourcePackageArgument);
         var sourcePackagePaths = GetFiles(Environment.CurrentDirectory, sourcePackagePathPattern);
-        var revertPackagePath = commandResult.GetValueForArgument(AppCheckpointCommand.RevertPackageArgument);
+        var rollbackPackagePath = commandResult.GetValueForArgument(AppCheckpointCommand.RollbackPackageArgument);
 
-        return _service.CreateCheckpointPackagesAsync(sourcePackagePaths, revertPackagePath, cosmosCredential, cancellationToken);
+        return _service.CreateCheckpointPackagesAsync(sourcePackagePaths, rollbackPackagePath, cosmosCredential, cancellationToken);
     }
 }

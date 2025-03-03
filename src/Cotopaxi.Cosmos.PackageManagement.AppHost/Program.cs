@@ -34,7 +34,7 @@ public static class Program
             new AppCheckpointCommand()
             {
                 AppCheckpointCommand.SourcePackageArgument,
-                AppCheckpointCommand.RevertPackageArgument,
+                AppCheckpointCommand.RollbackPackageArgument,
                 AppCheckpointCommand.EndpointOption,
                 AppCheckpointCommand.KeyOption,
                 AppCheckpointCommand.ConnectionStringOption,

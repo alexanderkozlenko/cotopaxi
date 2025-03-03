@@ -12,16 +12,16 @@ public static class CosmosResource
 {
     private static readonly char[] s_invalidChars = ['/', '\\', '#', '?'];
 
-    public static bool TryGetPartitionKey(JsonObject documentNode, IEnumerable<JsonPointer> partitionKeyPaths, out PartitionKey value)
+    public static bool TryGetPartitionKey(JsonObject document, IEnumerable<JsonPointer> partitionKeyPaths, out PartitionKey value)
     {
-        Debug.Assert(documentNode is not null);
+        Debug.Assert(document is not null);
         Debug.Assert(partitionKeyPaths is not null);
 
         var builder = new PartitionKeyBuilder();
 
         foreach (var partitionKeyPath in partitionKeyPaths)
         {
-            if (documentNode.TryGetNode(partitionKeyPath, out var partitionKeyNode))
+            if (document.TryGetNode(partitionKeyPath, out var partitionKeyNode))
             {
                 if (partitionKeyNode is not null)
                 {
@@ -66,11 +66,11 @@ public static class CosmosResource
         return true;
     }
 
-    public static bool TryGetDocumentID(JsonObject documentNode, [NotNullWhen(true)] out string? value)
+    public static bool TryGetDocumentID(JsonObject document, [NotNullWhen(true)] out string? value)
     {
-        Debug.Assert(documentNode is not null);
+        Debug.Assert(document is not null);
 
-        if (documentNode.TryGetPropertyValue("id", out var propertyValueNode))
+        if (document.TryGetPropertyValue("id", out var propertyValueNode))
         {
             if (propertyValueNode is JsonValue valueNode)
             {
@@ -84,6 +84,17 @@ public static class CosmosResource
         value = default;
 
         return false;
+    }
+
+    public static void RemoveSystemProperties(JsonObject document)
+    {
+        Debug.Assert(document is not null);
+
+        document.Remove("_attachments");
+        document.Remove("_etag");
+        document.Remove("_rid");
+        document.Remove("_self");
+        document.Remove("_ts");
     }
 
     public static bool IsValidResourceID(string? value)

@@ -14,10 +14,10 @@ namespace Cotopaxi.Cosmos.PackageManagement;
 
 public sealed partial class PackagingService
 {
-    public async Task<bool> CreateCheckpointPackagesAsync(IReadOnlyCollection<string> sourcePackagePaths, string revertPackagePath, CosmosCredential cosmosCredential, CancellationToken cancellationToken)
+    public async Task<bool> CreateCheckpointPackagesAsync(IReadOnlyCollection<string> sourcePackagePaths, string rollbackPackagePath, CosmosCredential cosmosCredential, CancellationToken cancellationToken)
     {
         Debug.Assert(sourcePackagePaths is not null);
-        Debug.Assert(revertPackagePath is not null);
+        Debug.Assert(rollbackPackagePath is not null);
         Debug.Assert(cosmosCredential is not null);
 
         if (sourcePackagePaths.Count == 0)
@@ -38,39 +38,28 @@ public sealed partial class PackagingService
             new CosmosClient(cosmosCredential.AccountEndpoint.AbsoluteUri, cosmosCredential.AuthKeyOrResourceToken, cosmosClientOptions);
 
         var cosmosAccount = await cosmosClient.ReadAccountAsync().ConfigureAwait(false);
+        var deployOperations = new HashSet<(PackageOperationKey, CosmosOperationType)>();
+        var partitionKeyPathsCache = new Dictionary<(string, string), JsonPointer[]>();
+        var rollbackOperationSources = new Dictionary<PackageOperationKey, (Dictionary<CosmosOperationType, JsonObject> SourceDocuments, JsonObject? TargetDocument)>();
 
-        _logger.LogInformation("Building rollback package {RevertPath} for {CosmosAccount}", revertPackagePath, cosmosAccount.Id);
+        _logger.LogInformation("Building rollback package {TargetPath} for account {CosmosAccount}", rollbackPackagePath, cosmosAccount.Id);
 
-        var partitionKeyPathsRegistry = new Dictionary<(string, string), JsonPointer[]>();
-
-        Directory.CreateDirectory(Path.GetDirectoryName(revertPackagePath)!);
+        Directory.CreateDirectory(Path.GetDirectoryName(rollbackPackagePath)!);
 
         try
         {
-            using var revertPackage = Package.Open(revertPackagePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None);
-            using var revertPackageModel = await PackageModel.OpenAsync(revertPackage, default, cancellationToken).ConfigureAwait(false);
+            using var rollbackPackage = Package.Open(rollbackPackagePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None);
+            using var rollbackPackageModel = await PackageModel.OpenAsync(rollbackPackage, default, cancellationToken).ConfigureAwait(false);
 
-            revertPackage.PackageProperties.Identifier = Guid.CreateVersion7().ToString();
-            revertPackage.PackageProperties.Subject = cosmosClient.Endpoint.AbsoluteUri;
-            revertPackage.PackageProperties.Created = DateTime.UtcNow;
-
-            var sourcePackageIdentifiers = new HashSet<string>(sourcePackagePaths.Count, StringComparer.OrdinalIgnoreCase);
+            rollbackPackage.PackageProperties.Identifier = Guid.CreateVersion7().ToString();
+            rollbackPackage.PackageProperties.Subject = cosmosClient.Endpoint.AbsoluteUri;
+            rollbackPackage.PackageProperties.Created = DateTime.UtcNow;
 
             foreach (var sourcePackagePath in sourcePackagePaths)
             {
-                _logger.LogInformation("Packing rollback documents for package {SourcePath}", sourcePackagePath);
+                _logger.LogInformation("Analyzing deployment package {SourcePath}", sourcePackagePath);
 
                 using var sourcePackage = Package.Open(sourcePackagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-
-                if (string.IsNullOrEmpty(sourcePackage.PackageProperties.Identifier))
-                {
-                    throw new InvalidOperationException($"Cannot get package identifier for {sourcePackagePath}");
-                }
-
-                if (!sourcePackageIdentifiers.Add(sourcePackage.PackageProperties.Identifier))
-                {
-                    throw new InvalidOperationException($"Package {sourcePackage.PackageProperties.Identifier} is already processed");
-                }
 
                 var sourcePackagePartitions = default(PackagePartition[]);
 
@@ -94,24 +83,19 @@ public sealed partial class PackagingService
                         var container = cosmosClient.GetContainer(sourcePackagePartitionGroupByDatabase.Key, sourcePackagePartitionGroupByContainer.Key);
                         var containerPartitionKeyPathsKey = (sourcePackagePartitionGroupByDatabase.Key, sourcePackagePartitionGroupByContainer.Key);
 
-                        if (!partitionKeyPathsRegistry.TryGetValue(containerPartitionKeyPathsKey, out var containerPartitionKeyPaths))
+                        if (!partitionKeyPathsCache.TryGetValue(containerPartitionKeyPathsKey, out var containerPartitionKeyPaths))
                         {
                             var containerResponse = await container.ReadContainerAsync(default, cancellationToken).ConfigureAwait(false);
 
                             containerPartitionKeyPaths = containerResponse.Resource.PartitionKeyPaths.Select(static x => new JsonPointer(x)).ToArray();
-                            partitionKeyPathsRegistry.Add(containerPartitionKeyPathsKey, containerPartitionKeyPaths);
+                            partitionKeyPathsCache.Add(containerPartitionKeyPathsKey, containerPartitionKeyPaths);
 
                             _logger.LogInformation(
-                                "Acquiring container properties for {DatabaseName}\\{ContainerName} - HTTP {StatusCode} ({RU} RU)",
+                                "Requesting properties for container {DatabaseName}\\{ContainerName} - HTTP {StatusCode}",
                                 sourcePackagePartitionGroupByDatabase.Key,
                                 sourcePackagePartitionGroupByContainer.Key,
-                                (int)containerResponse.StatusCode,
-                                Math.Round(containerResponse.RequestCharge, 2));
+                                (int)containerResponse.StatusCode);
                         }
-
-                        var documentsToDelete = new List<JsonObject>();
-                        var documentsToUpsert = new List<JsonObject>();
-                        var documentsToPatch = new List<JsonObject>();
 
                         var sourcePackagePartitionGroupsByOperation = sourcePackagePartitionGroupByContainer
                             .GroupBy(static x => x.OperationType)
@@ -124,11 +108,14 @@ public sealed partial class PackagingService
 
                             foreach (var sourcePackagePartition in sourcePackagePartitionsByOperation)
                             {
+                                var sourcePackagePartitionOperationName = CosmosOperation.Format(sourcePackagePartition.OperationType);
+
                                 _logger.LogInformation(
-                                    "Fetching document collection {PartitionName} snapshots from {DatabaseName}\\{ContainerName}",
+                                    "Analyzing deployment entries cdbpkg:{PartitionName} for container {DatabaseName}\\{ContainerName} ({OperationName})",
                                     sourcePackagePartition.PartitionName,
                                     sourcePackagePartition.DatabaseName,
-                                    sourcePackagePartition.ContainerName);
+                                    sourcePackagePartition.ContainerName,
+                                    sourcePackagePartitionOperationName);
 
                                 var sourcePackagePart = sourcePackage.GetPart(sourcePackagePartition.PartitionUri);
                                 var sourceDocuments = default(JsonObject?[]);
@@ -147,202 +134,198 @@ public sealed partial class PackagingService
                                         continue;
                                     }
 
-                                    sourceDocument.Remove("_attachments");
-                                    sourceDocument.Remove("_etag");
-                                    sourceDocument.Remove("_rid");
-                                    sourceDocument.Remove("_self");
-                                    sourceDocument.Remove("_ts");
+                                    _logger.LogInformation("Analyzing deployment entry cdbpkg:{PartitionName}:$[{DocumentIndex}]", sourcePackagePartition.PartitionName, i);
+
+                                    CosmosResource.RemoveSystemProperties(sourceDocument);
 
                                     if (!CosmosResource.TryGetDocumentID(sourceDocument, out var documentID))
                                     {
-                                        throw new InvalidOperationException($"Cannot get document identifier for {sourcePackagePartition.PartitionUri}:$[{i}]");
+                                        throw new InvalidOperationException($"Unable to get document identifier for cdbpkg:{sourcePackagePartition.PartitionUri}:$[{i}]");
                                     }
 
                                     if (!CosmosResource.TryGetPartitionKey(sourceDocument, containerPartitionKeyPaths!, out var documentPartitionKey))
                                     {
-                                        throw new InvalidOperationException($"Cannot get document partition key for {sourcePackagePartition.PartitionUri}:$[{i}]");
+                                        throw new InvalidOperationException($"Unable to get document partition key for cdbpkg:{sourcePackagePartition.PartitionUri}:$[{i}]");
                                     }
 
-                                    var snapshotDocument = default(JsonObject?);
+                                    var deployOperationKey = new PackageOperationKey(
+                                        sourcePackagePartition.DatabaseName,
+                                        sourcePackagePartition.ContainerName,
+                                        documentID,
+                                        documentPartitionKey);
 
-                                    try
+                                    if (!deployOperations.Add((deployOperationKey, sourcePackagePartition.OperationType)))
                                     {
-                                        var operationResponse = await container.ReadItemAsync<JsonObject?>(documentID, documentPartitionKey, default, cancellationToken).ConfigureAwait(false);
-
-                                        _logger.LogInformation(
-                                            "Fetching document {PartitionName}:$[{DocumentIndex}] snapshot - HTTP {StatusCode} ({RU} RU)",
-                                            sourcePackagePartition.PartitionName,
-                                            i,
-                                            (int)operationResponse.StatusCode,
-                                            Math.Round(operationResponse.RequestCharge, 2));
-
-                                        snapshotDocument = operationResponse.Resource;
+                                        throw new InvalidOperationException($"Unable to include duplicate deployment entry cdbpkg:{sourcePackagePartition.PartitionUri}:$[{i}]");
                                     }
-                                    catch (CosmosException ex)
+
+                                    if (!rollbackOperationSources.TryGetValue(deployOperationKey, out var rollbackOperationSource))
                                     {
-                                        if (ex.StatusCode == HttpStatusCode.NotFound)
+                                        var targetDocument = default(JsonObject?);
+
+                                        try
                                         {
+                                            var operationResponse = await container.ReadItemAsync<JsonObject?>(documentID, documentPartitionKey, default, cancellationToken).ConfigureAwait(false);
+
                                             _logger.LogInformation(
-                                                "Fetching document {PartitionName}:$[{DocumentIndex}] snapshot - HTTP {StatusCode} ({RU} RU)",
+                                                "Requesting document for deployment entry cdbpkg:{PartitionName}:$[{DocumentIndex}] - HTTP {StatusCode}",
                                                 sourcePackagePartition.PartitionName,
                                                 i,
-                                                (int)ex.StatusCode,
-                                                Math.Round(ex.RequestCharge, 2));
+                                                (int)operationResponse.StatusCode);
+
+                                            targetDocument = operationResponse.Resource;
                                         }
-                                        else
+                                        catch (CosmosException ex)
                                         {
-                                            throw;
+                                            if (ex.StatusCode == HttpStatusCode.NotFound)
+                                            {
+                                                _logger.LogInformation(
+                                                    "Requesting document for deployment entry cdbpkg:{PartitionName}:$[{DocumentIndex}] - HTTP {StatusCode}",
+                                                    sourcePackagePartition.PartitionName,
+                                                    i,
+                                                    (int)ex.StatusCode);
+                                            }
+                                            else
+                                            {
+                                                throw;
+                                            }
                                         }
+
+                                        if (targetDocument is not null)
+                                        {
+                                            CosmosResource.RemoveSystemProperties(targetDocument);
+                                        }
+
+                                        rollbackOperationSource = (new(), targetDocument);
+                                        rollbackOperationSources.Add(deployOperationKey, rollbackOperationSource);
                                     }
 
-                                    if (snapshotDocument is not null)
-                                    {
-                                        snapshotDocument.Remove("_attachments");
-                                        snapshotDocument.Remove("_rid");
-                                        snapshotDocument.Remove("_self");
-                                    }
-
-                                    switch (sourcePackagePartition.OperationType)
-                                    {
-                                        case CosmosOperationType.Delete:
-                                            {
-                                                if (snapshotDocument is not null)
-                                                {
-                                                    _logger.LogInformation(
-                                                        "Packing document {PartitionName}:$[{DocumentIndex}] snapshot for UPSERT operation",
-                                                        sourcePackagePartition.PartitionName,
-                                                        i);
-
-                                                    documentsToUpsert.Add(snapshotDocument);
-                                                }
-                                            }
-                                            break;
-                                        case CosmosOperationType.Create:
-                                            {
-                                                if (snapshotDocument is null)
-                                                {
-                                                    _logger.LogInformation(
-                                                        "Packing document {PartitionName}:$[{DocumentIndex}] for DELETE operation",
-                                                        sourcePackagePartition.PartitionName,
-                                                        i);
-
-                                                    documentsToDelete.Add(sourceDocument);
-                                                }
-                                            }
-                                            break;
-                                        case CosmosOperationType.Upsert:
-                                            {
-                                                if (snapshotDocument is not null)
-                                                {
-                                                    _logger.LogInformation(
-                                                        "Packing document {PartitionName}:$[{DocumentIndex}] snapshot for UPSERT operation",
-                                                        sourcePackagePartition.PartitionName,
-                                                        i);
-
-                                                    documentsToUpsert.Add(snapshotDocument);
-                                                }
-                                                else
-                                                {
-                                                    _logger.LogInformation(
-                                                        "Packing document {PartitionName}:$[{DocumentIndex}] for DELETE operation",
-                                                        sourcePackagePartition.PartitionName,
-                                                        i);
-
-                                                    documentsToDelete.Add(sourceDocument);
-                                                }
-                                            }
-                                            break;
-                                        case CosmosOperationType.Patch:
-                                            {
-                                                if (snapshotDocument is not null)
-                                                {
-                                                    _logger.LogInformation(
-                                                        "Packing document {PartitionName}:$[{DocumentIndex}] snapshot for PATCH operation",
-                                                        sourcePackagePartition.PartitionName,
-                                                        i);
-
-                                                    var propertyNamesToExclude = snapshotDocument
-                                                        .Where(x => !sourceDocument.ContainsKey(x.Key) && (x.Key is not ("_etag" or "_ts")))
-                                                        .Select(static x => x.Key)
-                                                        .ToArray();
-
-                                                    foreach (var propertyName in propertyNamesToExclude)
-                                                    {
-                                                        snapshotDocument.Remove(propertyName);
-                                                    }
-
-                                                    documentsToPatch.Add(snapshotDocument);
-                                                }
-                                            }
-                                            break;
-                                        default:
-                                            {
-                                                throw new NotSupportedException();
-                                            }
-                                    }
+                                    rollbackOperationSource.SourceDocuments.Add(sourcePackagePartition.OperationType, sourceDocument);
                                 }
-                            }
-                        }
-
-                        if (documentsToDelete.Count > 0)
-                        {
-                            var revertPackagePartitionUri = revertPackageModel.CreatePartition(
-                                Guid.CreateVersion7().ToString(),
-                                sourcePackagePartitionGroupByDatabase.Key,
-                                sourcePackagePartitionGroupByContainer.Key,
-                                CosmosOperationType.Delete);
-
-                            var revertPackagePart = revertPackage.CreatePart(revertPackagePartitionUri, "application/json", default);
-
-                            using (var revertPackagePartStream = revertPackagePart.GetStream(FileMode.Create, FileAccess.Write))
-                            {
-                                await JsonSerializer.SerializeAsync(revertPackagePartStream, documentsToDelete, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
-                            }
-                        }
-
-                        if (documentsToUpsert.Count > 0)
-                        {
-                            var revertPackagePartitionUri = revertPackageModel.CreatePartition(
-                                Guid.CreateVersion7().ToString(),
-                                sourcePackagePartitionGroupByDatabase.Key,
-                                sourcePackagePartitionGroupByContainer.Key,
-                                CosmosOperationType.Upsert);
-
-                            var revertPackagePart = revertPackage.CreatePart(revertPackagePartitionUri, "application/json", default);
-
-                            using (var revertPackagePartStream = revertPackagePart.GetStream(FileMode.Create, FileAccess.Write))
-                            {
-                                await JsonSerializer.SerializeAsync(revertPackagePartStream, documentsToUpsert, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
-                            }
-                        }
-
-                        if (documentsToPatch.Count > 0)
-                        {
-                            var revertPackagePartitionUri = revertPackageModel.CreatePartition(
-                                Guid.CreateVersion7().ToString(),
-                                sourcePackagePartitionGroupByDatabase.Key,
-                                sourcePackagePartitionGroupByContainer.Key,
-                                CosmosOperationType.Patch);
-
-                            var revertPackagePart = revertPackage.CreatePart(revertPackagePartitionUri, "application/json", default);
-
-                            using (var revertPackagePartStream = revertPackagePart.GetStream(FileMode.Create, FileAccess.Write))
-                            {
-                                await JsonSerializer.SerializeAsync(revertPackagePartStream, documentsToPatch, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
                             }
                         }
                     }
                 }
             }
 
-            await revertPackageModel.SaveAsync(cancellationToken).ConfigureAwait(false);
+            var rollbackOperations = new List<(string DatabaseName, string ContainerName, CosmosOperationType OperationType, JsonObject Document)>();
 
-            revertPackage.PackageProperties.Modified = DateTime.UtcNow;
-            revertPackage.PackageProperties.Description = string.Join(';', sourcePackageIdentifiers);
+            foreach (var (rollbackOperationKey, rollbackOperationValue) in rollbackOperationSources)
+            {
+                var sourceDocument = default(JsonObject);
+
+                if (rollbackOperationValue.TargetDocument is null)
+                {
+                    if (rollbackOperationValue.SourceDocuments.TryGetValue(CosmosOperationType.Create, out sourceDocument) ||
+                        rollbackOperationValue.SourceDocuments.TryGetValue(CosmosOperationType.Upsert, out sourceDocument))
+                    {
+                        var rollbackOperation = (
+                            rollbackOperationKey.DatabaseName,
+                            rollbackOperationKey.ContainerName,
+                            CosmosOperationType.Delete,
+                            sourceDocument);
+
+                        rollbackOperations.Add(rollbackOperation);
+                    }
+                }
+                else
+                {
+                    if (rollbackOperationValue.SourceDocuments.ContainsKey(CosmosOperationType.Delete) ||
+                        rollbackOperationValue.SourceDocuments.ContainsKey(CosmosOperationType.Upsert))
+                    {
+                        var rollbackOperation = (
+                            rollbackOperationKey.DatabaseName,
+                            rollbackOperationKey.ContainerName,
+                            CosmosOperationType.Upsert,
+                            rollbackOperationValue.TargetDocument);
+
+                        rollbackOperations.Add(rollbackOperation);
+                    }
+                    else if (rollbackOperationValue.SourceDocuments.TryGetValue(CosmosOperationType.Patch, out sourceDocument))
+                    {
+                        var targetDocument = (JsonObject)rollbackOperationValue.TargetDocument.DeepClone();
+
+                        var propertyNamesToExclude = targetDocument
+                            .Where(x => !sourceDocument.ContainsKey(x.Key))
+                            .Select(static x => x.Key)
+                            .ToArray();
+
+                        foreach (var propertyName in propertyNamesToExclude)
+                        {
+                            targetDocument.Remove(propertyName);
+                        }
+
+                        var rollbackOperation = (
+                            rollbackOperationKey.DatabaseName,
+                            rollbackOperationKey.ContainerName,
+                            CosmosOperationType.Patch,
+                            targetDocument);
+
+                        rollbackOperations.Add(rollbackOperation);
+                    }
+                }
+            }
+
+            var rollbackOperationGroupsByDatabase = rollbackOperations
+                .GroupBy(static x => x.DatabaseName, StringComparer.Ordinal)
+                .OrderBy(static x => x.Key, StringComparer.Ordinal);
+
+            foreach (var rollbackOperationGroupByDatabase in rollbackOperationGroupsByDatabase)
+            {
+                var rollbackOperationGroupsByContainer = rollbackOperationGroupByDatabase
+                    .GroupBy(static x => x.ContainerName, StringComparer.Ordinal)
+                    .OrderBy(static x => x.Key, StringComparer.Ordinal);
+
+                foreach (var rollbackOperationGroupByContainer in rollbackOperationGroupsByContainer)
+                {
+                    var rollbackOperationGroupsByOperation = rollbackOperationGroupByContainer
+                        .GroupBy(static x => x.OperationType)
+                        .OrderBy(static x => x.Key);
+
+                    foreach (var rollbackOperationGroupByOperation in rollbackOperationGroupsByOperation)
+                    {
+                        var packagePartitionName = Guid.CreateVersion7().ToString();
+                        var packagePartitionOperationName = CosmosOperation.Format(rollbackOperationGroupByOperation.Key);
+
+                        _logger.LogInformation(
+                            "Packing rollback entries cdbpkg:{PartitionName} for container {DatabaseName}\\{ContainerName} ({OperationName})",
+                            packagePartitionName,
+                            rollbackOperationGroupByDatabase.Key,
+                            rollbackOperationGroupByContainer.Key,
+                            packagePartitionOperationName);
+
+                        var rollbackPackagePartitionUri = rollbackPackageModel.CreatePartition(
+                            packagePartitionName,
+                            rollbackOperationGroupByDatabase.Key,
+                            rollbackOperationGroupByContainer.Key,
+                            rollbackOperationGroupByOperation.Key);
+
+                        var rollbackEntries = rollbackOperationGroupByOperation
+                            .Select(static x => x.Document)
+                            .ToArray();
+
+                        for (var i = 0; i < rollbackEntries.Length; i++)
+                        {
+                            _logger.LogInformation("Packing rollback entry cdbpkg:{PartitionName}:$[{DocumentIndex}]", packagePartitionName, i);
+                        }
+
+                        var rollbackPackagePart = rollbackPackage.CreatePart(rollbackPackagePartitionUri, "application/json", default);
+
+                        using (var rollbackPackagePartStream = rollbackPackagePart.GetStream(FileMode.Create, FileAccess.Write))
+                        {
+                            await JsonSerializer.SerializeAsync(rollbackPackagePartStream, rollbackEntries, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+                        }
+                    }
+                }
+            }
+
+            await rollbackPackageModel.SaveAsync(cancellationToken).ConfigureAwait(false);
+
+            rollbackPackage.PackageProperties.Modified = DateTime.UtcNow;
         }
         catch
         {
-            File.Delete(revertPackagePath);
+            File.Delete(rollbackPackagePath);
 
             throw;
         }

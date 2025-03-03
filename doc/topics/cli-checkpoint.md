@@ -15,7 +15,7 @@
 <p />
 
 ```txt
-cotopaxi checkpoint <source-package> <revert-package>
+cotopaxi checkpoint <source-package> <rollback-package>
   [--endpoint <endpoint> --key <key>|--connection-string <connection-string>]
 
 cotopaxi checkpoint -h|--help
@@ -27,7 +27,7 @@ cotopaxi checkpoint -h|--help
 
 <p />
 
-| Deploy Operation | Revert Operation | Condition |
+| Deploy Operation | Rollback Operation | Condition |
 |:-:|:-:|:- |
 | `delete` | N/A | The document does not exist in the container |
 | `delete` | `upsert` | The document does exist in the container |
@@ -49,7 +49,7 @@ The path to a package or packages for deployment deploy to the Azure Cosmos DB a
 
 <p />
 
-- `revert-package`  
+- `rollback-package`  
 The path to a package that reverts operations from the source package or packages.
 
 <p />

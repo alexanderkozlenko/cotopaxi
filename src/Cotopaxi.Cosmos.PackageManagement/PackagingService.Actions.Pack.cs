@@ -19,7 +19,7 @@ public sealed partial class PackagingService
         Debug.Assert(projectPath is not null);
         Debug.Assert(packagePath is not null);
 
-        _logger.LogInformation("Building package {PackagePath} for project {ProjectPath}", packagePath, projectPath);
+        _logger.LogInformation("Building deployment package {PackagePath} for project {ProjectPath}", packagePath, projectPath);
 
         try
         {
@@ -62,6 +62,7 @@ public sealed partial class PackagingService
 
                         var packagePartitionKey = CreateUUID(packagePartitionKeySource);
                         var packagePartitionName = packagePartitionKey.ToString();
+                        var packagePartitionOperationName = CosmosOperation.Format(projectSourceGroupByOperations.Key);
 
                         var packagePartitionUri = packageModel.CreatePartition(
                             packagePartitionName,
@@ -70,11 +71,11 @@ public sealed partial class PackagingService
                             projectSourceGroupByOperations.Key);
 
                         _logger.LogInformation(
-                            "Packing document collection {PartitionName} as {OperationName} operations in {DatabaseName}\\{ContainerName}",
+                            "Packing deployment entries cdbpkg:{PartitionName} for container {DatabaseName}\\{ContainerName} ({OperationName})",
                             packagePartitionName,
-                            projectSourceGroupByOperations.Key,
                             projectSourceGroupByDatabase.Key,
-                            projectSourceGroupByContainer.Key);
+                            projectSourceGroupByContainer.Key,
+                            packagePartitionOperationName);
 
                         var projectSourcesByOperation = projectSourceGroupByOperations
                             .OrderBy(static x => x.FilePath, StringComparer.OrdinalIgnoreCase);
@@ -103,18 +104,19 @@ public sealed partial class PackagingService
 
                                 if (!CosmosResource.TryGetDocumentID(document, out var documentID) || !CosmosResource.IsValidResourceID(documentID))
                                 {
-                                    throw new InvalidOperationException($"Cannot get document identifier for {projectSource.FilePath}:$[{i}]");
+                                    throw new InvalidOperationException($"Unable to get document identifier for {projectSource.FilePath}:$[{i}]");
                                 }
 
-                                document.Remove("_attachments");
-                                document.Remove("_etag");
-                                document.Remove("_rid");
-                                document.Remove("_self");
-                                document.Remove("_ts");
+                                CosmosResource.RemoveSystemProperties(document);
+
+                                if (documentsByOperation.Any(x => JsonNode.DeepEquals(x, document)))
+                                {
+                                    throw new InvalidOperationException($"Unable to include duplicate deployment entry {projectSource.FilePath}:$[{i}]");
+                                }
 
                                 documentsByOperation.Add(document);
 
-                                _logger.LogInformation("Packing document {SourcePath}:$[{DocumentIndex}]", projectSource.FilePath, i);
+                                _logger.LogInformation("Packing deployment entry {SourcePath}:$[{DocumentIndex}]", projectSource.FilePath, i);
                             }
                         }
 

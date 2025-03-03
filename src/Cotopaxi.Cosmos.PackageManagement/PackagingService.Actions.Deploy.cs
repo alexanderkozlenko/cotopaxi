@@ -37,33 +37,22 @@ public sealed partial class PackagingService
             new CosmosClient(cosmosCredential.ConnectionString, cosmosClientOptions) :
             new CosmosClient(cosmosCredential.AccountEndpoint.AbsoluteUri, cosmosCredential.AuthKeyOrResourceToken, cosmosClientOptions);
 
-        var partitionKeyPathsRegistry = new Dictionary<(string, string), JsonPointer[]>();
-        var packageIdentifiers = new HashSet<string>(packagePaths.Count, StringComparer.OrdinalIgnoreCase);
-
         var cosmosAccount = await cosmosClient.ReadAccountAsync().ConfigureAwait(false);
+        var deployOperations = new HashSet<(PackageOperationKey, CosmosOperationType)>();
+        var partitionKeyPathsCache = new Dictionary<(string, string), JsonPointer[]>();
 
         foreach (var packagePath in packagePaths)
         {
             if (!dryRun)
             {
-                _logger.LogInformation("Deploying package {PackagePath} to {CosmosAccount}", packagePath, cosmosAccount.Id);
+                _logger.LogInformation("Deploying package {PackagePath} to account {CosmosAccount}", packagePath, cosmosAccount.Id);
             }
             else
             {
-                _logger.LogInformation("[dry-run] Deploying package {PackagePath} to {CosmosAccount}", packagePath, cosmosAccount.Id);
+                _logger.LogInformation("[dry-run] Deploying package {PackagePath} to account {CosmosAccount}", packagePath, cosmosAccount.Id);
             }
 
             using var package = Package.Open(packagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-
-            if (string.IsNullOrEmpty(package.PackageProperties.Identifier))
-            {
-                throw new InvalidOperationException($"Cannot get package identifier for {packagePath}");
-            }
-
-            if (!packageIdentifiers.Add(package.PackageProperties.Identifier))
-            {
-                throw new InvalidOperationException($"Package {package.PackageProperties.Identifier} is already processed");
-            }
 
             var packagePartitions = default(PackagePartition[]);
 
@@ -87,30 +76,28 @@ public sealed partial class PackagingService
                     var container = cosmosClient.GetContainer(packagePartitionGroupByDatabase.Key, packagePartitionGroupByContainer.Key);
                     var containerPartitionKeyPathsKey = (packagePartitionGroupByDatabase.Key, packagePartitionGroupByContainer.Key);
 
-                    if (!partitionKeyPathsRegistry.TryGetValue(containerPartitionKeyPathsKey, out var containerPartitionKeyPaths))
+                    if (!partitionKeyPathsCache.TryGetValue(containerPartitionKeyPathsKey, out var containerPartitionKeyPaths))
                     {
                         var containerResponse = await container.ReadContainerAsync(default, cancellationToken).ConfigureAwait(false);
 
                         containerPartitionKeyPaths = containerResponse.Resource.PartitionKeyPaths.Select(static x => new JsonPointer(x)).ToArray();
-                        partitionKeyPathsRegistry[containerPartitionKeyPathsKey] = containerPartitionKeyPaths;
+                        partitionKeyPathsCache[containerPartitionKeyPathsKey] = containerPartitionKeyPaths;
 
                         if (!dryRun)
                         {
                             _logger.LogInformation(
-                               "Acquiring container properties for {DatabaseName}\\{ContainerName} - HTTP {StatusCode} ({RU} RU)",
-                               packagePartitionGroupByDatabase.Key,
-                               packagePartitionGroupByContainer.Key,
-                               (int)containerResponse.StatusCode,
-                               Math.Round(containerResponse.RequestCharge, 2));
+                                "Requesting properties for container {DatabaseName}\\{ContainerName} - HTTP {StatusCode}",
+                                packagePartitionGroupByDatabase.Key,
+                                packagePartitionGroupByContainer.Key,
+                                (int)containerResponse.StatusCode);
                         }
                         else
                         {
                             _logger.LogInformation(
-                                "[dry-run] Acquiring container properties for {DatabaseName}\\{ContainerName} - HTTP {StatusCode} ({RU} RU)",
+                                "[dry-run] Requesting properties for container {DatabaseName}\\{ContainerName} - HTTP {StatusCode}",
                                 packagePartitionGroupByDatabase.Key,
                                 packagePartitionGroupByContainer.Key,
-                                (int)containerResponse.StatusCode,
-                                Math.Round(containerResponse.RequestCharge, 2));
+                                (int)containerResponse.StatusCode);
                         }
                     }
 
@@ -130,20 +117,20 @@ public sealed partial class PackagingService
                             if (!dryRun)
                             {
                                 _logger.LogInformation(
-                                    "Deploying document collection {PartitionName} as {OperationName} operations in {DatabaseName}\\{ContainerName}",
+                                    "Deploying entries cdbpkg:{PartitionName} to container {DatabaseName}\\{ContainerName} ({OperationName})",
                                     packagePartition.PartitionName,
-                                    packagePartitionOperationName,
                                     packagePartition.DatabaseName,
-                                    packagePartition.ContainerName);
+                                    packagePartition.ContainerName,
+                                    packagePartitionOperationName);
                             }
                             else
                             {
                                 _logger.LogInformation(
-                                    "[dry-run] Deploying document collection {PartitionName} as {OperationName} operations in {DatabaseName}\\{ContainerName}",
+                                    "[dry-run] Deploying entries cdbpkg:{PartitionName} to container {DatabaseName}\\{ContainerName} ({OperationName})",
                                     packagePartition.PartitionName,
-                                    packagePartitionOperationName,
                                     packagePartition.DatabaseName,
-                                    packagePartition.ContainerName);
+                                    packagePartition.ContainerName,
+                                    packagePartitionOperationName);
                             }
 
                             var packagePart = package.GetPart(packagePartition.PartitionUri);
@@ -163,20 +150,27 @@ public sealed partial class PackagingService
                                     continue;
                                 }
 
-                                document.Remove("_attachments");
-                                document.Remove("_etag");
-                                document.Remove("_rid");
-                                document.Remove("_self");
-                                document.Remove("_ts");
+                                CosmosResource.RemoveSystemProperties(document);
 
                                 if (!CosmosResource.TryGetDocumentID(document, out var documentID))
                                 {
-                                    throw new InvalidOperationException($"Cannot get document identifier for {packagePartition.PartitionUri}:$[{i}]");
+                                    throw new InvalidOperationException($"Unable to get document identifier for cdbpkg:{packagePartition.PartitionUri}:$[{i}]");
                                 }
 
                                 if (!CosmosResource.TryGetPartitionKey(document, containerPartitionKeyPaths, out var documentPartitionKey))
                                 {
-                                    throw new InvalidOperationException($"Cannot get document partition key for {packagePartition.PartitionUri}:$[{i}]");
+                                    throw new InvalidOperationException($"Unable to get document partition key for cdbpkg:{packagePartition.PartitionUri}:$[{i}]");
+                                }
+
+                                var deployOperationKey = new PackageOperationKey(
+                                    packagePartition.DatabaseName,
+                                    packagePartition.ContainerName,
+                                    documentID,
+                                    documentPartitionKey);
+
+                                if (!deployOperations.Add((deployOperationKey, packagePartition.OperationType)))
+                                {
+                                    throw new InvalidOperationException($"Unable to include duplicate deployment entry cdbpkg:{packagePartition.PartitionUri}:$[{i}]");
                                 }
 
                                 if (!dryRun)
@@ -219,12 +213,11 @@ public sealed partial class PackagingService
                                         }
 
                                         _logger.LogInformation(
-                                            "Executing {OperationName} document {PartitionName}:$[{DocumentIndex}] - HTTP {StatusCode} ({RU} RU)",
-                                            packagePartitionOperationName,
+                                            "Deploying entry cdbpkg:{PartitionName}:$[{DocumentIndex}] ({OperationName}) - HTTP {StatusCode}",
                                             packagePartition.PartitionName,
                                             i,
-                                            (int)operationResponse.StatusCode,
-                                            Math.Round(operationResponse.RequestCharge, 2));
+                                            packagePartitionOperationName,
+                                            (int)operationResponse.StatusCode);
 
                                     }
                                     catch (CosmosException ex)
@@ -234,12 +227,11 @@ public sealed partial class PackagingService
                                             ((packagePartition.OperationType == CosmosOperationType.Delete) && (ex.StatusCode == HttpStatusCode.NotFound)))
                                         {
                                             _logger.LogWarning(
-                                                "Executing {OperationName} document {PartitionName}:$[{DocumentIndex}] - HTTP {StatusCode} ({RU} RU)",
-                                                packagePartitionOperationName,
+                                                "Deploying entry cdbpkg:{PartitionName}:$[{DocumentIndex}] ({OperationName}) - HTTP {StatusCode}",
                                                 packagePartition.PartitionName,
                                                 i,
-                                                (int)ex.StatusCode,
-                                                Math.Round(ex.RequestCharge, 2));
+                                                packagePartitionOperationName,
+                                                (int)ex.StatusCode);
                                         }
                                         else
                                         {
@@ -250,10 +242,10 @@ public sealed partial class PackagingService
                                 else
                                 {
                                     _logger.LogInformation(
-                                        "[dry-run] Executing {OperationName} document {PartitionName}:$[{DocumentIndex}] - HTTP ??? (0 RU)",
-                                        packagePartitionOperationName,
+                                        "[dry-run] Deploying entry cdbpkg:{PartitionName}:$[{DocumentIndex}] ({OperationName}) - HTTP ???",
                                         packagePartition.PartitionName,
-                                        i);
+                                        i,
+                                        packagePartitionOperationName);
                                 }
                             }
                         }

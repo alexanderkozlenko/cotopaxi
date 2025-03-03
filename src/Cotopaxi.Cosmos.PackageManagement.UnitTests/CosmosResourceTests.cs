@@ -134,7 +134,7 @@ public sealed class CosmosResourceTests
     }
 
     [TestMethod]
-    public void TryGetUniqueIDWhenReturnsTrue()
+    public void TryGetDocumentIDWhenReturnsTrue()
     {
         var document = new JsonObject
         {
@@ -148,7 +148,7 @@ public sealed class CosmosResourceTests
     }
 
     [TestMethod]
-    public void TryGetUniqueIDWhenReturnsFalse1()
+    public void TryGetDocumentIDWhenReturnsFalse1()
     {
         var document = new JsonObject
         {
@@ -161,7 +161,7 @@ public sealed class CosmosResourceTests
     }
 
     [TestMethod]
-    public void TryGetUniqueIDWhenReturnsFalse2()
+    public void TryGetDocumentIDWhenReturnsFalse2()
     {
         var document = new JsonObject
         {
@@ -172,6 +172,25 @@ public sealed class CosmosResourceTests
 
         Assert.IsFalse(result);
         Assert.IsNull(documentID);
+    }
+
+    [TestMethod]
+    public void RemoveSystemProperties()
+    {
+        var document = new JsonObject
+        {
+            ["id"] = new JsonObject(),
+            ["_attachments"] = "",
+            ["_etag"] = "",
+            ["_rid"] = "",
+            ["_self"] = "",
+            ["_ts"] = "",
+        };
+
+        CosmosResource.RemoveSystemProperties(document);
+
+        Assert.AreEqual(1, document.Count);
+        Assert.IsTrue(document.ContainsKey("id"));
     }
 
     [DataTestMethod]
