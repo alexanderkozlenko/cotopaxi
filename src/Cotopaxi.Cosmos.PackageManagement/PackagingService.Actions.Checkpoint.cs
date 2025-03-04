@@ -44,227 +44,223 @@ public sealed partial class PackagingService
 
         _logger.LogInformation("Building rollback package {TargetPath} for account {CosmosAccount}", rollbackPackagePath, cosmosAccount.Id);
 
+        foreach (var sourcePackagePath in sourcePackagePaths)
+        {
+            _logger.LogInformation("Analyzing deployment package {SourcePath}", sourcePackagePath);
+
+            using var sourcePackage = Package.Open(sourcePackagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+
+            var sourcePackagePartitions = default(PackagePartition[]);
+
+            using (var sourcePackageModel = await PackageModel.OpenAsync(sourcePackage, default, cancellationToken).ConfigureAwait(false))
+            {
+                sourcePackagePartitions = sourcePackageModel.GetPartitions();
+            }
+
+            var sourcePackagePartitionGroupsByDatabase = sourcePackagePartitions
+                .GroupBy(static x => x.DatabaseName, StringComparer.Ordinal)
+                .OrderBy(static x => x.Key, StringComparer.Ordinal);
+
+            foreach (var sourcePackagePartitionGroupByDatabase in sourcePackagePartitionGroupsByDatabase)
+            {
+                var sourcePackagePartitionGroupsByContainer = sourcePackagePartitionGroupByDatabase
+                    .GroupBy(static x => x.ContainerName, StringComparer.Ordinal)
+                    .OrderBy(static x => x.Key, StringComparer.Ordinal);
+
+                foreach (var sourcePackagePartitionGroupByContainer in sourcePackagePartitionGroupsByContainer)
+                {
+                    var container = cosmosClient.GetContainer(sourcePackagePartitionGroupByDatabase.Key, sourcePackagePartitionGroupByContainer.Key);
+                    var containerPartitionKeyPathsKey = (sourcePackagePartitionGroupByDatabase.Key, sourcePackagePartitionGroupByContainer.Key);
+
+                    if (!partitionKeyPathsCache.TryGetValue(containerPartitionKeyPathsKey, out var containerPartitionKeyPaths))
+                    {
+                        var containerResponse = await container.ReadContainerAsync(default, cancellationToken).ConfigureAwait(false);
+
+                        containerPartitionKeyPaths = containerResponse.Resource.PartitionKeyPaths.Select(static x => new JsonPointer(x)).ToArray();
+                        partitionKeyPathsCache.Add(containerPartitionKeyPathsKey, containerPartitionKeyPaths);
+
+                        _logger.LogInformation(
+                            "Requesting properties for container {DatabaseName}\\{ContainerName} - HTTP {StatusCode}",
+                            sourcePackagePartitionGroupByDatabase.Key,
+                            sourcePackagePartitionGroupByContainer.Key,
+                            (int)containerResponse.StatusCode);
+                    }
+
+                    var sourcePackagePartitionGroupsByOperation = sourcePackagePartitionGroupByContainer
+                        .GroupBy(static x => x.OperationType)
+                        .OrderBy(static x => x.Key);
+
+                    foreach (var sourcePackagePartitionGroupByOperation in sourcePackagePartitionGroupsByOperation)
+                    {
+                        var sourcePackagePartitionsByOperation = sourcePackagePartitionGroupByOperation
+                            .OrderBy(static x => x.PartitionUri.OriginalString, StringComparer.Ordinal);
+
+                        foreach (var sourcePackagePartition in sourcePackagePartitionsByOperation)
+                        {
+                            var sourcePackagePartitionOperationName = CosmosOperation.Format(sourcePackagePartition.OperationType);
+
+                            _logger.LogInformation(
+                                "Analyzing deployment entries cdbpkg:{PartitionName} for container {DatabaseName}\\{ContainerName} ({OperationName})",
+                                sourcePackagePartition.PartitionName,
+                                sourcePackagePartition.DatabaseName,
+                                sourcePackagePartition.ContainerName,
+                                sourcePackagePartitionOperationName);
+
+                            var sourcePackagePart = sourcePackage.GetPart(sourcePackagePartition.PartitionUri);
+                            var sourceDocuments = default(JsonObject?[]);
+
+                            using (var sourcePackagePartStream = sourcePackagePart.GetStream(FileMode.Open, FileAccess.Read))
+                            {
+                                sourceDocuments = await JsonSerializer.DeserializeAsync<JsonObject?[]>(sourcePackagePartStream, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false) ?? [];
+                            }
+
+                            for (var i = 0; i < sourceDocuments.Length; i++)
+                            {
+                                var sourceDocument = sourceDocuments[i];
+
+                                if (sourceDocument is null)
+                                {
+                                    continue;
+                                }
+
+                                _logger.LogInformation("Analyzing deployment entry cdbpkg:{PartitionName}:$[{DocumentIndex}]", sourcePackagePartition.PartitionName, i);
+
+                                CosmosResource.RemoveSystemProperties(sourceDocument);
+
+                                if (!CosmosResource.TryGetDocumentID(sourceDocument, out var documentID))
+                                {
+                                    throw new InvalidOperationException($"Unable to get document identifier for cdbpkg:{sourcePackagePartition.PartitionUri}:$[{i}]");
+                                }
+
+                                if (!CosmosResource.TryGetPartitionKey(sourceDocument, containerPartitionKeyPaths!, out var documentPartitionKey))
+                                {
+                                    throw new InvalidOperationException($"Unable to get document partition key for cdbpkg:{sourcePackagePartition.PartitionUri}:$[{i}]");
+                                }
+
+                                var deployOperationKey = new PackageOperationKey(
+                                    sourcePackagePartition.DatabaseName,
+                                    sourcePackagePartition.ContainerName,
+                                    documentID,
+                                    documentPartitionKey);
+
+                                if (!deployOperations.Add((deployOperationKey, sourcePackagePartition.OperationType)))
+                                {
+                                    throw new InvalidOperationException($"Unable to include duplicate deployment entry cdbpkg:{sourcePackagePartition.PartitionUri}:$[{i}]");
+                                }
+
+                                if (!rollbackOperationSources.TryGetValue(deployOperationKey, out var rollbackOperationSource))
+                                {
+                                    var targetDocument = default(JsonObject?);
+
+                                    try
+                                    {
+                                        var operationResponse = await container.ReadItemAsync<JsonObject?>(documentID, documentPartitionKey, default, cancellationToken).ConfigureAwait(false);
+
+                                        _logger.LogInformation(
+                                            "Requesting document for deployment entry cdbpkg:{PartitionName}:$[{DocumentIndex}] - HTTP {StatusCode}",
+                                            sourcePackagePartition.PartitionName,
+                                            i,
+                                            (int)operationResponse.StatusCode);
+
+                                        targetDocument = operationResponse.Resource;
+                                    }
+                                    catch (CosmosException ex)
+                                    {
+                                        if (ex.StatusCode == HttpStatusCode.NotFound)
+                                        {
+                                            _logger.LogInformation(
+                                                "Requesting document for deployment entry cdbpkg:{PartitionName}:$[{DocumentIndex}] - HTTP {StatusCode}",
+                                                sourcePackagePartition.PartitionName,
+                                                i,
+                                                (int)ex.StatusCode);
+                                        }
+                                        else
+                                        {
+                                            throw;
+                                        }
+                                    }
+
+                                    if (targetDocument is not null)
+                                    {
+                                        CosmosResource.RemoveSystemProperties(targetDocument);
+                                    }
+
+                                    rollbackOperationSource = (new(), targetDocument);
+                                    rollbackOperationSources.Add(deployOperationKey, rollbackOperationSource);
+                                }
+
+                                rollbackOperationSource.SourceDocuments.Add(sourcePackagePartition.OperationType, sourceDocument);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        var rollbackOperations = new List<(string DatabaseName, string ContainerName, JsonObject Document, CosmosOperationType OperationType)>();
+
+        foreach (var (rollbackOperationKey, rollbackOperationValue) in rollbackOperationSources)
+        {
+            var sourceDocument = default(JsonObject);
+
+            if (rollbackOperationValue.TargetDocument is null)
+            {
+                if (rollbackOperationValue.SourceDocuments.TryGetValue(CosmosOperationType.Create, out sourceDocument) ||
+                    rollbackOperationValue.SourceDocuments.TryGetValue(CosmosOperationType.Upsert, out sourceDocument))
+                {
+                    var rollbackOperation = (
+                        rollbackOperationKey.DatabaseName,
+                        rollbackOperationKey.ContainerName,
+                        sourceDocument,
+                        CosmosOperationType.Delete);
+
+                    rollbackOperations.Add(rollbackOperation);
+                }
+            }
+            else
+            {
+                if (rollbackOperationValue.SourceDocuments.ContainsKey(CosmosOperationType.Delete) ||
+                    rollbackOperationValue.SourceDocuments.ContainsKey(CosmosOperationType.Upsert))
+                {
+                    var rollbackOperation = (
+                        rollbackOperationKey.DatabaseName,
+                        rollbackOperationKey.ContainerName,
+                        rollbackOperationValue.TargetDocument,
+                        CosmosOperationType.Upsert);
+
+                    rollbackOperations.Add(rollbackOperation);
+                }
+                else if (rollbackOperationValue.SourceDocuments.TryGetValue(CosmosOperationType.Patch, out sourceDocument))
+                {
+                    var targetDocument = (JsonObject)rollbackOperationValue.TargetDocument.DeepClone();
+
+                    var propertyNamesToExclude = targetDocument
+                        .Where(x => !sourceDocument.ContainsKey(x.Key))
+                        .Select(static x => x.Key)
+                        .ToArray();
+
+                    foreach (var propertyName in propertyNamesToExclude)
+                    {
+                        targetDocument.Remove(propertyName);
+                    }
+
+                    var rollbackOperation = (
+                        rollbackOperationKey.DatabaseName,
+                        rollbackOperationKey.ContainerName,
+                        targetDocument,
+                        CosmosOperationType.Patch);
+
+                    rollbackOperations.Add(rollbackOperation);
+                }
+            }
+        }
+
         Directory.CreateDirectory(Path.GetDirectoryName(rollbackPackagePath)!);
 
         try
         {
             using var rollbackPackage = Package.Open(rollbackPackagePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None);
             using var rollbackPackageModel = await PackageModel.OpenAsync(rollbackPackage, default, cancellationToken).ConfigureAwait(false);
-
-            rollbackPackage.PackageProperties.Identifier = Guid.CreateVersion7().ToString();
-            rollbackPackage.PackageProperties.Subject = cosmosClient.Endpoint.AbsoluteUri;
-            rollbackPackage.PackageProperties.Created = DateTime.UtcNow;
-
-            foreach (var sourcePackagePath in sourcePackagePaths)
-            {
-                _logger.LogInformation("Analyzing deployment package {SourcePath}", sourcePackagePath);
-
-                using var sourcePackage = Package.Open(sourcePackagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-
-                var sourcePackagePartitions = default(PackagePartition[]);
-
-                using (var sourcePackageModel = await PackageModel.OpenAsync(sourcePackage, default, cancellationToken).ConfigureAwait(false))
-                {
-                    sourcePackagePartitions = sourcePackageModel.GetPartitions();
-                }
-
-                var sourcePackagePartitionGroupsByDatabase = sourcePackagePartitions
-                    .GroupBy(static x => x.DatabaseName, StringComparer.Ordinal)
-                    .OrderBy(static x => x.Key, StringComparer.Ordinal);
-
-                foreach (var sourcePackagePartitionGroupByDatabase in sourcePackagePartitionGroupsByDatabase)
-                {
-                    var sourcePackagePartitionGroupsByContainer = sourcePackagePartitionGroupByDatabase
-                        .GroupBy(static x => x.ContainerName, StringComparer.Ordinal)
-                        .OrderBy(static x => x.Key, StringComparer.Ordinal);
-
-                    foreach (var sourcePackagePartitionGroupByContainer in sourcePackagePartitionGroupsByContainer)
-                    {
-                        var container = cosmosClient.GetContainer(sourcePackagePartitionGroupByDatabase.Key, sourcePackagePartitionGroupByContainer.Key);
-                        var containerPartitionKeyPathsKey = (sourcePackagePartitionGroupByDatabase.Key, sourcePackagePartitionGroupByContainer.Key);
-
-                        if (!partitionKeyPathsCache.TryGetValue(containerPartitionKeyPathsKey, out var containerPartitionKeyPaths))
-                        {
-                            var containerResponse = await container.ReadContainerAsync(default, cancellationToken).ConfigureAwait(false);
-
-                            containerPartitionKeyPaths = containerResponse.Resource.PartitionKeyPaths.Select(static x => new JsonPointer(x)).ToArray();
-                            partitionKeyPathsCache.Add(containerPartitionKeyPathsKey, containerPartitionKeyPaths);
-
-                            _logger.LogInformation(
-                                "Requesting properties for container {DatabaseName}\\{ContainerName} - HTTP {StatusCode}",
-                                sourcePackagePartitionGroupByDatabase.Key,
-                                sourcePackagePartitionGroupByContainer.Key,
-                                (int)containerResponse.StatusCode);
-                        }
-
-                        var sourcePackagePartitionGroupsByOperation = sourcePackagePartitionGroupByContainer
-                            .GroupBy(static x => x.OperationType)
-                            .OrderBy(static x => x.Key);
-
-                        foreach (var sourcePackagePartitionGroupByOperation in sourcePackagePartitionGroupsByOperation)
-                        {
-                            var sourcePackagePartitionsByOperation = sourcePackagePartitionGroupByOperation
-                                .OrderBy(static x => x.PartitionUri.OriginalString, StringComparer.Ordinal);
-
-                            foreach (var sourcePackagePartition in sourcePackagePartitionsByOperation)
-                            {
-                                var sourcePackagePartitionOperationName = CosmosOperation.Format(sourcePackagePartition.OperationType);
-
-                                _logger.LogInformation(
-                                    "Analyzing deployment entries cdbpkg:{PartitionName} for container {DatabaseName}\\{ContainerName} ({OperationName})",
-                                    sourcePackagePartition.PartitionName,
-                                    sourcePackagePartition.DatabaseName,
-                                    sourcePackagePartition.ContainerName,
-                                    sourcePackagePartitionOperationName);
-
-                                var sourcePackagePart = sourcePackage.GetPart(sourcePackagePartition.PartitionUri);
-                                var sourceDocuments = default(JsonObject?[]);
-
-                                using (var sourcePackagePartStream = sourcePackagePart.GetStream(FileMode.Open, FileAccess.Read))
-                                {
-                                    sourceDocuments = await JsonSerializer.DeserializeAsync<JsonObject?[]>(sourcePackagePartStream, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false) ?? [];
-                                }
-
-                                for (var i = 0; i < sourceDocuments.Length; i++)
-                                {
-                                    var sourceDocument = sourceDocuments[i];
-
-                                    if (sourceDocument is null)
-                                    {
-                                        continue;
-                                    }
-
-                                    _logger.LogInformation("Analyzing deployment entry cdbpkg:{PartitionName}:$[{DocumentIndex}]", sourcePackagePartition.PartitionName, i);
-
-                                    CosmosResource.RemoveSystemProperties(sourceDocument);
-
-                                    if (!CosmosResource.TryGetDocumentID(sourceDocument, out var documentID))
-                                    {
-                                        throw new InvalidOperationException($"Unable to get document identifier for cdbpkg:{sourcePackagePartition.PartitionUri}:$[{i}]");
-                                    }
-
-                                    if (!CosmosResource.TryGetPartitionKey(sourceDocument, containerPartitionKeyPaths!, out var documentPartitionKey))
-                                    {
-                                        throw new InvalidOperationException($"Unable to get document partition key for cdbpkg:{sourcePackagePartition.PartitionUri}:$[{i}]");
-                                    }
-
-                                    var deployOperationKey = new PackageOperationKey(
-                                        sourcePackagePartition.DatabaseName,
-                                        sourcePackagePartition.ContainerName,
-                                        documentID,
-                                        documentPartitionKey);
-
-                                    if (!deployOperations.Add((deployOperationKey, sourcePackagePartition.OperationType)))
-                                    {
-                                        throw new InvalidOperationException($"Unable to include duplicate deployment entry cdbpkg:{sourcePackagePartition.PartitionUri}:$[{i}]");
-                                    }
-
-                                    if (!rollbackOperationSources.TryGetValue(deployOperationKey, out var rollbackOperationSource))
-                                    {
-                                        var targetDocument = default(JsonObject?);
-
-                                        try
-                                        {
-                                            var operationResponse = await container.ReadItemAsync<JsonObject?>(documentID, documentPartitionKey, default, cancellationToken).ConfigureAwait(false);
-
-                                            _logger.LogInformation(
-                                                "Requesting document for deployment entry cdbpkg:{PartitionName}:$[{DocumentIndex}] - HTTP {StatusCode}",
-                                                sourcePackagePartition.PartitionName,
-                                                i,
-                                                (int)operationResponse.StatusCode);
-
-                                            targetDocument = operationResponse.Resource;
-                                        }
-                                        catch (CosmosException ex)
-                                        {
-                                            if (ex.StatusCode == HttpStatusCode.NotFound)
-                                            {
-                                                _logger.LogInformation(
-                                                    "Requesting document for deployment entry cdbpkg:{PartitionName}:$[{DocumentIndex}] - HTTP {StatusCode}",
-                                                    sourcePackagePartition.PartitionName,
-                                                    i,
-                                                    (int)ex.StatusCode);
-                                            }
-                                            else
-                                            {
-                                                throw;
-                                            }
-                                        }
-
-                                        if (targetDocument is not null)
-                                        {
-                                            CosmosResource.RemoveSystemProperties(targetDocument);
-                                        }
-
-                                        rollbackOperationSource = (new(), targetDocument);
-                                        rollbackOperationSources.Add(deployOperationKey, rollbackOperationSource);
-                                    }
-
-                                    rollbackOperationSource.SourceDocuments.Add(sourcePackagePartition.OperationType, sourceDocument);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            var rollbackOperations = new List<(string DatabaseName, string ContainerName, CosmosOperationType OperationType, JsonObject Document)>();
-
-            foreach (var (rollbackOperationKey, rollbackOperationValue) in rollbackOperationSources)
-            {
-                var sourceDocument = default(JsonObject);
-
-                if (rollbackOperationValue.TargetDocument is null)
-                {
-                    if (rollbackOperationValue.SourceDocuments.TryGetValue(CosmosOperationType.Create, out sourceDocument) ||
-                        rollbackOperationValue.SourceDocuments.TryGetValue(CosmosOperationType.Upsert, out sourceDocument))
-                    {
-                        var rollbackOperation = (
-                            rollbackOperationKey.DatabaseName,
-                            rollbackOperationKey.ContainerName,
-                            CosmosOperationType.Delete,
-                            sourceDocument);
-
-                        rollbackOperations.Add(rollbackOperation);
-                    }
-                }
-                else
-                {
-                    if (rollbackOperationValue.SourceDocuments.ContainsKey(CosmosOperationType.Delete) ||
-                        rollbackOperationValue.SourceDocuments.ContainsKey(CosmosOperationType.Upsert))
-                    {
-                        var rollbackOperation = (
-                            rollbackOperationKey.DatabaseName,
-                            rollbackOperationKey.ContainerName,
-                            CosmosOperationType.Upsert,
-                            rollbackOperationValue.TargetDocument);
-
-                        rollbackOperations.Add(rollbackOperation);
-                    }
-                    else if (rollbackOperationValue.SourceDocuments.TryGetValue(CosmosOperationType.Patch, out sourceDocument))
-                    {
-                        var targetDocument = (JsonObject)rollbackOperationValue.TargetDocument.DeepClone();
-
-                        var propertyNamesToExclude = targetDocument
-                            .Where(x => !sourceDocument.ContainsKey(x.Key))
-                            .Select(static x => x.Key)
-                            .ToArray();
-
-                        foreach (var propertyName in propertyNamesToExclude)
-                        {
-                            targetDocument.Remove(propertyName);
-                        }
-
-                        var rollbackOperation = (
-                            rollbackOperationKey.DatabaseName,
-                            rollbackOperationKey.ContainerName,
-                            CosmosOperationType.Patch,
-                            targetDocument);
-
-                        rollbackOperations.Add(rollbackOperation);
-                    }
-                }
-            }
 
             var rollbackOperationGroupsByDatabase = rollbackOperations
                 .GroupBy(static x => x.DatabaseName, StringComparer.Ordinal)
@@ -321,7 +317,9 @@ public sealed partial class PackagingService
 
             await rollbackPackageModel.SaveAsync(cancellationToken).ConfigureAwait(false);
 
-            rollbackPackage.PackageProperties.Modified = DateTime.UtcNow;
+            rollbackPackage.PackageProperties.Identifier = Guid.CreateVersion7().ToString();
+            rollbackPackage.PackageProperties.Subject = cosmosClient.Endpoint.AbsoluteUri;
+            rollbackPackage.PackageProperties.Created = DateTime.UtcNow;
         }
         catch
         {

@@ -19,19 +19,19 @@ public sealed partial class PackagingService
         Debug.Assert(projectPath is not null);
         Debug.Assert(packagePath is not null);
 
+        var projectVariables = new Dictionary<string, string?>
+        {
+            ["Version"] = packageVersion,
+        };
+
         _logger.LogInformation("Building deployment package {PackagePath} for project {ProjectPath}", packagePath, projectPath);
+
+        var projectSources = await ListProjectSourcesAsync(projectPath, projectVariables.ToFrozenDictionary(), cancellationToken).ConfigureAwait(false);
+
+        Directory.CreateDirectory(Path.GetDirectoryName(packagePath)!);
 
         try
         {
-            var projectVariables = new Dictionary<string, string?>
-            {
-                ["Version"] = packageVersion,
-            };
-
-            var projectSources = await ListProjectSourcesAsync(projectPath, projectVariables.ToFrozenDictionary(), cancellationToken).ConfigureAwait(false);
-
-            Directory.CreateDirectory(Path.GetDirectoryName(packagePath)!);
-
             using var package = Package.Open(packagePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None);
             using var packageModel = await PackageModel.OpenAsync(package, default, cancellationToken).ConfigureAwait(false);
 

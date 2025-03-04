@@ -1,7 +1,7 @@
 ﻿<Project>
   <PropertyGroup>
-    <VersionPrefix>1.6.0</VersionPrefix>
-    <VersionSuffix></VersionSuffix>
+    <VersionPrefix>1.6.1</VersionPrefix>
+    <VersionSuffix>preview</VersionSuffix>
   </PropertyGroup>
   <PropertyGroup>
     <AnalysisMode>Recommended</AnalysisMode>
