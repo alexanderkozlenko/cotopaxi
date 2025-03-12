@@ -2,36 +2,36 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-namespace Cotopaxi.Cosmos.PackageManagement;
+namespace Cotopaxi.Cosmos.Packaging;
 
-public static class CosmosOperation
+public static class PackageOperation
 {
-    public static bool TryParse(string? source, [NotNullWhen(true)] out CosmosOperationType value)
+    public static bool TryParse(string? source, [NotNullWhen(true)] out PackageOperationType value)
     {
         if (string.Equals(source, "DELETE", StringComparison.OrdinalIgnoreCase))
         {
-            value = CosmosOperationType.Delete;
+            value = PackageOperationType.Delete;
 
             return true;
         }
 
         if (string.Equals(source, "CREATE", StringComparison.OrdinalIgnoreCase))
         {
-            value = CosmosOperationType.Create;
+            value = PackageOperationType.Create;
 
             return true;
         }
 
         if (string.Equals(source, "UPSERT", StringComparison.OrdinalIgnoreCase))
         {
-            value = CosmosOperationType.Upsert;
+            value = PackageOperationType.Upsert;
 
             return true;
         }
 
         if (string.Equals(source, "PATCH", StringComparison.OrdinalIgnoreCase))
         {
-            value = CosmosOperationType.Patch;
+            value = PackageOperationType.Patch;
 
             return true;
         }
@@ -41,14 +41,14 @@ public static class CosmosOperation
         return false;
     }
 
-    public static string Format(CosmosOperationType value)
+    public static string Format(PackageOperationType value)
     {
         return value switch
         {
-            CosmosOperationType.Delete => "delete",
-            CosmosOperationType.Create => "create",
-            CosmosOperationType.Upsert => "upsert",
-            CosmosOperationType.Patch => "patch",
+            PackageOperationType.Delete => "delete",
+            PackageOperationType.Create => "create",
+            PackageOperationType.Upsert => "upsert",
+            PackageOperationType.Patch => "patch",
             _ => throw new NotSupportedException(),
         };
     }

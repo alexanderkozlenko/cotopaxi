@@ -7,6 +7,7 @@ using System.IO.Packaging;
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Cotopaxi.Cosmos.Packaging;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
 
@@ -38,9 +39,9 @@ public sealed partial class PackagingService
             new CosmosClient(cosmosCredential.AccountEndpoint.AbsoluteUri, cosmosCredential.AuthKeyOrResourceToken, cosmosClientOptions);
 
         var cosmosAccount = await cosmosClient.ReadAccountAsync().ConfigureAwait(false);
-        var deployOperations = new HashSet<(PackageOperationKey, CosmosOperationType)>();
+        var deployOperations = new HashSet<(PackageOperationKey, PackageOperationType)>();
         var partitionKeyPathsCache = new Dictionary<(string, string), JsonPointer[]>();
-        var rollbackOperationSources = new Dictionary<PackageOperationKey, (Dictionary<CosmosOperationType, JsonObject> SourceDocuments, JsonObject? TargetDocument)>();
+        var rollbackOperationSources = new Dictionary<PackageOperationKey, (Dictionary<PackageOperationType, JsonObject> SourceDocuments, JsonObject? TargetDocument)>();
 
         _logger.LogInformation("Building rollback package {TargetPath} for account {CosmosAccount}", rollbackPackagePath, cosmosAccount.Id);
 
@@ -97,7 +98,7 @@ public sealed partial class PackagingService
 
                         foreach (var sourcePackagePartition in sourcePackagePartitionsByOperation)
                         {
-                            var sourcePackagePartitionOperationName = CosmosOperation.Format(sourcePackagePartition.OperationType);
+                            var sourcePackagePartitionOperationName = PackageOperation.Format(sourcePackagePartition.OperationType);
 
                             _logger.LogInformation(
                                 "Analyzing deployment entries cdbpkg:{PartitionName} for container {DatabaseName}\\{ContainerName} ({OperationName})",
@@ -197,7 +198,7 @@ public sealed partial class PackagingService
             }
         }
 
-        var rollbackOperations = new List<(string DatabaseName, string ContainerName, JsonObject Document, CosmosOperationType OperationType)>();
+        var rollbackOperations = new List<(string DatabaseName, string ContainerName, JsonObject Document, PackageOperationType OperationType)>();
 
         foreach (var (rollbackOperationKey, rollbackOperationValue) in rollbackOperationSources)
         {
@@ -205,32 +206,32 @@ public sealed partial class PackagingService
 
             if (rollbackOperationValue.TargetDocument is null)
             {
-                if (rollbackOperationValue.SourceDocuments.TryGetValue(CosmosOperationType.Create, out sourceDocument) ||
-                    rollbackOperationValue.SourceDocuments.TryGetValue(CosmosOperationType.Upsert, out sourceDocument))
+                if (rollbackOperationValue.SourceDocuments.TryGetValue(PackageOperationType.Create, out sourceDocument) ||
+                    rollbackOperationValue.SourceDocuments.TryGetValue(PackageOperationType.Upsert, out sourceDocument))
                 {
                     var rollbackOperation = (
                         rollbackOperationKey.DatabaseName,
                         rollbackOperationKey.ContainerName,
                         sourceDocument,
-                        CosmosOperationType.Delete);
+                        PackageOperationType.Delete);
 
                     rollbackOperations.Add(rollbackOperation);
                 }
             }
             else
             {
-                if (rollbackOperationValue.SourceDocuments.ContainsKey(CosmosOperationType.Delete) ||
-                    rollbackOperationValue.SourceDocuments.ContainsKey(CosmosOperationType.Upsert))
+                if (rollbackOperationValue.SourceDocuments.ContainsKey(PackageOperationType.Delete) ||
+                    rollbackOperationValue.SourceDocuments.ContainsKey(PackageOperationType.Upsert))
                 {
                     var rollbackOperation = (
                         rollbackOperationKey.DatabaseName,
                         rollbackOperationKey.ContainerName,
                         rollbackOperationValue.TargetDocument,
-                        CosmosOperationType.Upsert);
+                        PackageOperationType.Upsert);
 
                     rollbackOperations.Add(rollbackOperation);
                 }
-                else if (rollbackOperationValue.SourceDocuments.TryGetValue(CosmosOperationType.Patch, out sourceDocument))
+                else if (rollbackOperationValue.SourceDocuments.TryGetValue(PackageOperationType.Patch, out sourceDocument))
                 {
                     var targetDocument = (JsonObject)rollbackOperationValue.TargetDocument.DeepClone();
 
@@ -248,7 +249,7 @@ public sealed partial class PackagingService
                         rollbackOperationKey.DatabaseName,
                         rollbackOperationKey.ContainerName,
                         targetDocument,
-                        CosmosOperationType.Patch);
+                        PackageOperationType.Patch);
 
                     rollbackOperations.Add(rollbackOperation);
                 }
@@ -281,7 +282,7 @@ public sealed partial class PackagingService
                     foreach (var rollbackOperationGroupByOperation in rollbackOperationGroupsByOperation)
                     {
                         var packagePartitionName = Guid.CreateVersion7().ToString();
-                        var packagePartitionOperationName = CosmosOperation.Format(rollbackOperationGroupByOperation.Key);
+                        var packagePartitionOperationName = PackageOperation.Format(rollbackOperationGroupByOperation.Key);
 
                         _logger.LogInformation(
                             "Packing rollback entries cdbpkg:{PartitionName} for container {DatabaseName}\\{ContainerName} ({OperationName})",

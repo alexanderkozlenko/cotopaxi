@@ -7,6 +7,7 @@ using System.IO.Packaging;
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Cotopaxi.Cosmos.Packaging;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
 
@@ -38,7 +39,7 @@ public sealed partial class PackagingService
             new CosmosClient(cosmosCredential.AccountEndpoint.AbsoluteUri, cosmosCredential.AuthKeyOrResourceToken, cosmosClientOptions);
 
         var cosmosAccount = await cosmosClient.ReadAccountAsync().ConfigureAwait(false);
-        var deployOperations = new HashSet<(PackageOperationKey, CosmosOperationType)>();
+        var deployOperations = new HashSet<(PackageOperationKey, PackageOperationType)>();
         var partitionKeyPathsCache = new Dictionary<(string, string), JsonPointer[]>();
 
         foreach (var packagePath in packagePaths)
@@ -112,7 +113,7 @@ public sealed partial class PackagingService
 
                         foreach (var packagePartition in packagePartitionsByOperation)
                         {
-                            var packagePartitionOperationName = CosmosOperation.Format(packagePartition.OperationType);
+                            var packagePartitionOperationName = PackageOperation.Format(packagePartition.OperationType);
 
                             if (!dryRun)
                             {
@@ -181,22 +182,22 @@ public sealed partial class PackagingService
 
                                         switch (packagePartition.OperationType)
                                         {
-                                            case CosmosOperationType.Delete:
+                                            case PackageOperationType.Delete:
                                                 {
                                                     operationResponse = await container.DeleteItemAsync<JsonObject?>(documentID, documentPartitionKey, default, cancellationToken).ConfigureAwait(false);
                                                 }
                                                 break;
-                                            case CosmosOperationType.Create:
+                                            case PackageOperationType.Create:
                                                 {
                                                     operationResponse = await container.CreateItemAsync<JsonObject?>(document, documentPartitionKey, default, cancellationToken).ConfigureAwait(false);
                                                 }
                                                 break;
-                                            case CosmosOperationType.Upsert:
+                                            case PackageOperationType.Upsert:
                                                 {
                                                     operationResponse = await container.UpsertItemAsync<JsonObject?>(document, documentPartitionKey, default, cancellationToken).ConfigureAwait(false);
                                                 }
                                                 break;
-                                            case CosmosOperationType.Patch:
+                                            case PackageOperationType.Patch:
                                                 {
                                                     var patchOperations = document
                                                         .Where(static x => x.Key != "id")
@@ -222,9 +223,9 @@ public sealed partial class PackagingService
                                     }
                                     catch (CosmosException ex)
                                     {
-                                        if (((packagePartition.OperationType == CosmosOperationType.Create) && (ex.StatusCode == HttpStatusCode.Conflict)) ||
-                                            ((packagePartition.OperationType == CosmosOperationType.Patch) && (ex.StatusCode == HttpStatusCode.NotFound)) ||
-                                            ((packagePartition.OperationType == CosmosOperationType.Delete) && (ex.StatusCode == HttpStatusCode.NotFound)))
+                                        if (((packagePartition.OperationType == PackageOperationType.Create) && (ex.StatusCode == HttpStatusCode.Conflict)) ||
+                                            ((packagePartition.OperationType == PackageOperationType.Patch) && (ex.StatusCode == HttpStatusCode.NotFound)) ||
+                                            ((packagePartition.OperationType == PackageOperationType.Delete) && (ex.StatusCode == HttpStatusCode.NotFound)))
                                         {
                                             _logger.LogWarning(
                                                 "Deploying entry cdbpkg:{PartitionName}:$[{DocumentIndex}] ({OperationName}) - HTTP {StatusCode}",

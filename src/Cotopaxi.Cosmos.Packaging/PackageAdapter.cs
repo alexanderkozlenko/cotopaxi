@@ -6,7 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.CommonDataModel.ObjectModel.Storage;
 
-namespace Cotopaxi.Cosmos.PackageManagement;
+namespace Cotopaxi.Cosmos.Packaging;
 
 internal sealed class PackageAdapter : StorageAdapterBase
 {

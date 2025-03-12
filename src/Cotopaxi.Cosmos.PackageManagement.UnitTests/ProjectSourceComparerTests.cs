@@ -1,4 +1,5 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Cotopaxi.Cosmos.Packaging;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Cotopaxi.Cosmos.PackageManagement.UnitTests;
 
@@ -31,8 +32,8 @@ public sealed class ProjectSourceComparerTests
         string filePath2, string database2, string container2, string operation2Name,
         bool expected)
     {
-        Assert.IsTrue(CosmosOperation.TryParse(operation1Name, out var operation1Type));
-        Assert.IsTrue(CosmosOperation.TryParse(operation2Name, out var operation2Type));
+        Assert.IsTrue(PackageOperation.TryParse(operation1Name, out var operation1Type));
+        Assert.IsTrue(PackageOperation.TryParse(operation2Name, out var operation2Type));
 
         var projectSource1 = new ProjectSource(filePath1, database1, container1, operation1Type);
         var projectSource2 = new ProjectSource(filePath2, database2, container2, operation2Type);

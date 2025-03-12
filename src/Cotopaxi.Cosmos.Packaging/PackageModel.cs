@@ -6,7 +6,7 @@ using Microsoft.CommonDataModel.ObjectModel.Cdm;
 using Microsoft.CommonDataModel.ObjectModel.Enums;
 using Microsoft.CommonDataModel.ObjectModel.Utilities;
 
-namespace Cotopaxi.Cosmos.PackageManagement;
+namespace Cotopaxi.Cosmos.Packaging;
 
 public sealed class PackageModel : IDisposable
 {
@@ -47,7 +47,7 @@ public sealed class PackageModel : IDisposable
         }
     }
 
-    public Uri CreatePartition(string partitionName, string databaseName, string containerName, CosmosOperationType operationType)
+    public Uri CreatePartition(string partitionName, string databaseName, string containerName, PackageOperationType operationType)
     {
         Debug.Assert(partitionName is { Length: > 0 });
         Debug.Assert(databaseName is { Length: > 0 });
@@ -56,11 +56,12 @@ public sealed class PackageModel : IDisposable
         var partitionPath = $"/cosmosdb.document/{partitionName}.json";
         var partitionDec = _manifestDef.Entities.First(static x => x.EntityName == "cosmosdb.document");
         var partitionDef = _corpusDef.MakeObject<CdmDataPartitionDefinition>(CdmObjectType.DataPartitionDef);
+        var partitionOperationName = PackageOperation.Format(operationType);
 
         partitionDef.Location = _corpusDef.Storage.CreateAbsoluteCorpusPath(partitionPath);
         partitionDef.Arguments.Add("database", [databaseName]);
         partitionDef.Arguments.Add("container", [containerName]);
-        partitionDef.Arguments.Add("operation", [CosmosOperation.Format(operationType)]);
+        partitionDef.Arguments.Add("operation", [partitionOperationName]);
 
         partitionDec.DataPartitions.Add(partitionDef);
 
@@ -82,9 +83,9 @@ public sealed class PackageModel : IDisposable
                 var partitionName = Path.GetFileNameWithoutExtension(partitionPath);
                 var partitionDatabaseName = partitionDef.Arguments["database"].Single();
                 var partitionContainerName = partitionDef.Arguments["container"].Single();
-                var partitionOperationTypeName = partitionDef.Arguments["operation"].Single();
+                var partitionOperationName = partitionDef.Arguments["operation"].Single();
 
-                if (!CosmosOperation.TryParse(partitionOperationTypeName, out var partitionOperationType))
+                if (!PackageOperation.TryParse(partitionOperationName, out var partitionOperationType))
                 {
                     continue;
                 }

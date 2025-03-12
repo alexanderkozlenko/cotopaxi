@@ -1,8 +1,8 @@
 ﻿// (c) Oleksandr Kozlenko. Licensed under the MIT license.
 
-namespace Cotopaxi.Cosmos.PackageManagement;
+namespace Cotopaxi.Cosmos.Packaging;
 
-public enum CosmosOperationType
+public enum PackageOperationType
 {
     Delete = 0,
     Create = 1,

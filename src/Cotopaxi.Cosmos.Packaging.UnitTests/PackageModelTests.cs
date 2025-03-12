@@ -1,7 +1,7 @@
 ﻿using System.IO.Packaging;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace Cotopaxi.Cosmos.PackageManagement.UnitTests;
+namespace Cotopaxi.Cosmos.Packaging.UnitTests;
 
 [TestClass]
 public sealed class PackageModelTests
@@ -19,7 +19,7 @@ public sealed class PackageModelTests
                     "0c2deaa0-9517-4958-9bb9-2444ca352705",
                     "adventureworks",
                     "products",
-                    CosmosOperationType.Upsert);
+                    PackageOperationType.Upsert);
 
                 Assert.IsNotNull(partitionUri);
                 Assert.IsFalse(partitionUri.IsAbsoluteUri);
@@ -46,7 +46,7 @@ public sealed class PackageModelTests
                 Assert.AreEqual("0c2deaa0-9517-4958-9bb9-2444ca352705", packagePartition.PartitionName);
                 Assert.AreEqual("adventureworks", packagePartition.DatabaseName);
                 Assert.AreEqual("products", packagePartition.ContainerName);
-                Assert.AreEqual(CosmosOperationType.Upsert, packagePartition.OperationType);
+                Assert.AreEqual(PackageOperationType.Upsert, packagePartition.OperationType);
             }
         }
     }

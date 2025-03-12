@@ -8,6 +8,7 @@ using System.Globalization;
 using System.IO.Packaging;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Cotopaxi.Cosmos.Packaging;
 using Microsoft.Extensions.Logging;
 
 namespace Cotopaxi.Cosmos.PackageManagement;
@@ -62,7 +63,7 @@ public sealed partial class PackagingService
 
                         var packagePartitionKey = CreateUUID(packagePartitionKeySource);
                         var packagePartitionName = packagePartitionKey.ToString();
-                        var packagePartitionOperationName = CosmosOperation.Format(projectSourceGroupByOperations.Key);
+                        var packagePartitionOperationName = PackageOperation.Format(projectSourceGroupByOperations.Key);
 
                         var packagePartitionUri = packageModel.CreatePartition(
                             packagePartitionName,
@@ -176,7 +177,7 @@ public sealed partial class PackagingService
 
                     foreach (var projectOperationNode in projectContainerNode.Operations.Where(static x => x is not null))
                     {
-                        if (!CosmosOperation.TryParse(projectOperationNode!.Name, out var projectOperationType))
+                        if (!PackageOperation.TryParse(projectOperationNode!.Name, out var packageOperationType))
                         {
                             throw new JsonException($"JSON deserialization for type '{typeof(ProjectOperationNode)}' encountered errors");
                         }
@@ -201,7 +202,7 @@ public sealed partial class PackagingService
                                     projectSourcePath,
                                     projectDatabaseNode.Name,
                                     projectContainerNode.Name,
-                                    projectOperationType);
+                                    packageOperationType);
 
                                 projectSources.Add(projectSource);
                             }
