@@ -2,7 +2,7 @@
 
 namespace Cotopaxi.Cosmos.Packaging;
 
-public sealed record class PackagePartition
+public sealed class PackagePartition
 {
     public PackagePartition(
         Uri partitionUri,

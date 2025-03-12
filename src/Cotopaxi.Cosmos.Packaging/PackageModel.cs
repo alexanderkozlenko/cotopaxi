@@ -49,9 +49,9 @@ public sealed class PackageModel : IDisposable
 
     public Uri CreatePartition(string partitionName, string databaseName, string containerName, PackageOperationType operationType)
     {
-        Debug.Assert(partitionName is { Length: > 0 });
-        Debug.Assert(databaseName is { Length: > 0 });
-        Debug.Assert(containerName is { Length: > 0 });
+        ArgumentException.ThrowIfNullOrEmpty(partitionName);
+        ArgumentException.ThrowIfNullOrEmpty(databaseName);
+        ArgumentException.ThrowIfNullOrEmpty(containerName);
 
         var partitionPath = $"/cosmosdb.document/{partitionName}.json";
         var partitionDec = _manifestDef.Entities.First(static x => x.EntityName == "cosmosdb.document");
@@ -106,7 +106,7 @@ public sealed class PackageModel : IDisposable
 
     public static async Task<PackageModel> OpenAsync(Package package, CompressionOption compressionOption, CancellationToken cancellationToken)
     {
-        Debug.Assert(package is not null);
+        ArgumentNullException.ThrowIfNull(package);
 
         var corpusDef = CreateCorpus(package, compressionOption, cancellationToken);
 
