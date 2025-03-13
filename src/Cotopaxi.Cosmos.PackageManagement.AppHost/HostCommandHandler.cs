@@ -5,6 +5,7 @@
 using System.CommandLine.Hosting;
 using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
+using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
@@ -21,6 +22,8 @@ internal abstract class HostCommandHandler : ICommandHandler
 
     public async Task<int> InvokeAsync(InvocationContext context)
     {
+        Debug.Assert(context is not null);
+
         var logger = context.GetHost().Services.GetRequiredService<ILogger<HostCommandHandler>>();
 
         try
@@ -41,6 +44,9 @@ internal abstract class HostCommandHandler : ICommandHandler
 
     protected static string[] GetFiles(string path, string searchPattern)
     {
+        Debug.Assert(path is not null);
+        Debug.Assert(searchPattern is not null);
+
         if (Path.IsPathRooted(searchPattern))
         {
             path = Path.GetPathRoot(searchPattern)!;

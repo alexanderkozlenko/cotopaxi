@@ -6,7 +6,7 @@
 
 <p />
 
-`cotopaxi deploy` - Deploys the package or packages to the Azure Cosmos DB account.
+`cotopaxi deploy` - Deploys the database packages to the Azure Cosmos DB account.
 
 <p />
 
@@ -48,7 +48,7 @@ The operations on the same document defined by a unique identifier and partition
 <p />
 
 - `package`  
-The path to a package or packages to deploy to the Azure Cosmos DB account (globbing patterns are supported).
+The path to the database package or packages to deploy to the Azure Cosmos DB account (globbing patterns are supported).
 
 <p />
 

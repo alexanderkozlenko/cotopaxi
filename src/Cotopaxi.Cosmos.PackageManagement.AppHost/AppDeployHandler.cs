@@ -1,6 +1,7 @@
 ﻿// (c) Oleksandr Kozlenko. Licensed under the MIT license.
 
 using System.CommandLine.Parsing;
+using System.Diagnostics;
 
 namespace Cotopaxi.Cosmos.PackageManagement.AppHost;
 
@@ -10,11 +11,15 @@ internal sealed class AppDeployHandler : HostCommandHandler
 
     public AppDeployHandler(PackagingService service)
     {
+        Debug.Assert(service is not null);
+
         _service = service;
     }
 
     protected override Task<bool> InvokeAsync(CommandResult commandResult, CancellationToken cancellationToken)
     {
+        Debug.Assert(commandResult is not null);
+
         var cosmosAccountEndpoint = commandResult.GetValueForOption(AppDeployCommand.EndpointOption);
         var cosmosAuthKeyOrResourceToken = commandResult.GetValueForOption(AppDeployCommand.KeyOption);
         var cosmosAuthKeyOrResourceTokenVariable = Environment.GetEnvironmentVariable("AZURE_COSMOS_KEY");

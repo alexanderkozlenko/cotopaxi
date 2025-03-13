@@ -6,7 +6,7 @@
 
 <p />
 
-`cotopaxi pack` - Packs the documents into an Azure Cosmos DB package.
+`cotopaxi pack` - Packs the deployment entries into a database package.
 
 <p />
 
@@ -64,9 +64,9 @@ A documents file must be a JSON array of objects, where each object has the `id`
 <p />
 
 - `project`  
-The path to the project that specifies documents to pack.
+The path to the project that specifies deployment entries to include.
 - `package`  
-The path to the package to create.
+The path to a resulting database package.
 
 <p />
 

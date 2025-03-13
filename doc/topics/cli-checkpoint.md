@@ -6,7 +6,7 @@
 
 <p />
 
-`cotopaxi checkpoint` - Creates a package that reverts operations from the source package or packages.
+`cotopaxi checkpoint` - Creates a database package with rollback operations.
 
 <p />
 
@@ -15,7 +15,7 @@
 <p />
 
 ```txt
-cotopaxi checkpoint <source-package> <rollback-package>
+cotopaxi checkpoint <package> <rollback-package>
   [--endpoint <endpoint> --key <key>|--connection-string <connection-string>]
 
 cotopaxi checkpoint -h|--help
@@ -44,13 +44,13 @@ cotopaxi checkpoint -h|--help
 
 <p />
 
-- `source-package`  
-The path to a package or packages for deployment deploy to the Azure Cosmos DB account (globbing patterns are supported).
+- `package`  
+The path to the database package or packages for deployment to the Azure Cosmos DB account (globbing patterns are supported).
 
 <p />
 
 - `rollback-package`  
-The path to a package that reverts operations from the source package or packages.
+The path to a resulting database package with rollback operations.
 
 <p />
 

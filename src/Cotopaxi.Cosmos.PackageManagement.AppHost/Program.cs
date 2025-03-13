@@ -33,11 +33,15 @@ public static class Program
             },
             new AppCheckpointCommand()
             {
-                AppCheckpointCommand.SourcePackageArgument,
+                AppCheckpointCommand.PackageArgument,
                 AppCheckpointCommand.RollbackPackageArgument,
                 AppCheckpointCommand.EndpointOption,
                 AppCheckpointCommand.KeyOption,
                 AppCheckpointCommand.ConnectionStringOption,
+            },
+            new AppFormatCommand()
+            {
+                AppFormatCommand.SourceArgument,
             },
         };
 
@@ -66,7 +70,8 @@ public static class Program
             .ConfigureServices(ConfigureServices)
             .UseCommandHandler<AppPackCommand, AppPackHandler>()
             .UseCommandHandler<AppDeployCommand, AppDeployHandler>()
-            .UseCommandHandler<AppCheckpointCommand, AppCheckpointHandler>();
+            .UseCommandHandler<AppCheckpointCommand, AppCheckpointHandler>()
+            .UseCommandHandler<AppFormatCommand, AppFormatHandler>();
     }
 
     private static void ConfigureServices(IServiceCollection services)
