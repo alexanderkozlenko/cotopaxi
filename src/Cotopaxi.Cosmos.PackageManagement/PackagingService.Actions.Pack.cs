@@ -62,21 +62,23 @@ public sealed partial class PackagingService
                             projectSourceGroupByOperations.Key);
 
                         var packagePartitionKey = CreateUUID(packagePartitionKeySource);
-                        var packagePartitionName = packagePartitionKey.ToString();
-                        var packagePartitionOperationName = PackageOperation.Format(projectSourceGroupByOperations.Key);
 
-                        var packagePartitionUri = packageModel.CreatePartition(
-                            packagePartitionName,
+                        var packagePartition = new PackagePartition(
+                            packagePartitionKey,
                             projectSourceGroupByDatabase.Key,
                             projectSourceGroupByContainer.Key,
                             projectSourceGroupByOperations.Key);
 
+                        var packagePartitionOperationName = PackageOperation.Format(packagePartition.OperationType);
+
                         _logger.LogInformation(
                             "Packing deployment entries cdbpkg:{PartitionName} for container {DatabaseName}\\{ContainerName} ({OperationName})",
-                            packagePartitionName,
-                            projectSourceGroupByDatabase.Key,
-                            projectSourceGroupByContainer.Key,
+                            packagePartitionKey,
+                            packagePartition.DatabaseName,
+                            packagePartition.ContainerName,
                             packagePartitionOperationName);
+
+                        var packagePartitionUri = packageModel.CreatePartition(packagePartition);
 
                         var projectSourcesByOperation = projectSourceGroupByOperations
                             .OrderBy(static x => x.FilePath, StringComparer.OrdinalIgnoreCase);

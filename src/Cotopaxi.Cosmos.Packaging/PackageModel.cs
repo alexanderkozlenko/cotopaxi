@@ -1,6 +1,6 @@
 ﻿// (c) Oleksandr Kozlenko. Licensed under the MIT license.
 
-using System.Diagnostics;
+using System.Collections.Frozen;
 using System.IO.Packaging;
 using Microsoft.CommonDataModel.ObjectModel.Cdm;
 using Microsoft.CommonDataModel.ObjectModel.Enums;
@@ -28,6 +28,79 @@ public sealed class PackageModel : IDisposable
         _corpusDef.Storage.Unmount(PackageAdapter.Scheme);
     }
 
+    public Uri CreatePartition(PackagePartition partition)
+    {
+        ArgumentNullException.ThrowIfNull(partition);
+
+        var partitionPath = $"/cosmosdb.document/{partition.PartitionKey:D}.json";
+        var partitionUri = new Uri(partitionPath, UriKind.Relative);
+        var partitionDec = _manifestDef.Entities.First(static x => x.EntityName == "cosmosdb.document");
+        var partitionDef = _corpusDef.MakeObject<CdmDataPartitionDefinition>(CdmObjectType.DataPartitionDef);
+        var partitionOperationName = PackageOperation.Format(partition.OperationType);
+
+        partitionDef.Location = _corpusDef.Storage.CreateAbsoluteCorpusPath(partitionPath);
+        partitionDef.Arguments.Add("database", [partition.DatabaseName]);
+        partitionDef.Arguments.Add("container", [partition.ContainerName]);
+        partitionDef.Arguments.Add("operation", [partitionOperationName]);
+
+        if (partitionDec.DataPartitions.Any(x => x.Location == partitionDef.Location))
+        {
+            throw new InvalidOperationException($"Unable to include duplicate partition {partition.PartitionKey}");
+        }
+
+        partitionDec.DataPartitions.Add(partitionDef);
+
+        return partitionUri;
+    }
+
+    public IReadOnlyDictionary<Uri, PackagePartition> GetPartitions()
+    {
+        var partitions = new Dictionary<Uri, PackagePartition>();
+        var partitionDec = _manifestDef.Entities.SingleOrDefault(static x => x.EntityName == "cosmosdb.document");
+
+        if (partitionDec is not null)
+        {
+            partitions.EnsureCapacity(partitionDec.DataPartitions.Count);
+
+            foreach (var partitionDef in partitionDec.DataPartitions)
+            {
+                var partitionPath = _corpusDef.Storage.CorpusPathToAdapterPath(partitionDef.Location);
+                var partitionUri = new Uri(partitionPath, UriKind.Relative);
+
+                if (!Guid.TryParseExact(Path.GetFileNameWithoutExtension(partitionPath), "D", out var partitionKey))
+                {
+                    continue;
+                }
+
+                var partitionDatabaseName = partitionDef.Arguments["database"].Single();
+                var partitionContainerName = partitionDef.Arguments["container"].Single();
+                var partitionOperationName = partitionDef.Arguments["operation"].Single();
+
+                if (string.IsNullOrEmpty(partitionDatabaseName) ||
+                    string.IsNullOrEmpty(partitionContainerName) ||
+                    string.IsNullOrEmpty(partitionOperationName))
+                {
+                    continue;
+                }
+
+                if (!PackageOperation.TryParse(partitionOperationName, out var partitionOperationType))
+                {
+                    continue;
+                }
+
+                var partition = new PackagePartition(
+                    partitionKey,
+                    partitionDatabaseName,
+                    partitionContainerName,
+                    partitionOperationType);
+
+                partitions.Add(partitionUri, partition);
+            }
+        }
+
+        return partitions.ToFrozenDictionary();
+    }
+
     public async Task SaveAsync(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -45,63 +118,6 @@ public sealed class PackageModel : IDisposable
 
             _package.CreateRelationship(new(manifestPath, UriKind.Relative), TargetMode.Internal, s_manifestRelType);
         }
-    }
-
-    public Uri CreatePartition(string partitionName, string databaseName, string containerName, PackageOperationType operationType)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(partitionName);
-        ArgumentException.ThrowIfNullOrEmpty(databaseName);
-        ArgumentException.ThrowIfNullOrEmpty(containerName);
-
-        var partitionPath = $"/cosmosdb.document/{partitionName}.json";
-        var partitionDec = _manifestDef.Entities.First(static x => x.EntityName == "cosmosdb.document");
-        var partitionDef = _corpusDef.MakeObject<CdmDataPartitionDefinition>(CdmObjectType.DataPartitionDef);
-        var partitionOperationName = PackageOperation.Format(operationType);
-
-        partitionDef.Location = _corpusDef.Storage.CreateAbsoluteCorpusPath(partitionPath);
-        partitionDef.Arguments.Add("database", [databaseName]);
-        partitionDef.Arguments.Add("container", [containerName]);
-        partitionDef.Arguments.Add("operation", [partitionOperationName]);
-
-        partitionDec.DataPartitions.Add(partitionDef);
-
-        return new(partitionPath, UriKind.Relative);
-    }
-
-    public PackagePartition[] GetPartitions()
-    {
-        var partitions = new Dictionary<string, PackagePartition>(StringComparer.Ordinal);
-        var partitionDec = _manifestDef.Entities.SingleOrDefault(static x => x.EntityName == "cosmosdb.document");
-
-        if (partitionDec is not null)
-        {
-            partitions.EnsureCapacity(partitionDec.DataPartitions.Count);
-
-            foreach (var partitionDef in partitionDec.DataPartitions)
-            {
-                var partitionPath = _corpusDef.Storage.CorpusPathToAdapterPath(partitionDef.Location);
-                var partitionName = Path.GetFileNameWithoutExtension(partitionPath);
-                var partitionDatabaseName = partitionDef.Arguments["database"].Single();
-                var partitionContainerName = partitionDef.Arguments["container"].Single();
-                var partitionOperationName = partitionDef.Arguments["operation"].Single();
-
-                if (!PackageOperation.TryParse(partitionOperationName, out var partitionOperationType))
-                {
-                    continue;
-                }
-
-                var partition = new PackagePartition(
-                    new(partitionPath, UriKind.Relative),
-                    partitionName,
-                    partitionDatabaseName,
-                    partitionContainerName,
-                    partitionOperationType);
-
-                partitions.Add(partitionPath, partition);
-            }
-        }
-
-        return [.. partitions.Values];
     }
 
     public static async Task<PackageModel> OpenAsync(Package package, CompressionOption compressionOption, CancellationToken cancellationToken)

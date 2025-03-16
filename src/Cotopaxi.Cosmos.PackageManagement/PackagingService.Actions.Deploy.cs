@@ -38,24 +38,25 @@ public sealed partial class PackagingService
             new CosmosClient(cosmosCredential.ConnectionString, cosmosClientOptions) :
             new CosmosClient(cosmosCredential.AccountEndpoint.AbsoluteUri, cosmosCredential.AuthKeyOrResourceToken, cosmosClientOptions);
 
-        var cosmosAccount = await cosmosClient.ReadAccountAsync().ConfigureAwait(false);
         var deployOperations = new HashSet<(PackageOperationKey, PackageOperationType)>();
         var partitionKeyPathsCache = new Dictionary<(string, string), JsonPointer[]>();
+
+        _logger.LogInformation("Deploying packages for endpoint {CosmosEndpoint}", cosmosClient.Endpoint);
 
         foreach (var packagePath in packagePaths)
         {
             if (!dryRun)
             {
-                _logger.LogInformation("Deploying package {PackagePath} to account {CosmosAccount}", packagePath, cosmosAccount.Id);
+                _logger.LogInformation("Deploying package {PackagePath}", packagePath);
             }
             else
             {
-                _logger.LogInformation("[dry-run] Deploying package {PackagePath} to account {CosmosAccount}", packagePath, cosmosAccount.Id);
+                _logger.LogInformation("[dry-run] Deploying package {PackagePath}", packagePath);
             }
 
             using var package = Package.Open(packagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
 
-            var packagePartitions = default(PackagePartition[]);
+            var packagePartitions = default(IReadOnlyDictionary<Uri, PackagePartition>);
 
             using (var packageModel = await PackageModel.OpenAsync(package, default, cancellationToken).ConfigureAwait(false))
             {
@@ -63,13 +64,13 @@ public sealed partial class PackagingService
             }
 
             var packagePartitionGroupsByDatabase = packagePartitions
-                .GroupBy(static x => x.DatabaseName, StringComparer.Ordinal)
+                .GroupBy(static x => x.Value.DatabaseName, StringComparer.Ordinal)
                 .OrderBy(static x => x.Key, StringComparer.Ordinal);
 
             foreach (var packagePartitionGroupByDatabase in packagePartitionGroupsByDatabase)
             {
                 var packagePartitionGroupsByContainer = packagePartitionGroupByDatabase
-                    .GroupBy(static x => x.ContainerName, StringComparer.Ordinal)
+                    .GroupBy(static x => x.Value.ContainerName, StringComparer.Ordinal)
                     .OrderBy(static x => x.Key, StringComparer.Ordinal);
 
                 foreach (var packagePartitionGroupByContainer in packagePartitionGroupsByContainer)
@@ -83,43 +84,26 @@ public sealed partial class PackagingService
 
                         containerPartitionKeyPaths = containerResponse.Resource.PartitionKeyPaths.Select(static x => new JsonPointer(x)).ToArray();
                         partitionKeyPathsCache[containerPartitionKeyPathsKey] = containerPartitionKeyPaths;
-
-                        if (!dryRun)
-                        {
-                            _logger.LogInformation(
-                                "Requesting properties for container {DatabaseName}\\{ContainerName} - HTTP {StatusCode}",
-                                packagePartitionGroupByDatabase.Key,
-                                packagePartitionGroupByContainer.Key,
-                                (int)containerResponse.StatusCode);
-                        }
-                        else
-                        {
-                            _logger.LogInformation(
-                                "[dry-run] Requesting properties for container {DatabaseName}\\{ContainerName} - HTTP {StatusCode}",
-                                packagePartitionGroupByDatabase.Key,
-                                packagePartitionGroupByContainer.Key,
-                                (int)containerResponse.StatusCode);
-                        }
                     }
 
                     var packagePartitionGroupsByOperation = packagePartitionGroupByContainer
-                        .GroupBy(static x => x.OperationType)
+                        .GroupBy(static x => x.Value.OperationType)
                         .OrderBy(static x => x.Key);
 
                     foreach (var packagePartitionGroupByOperation in packagePartitionGroupsByOperation)
                     {
                         var packagePartitionsByOperation = packagePartitionGroupByOperation
-                            .OrderBy(static x => x.PartitionUri.OriginalString, StringComparer.Ordinal);
+                            .OrderBy(static x => x.Key.OriginalString, StringComparer.Ordinal);
 
-                        foreach (var packagePartition in packagePartitionsByOperation)
+                        foreach (var (packagePartitionUri, packagePartition) in packagePartitionsByOperation)
                         {
                             var packagePartitionOperationName = PackageOperation.Format(packagePartition.OperationType);
 
                             if (!dryRun)
                             {
                                 _logger.LogInformation(
-                                    "Deploying entries cdbpkg:{PartitionName} to container {DatabaseName}\\{ContainerName} ({OperationName})",
-                                    packagePartition.PartitionName,
+                                    "Deploying entries cdbpkg:{PartitionKey} to container {DatabaseName}\\{ContainerName} ({OperationName})",
+                                    packagePartition.PartitionKey,
                                     packagePartition.DatabaseName,
                                     packagePartition.ContainerName,
                                     packagePartitionOperationName);
@@ -127,14 +111,14 @@ public sealed partial class PackagingService
                             else
                             {
                                 _logger.LogInformation(
-                                    "[dry-run] Deploying entries cdbpkg:{PartitionName} to container {DatabaseName}\\{ContainerName} ({OperationName})",
-                                    packagePartition.PartitionName,
+                                    "[dry-run] Deploying entries cdbpkg:{PartitionKey} to container {DatabaseName}\\{ContainerName} ({OperationName})",
+                                    packagePartition.PartitionKey,
                                     packagePartition.DatabaseName,
                                     packagePartition.ContainerName,
                                     packagePartitionOperationName);
                             }
 
-                            var packagePart = package.GetPart(packagePartition.PartitionUri);
+                            var packagePart = package.GetPart(packagePartitionUri);
                             var documents = default(JsonObject?[]);
 
                             using (var packagePartStream = packagePart.GetStream(FileMode.Open, FileAccess.Read))
@@ -155,12 +139,12 @@ public sealed partial class PackagingService
 
                                 if (!CosmosResource.TryGetDocumentID(document, out var documentID))
                                 {
-                                    throw new InvalidOperationException($"Unable to get document identifier for cdbpkg:{packagePartition.PartitionUri}:$[{i}]");
+                                    throw new InvalidOperationException($"Unable to get document identifier for cdbpkg:{packagePartitionUri}:$[{i}]");
                                 }
 
                                 if (!CosmosResource.TryGetPartitionKey(document, containerPartitionKeyPaths, out var documentPartitionKey))
                                 {
-                                    throw new InvalidOperationException($"Unable to get document partition key for cdbpkg:{packagePartition.PartitionUri}:$[{i}]");
+                                    throw new InvalidOperationException($"Unable to get document partition key for cdbpkg:{packagePartitionUri}:$[{i}]");
                                 }
 
                                 var deployOperationKey = new PackageOperationKey(
@@ -171,7 +155,7 @@ public sealed partial class PackagingService
 
                                 if (!deployOperations.Add((deployOperationKey, packagePartition.OperationType)))
                                 {
-                                    throw new InvalidOperationException($"Unable to include duplicate deployment entry cdbpkg:{packagePartition.PartitionUri}:$[{i}]");
+                                    throw new InvalidOperationException($"Unable to include duplicate deployment entry cdbpkg:{packagePartitionUri}:$[{i}]");
                                 }
 
                                 if (!dryRun)
@@ -214,8 +198,8 @@ public sealed partial class PackagingService
                                         }
 
                                         _logger.LogInformation(
-                                            "Deploying entry cdbpkg:{PartitionName}:$[{DocumentIndex}] ({OperationName}) - HTTP {StatusCode}",
-                                            packagePartition.PartitionName,
+                                            "Deploying entry cdbpkg:{PartitionKey}:$[{DocumentIndex}] ({OperationName}) - HTTP {StatusCode}",
+                                            packagePartition.PartitionKey,
                                             i,
                                             packagePartitionOperationName,
                                             (int)operationResponse.StatusCode);
@@ -228,8 +212,8 @@ public sealed partial class PackagingService
                                             ((packagePartition.OperationType == PackageOperationType.Delete) && (ex.StatusCode == HttpStatusCode.NotFound)))
                                         {
                                             _logger.LogWarning(
-                                                "Deploying entry cdbpkg:{PartitionName}:$[{DocumentIndex}] ({OperationName}) - HTTP {StatusCode}",
-                                                packagePartition.PartitionName,
+                                                "Deploying entry cdbpkg:{PartitionKey}:$[{DocumentIndex}] ({OperationName}) - HTTP {StatusCode}",
+                                                packagePartition.PartitionKey,
                                                 i,
                                                 packagePartitionOperationName,
                                                 (int)ex.StatusCode);
@@ -243,8 +227,8 @@ public sealed partial class PackagingService
                                 else
                                 {
                                     _logger.LogInformation(
-                                        "[dry-run] Deploying entry cdbpkg:{PartitionName}:$[{DocumentIndex}] ({OperationName}) - HTTP ???",
-                                        packagePartition.PartitionName,
+                                        "[dry-run] Deploying entry cdbpkg:{PartitionKey}:$[{DocumentIndex}] ({OperationName}) - HTTP ???",
+                                        packagePartition.PartitionKey,
                                         i,
                                         packagePartitionOperationName);
                                 }
