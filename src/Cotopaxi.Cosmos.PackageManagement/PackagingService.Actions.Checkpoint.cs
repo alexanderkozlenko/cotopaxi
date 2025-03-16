@@ -214,35 +214,14 @@ public sealed partial class PackagingService
             else
             {
                 if (rollbackOperationValue.SourceDocuments.ContainsKey(PackageOperationType.Delete) ||
-                    rollbackOperationValue.SourceDocuments.ContainsKey(PackageOperationType.Upsert))
+                    rollbackOperationValue.SourceDocuments.ContainsKey(PackageOperationType.Upsert) ||
+                    rollbackOperationValue.SourceDocuments.ContainsKey(PackageOperationType.Patch))
                 {
                     var rollbackOperation = (
                         rollbackOperationKey.DatabaseName,
                         rollbackOperationKey.ContainerName,
                         rollbackOperationValue.TargetDocument,
                         PackageOperationType.Upsert);
-
-                    rollbackOperations.Add(rollbackOperation);
-                }
-                else if (rollbackOperationValue.SourceDocuments.TryGetValue(PackageOperationType.Patch, out sourceDocument))
-                {
-                    var targetDocument = (JsonObject)rollbackOperationValue.TargetDocument.DeepClone();
-
-                    var propertyNamesToExclude = targetDocument
-                        .Where(x => !sourceDocument.ContainsKey(x.Key))
-                        .Select(static x => x.Key)
-                        .ToArray();
-
-                    foreach (var propertyName in propertyNamesToExclude)
-                    {
-                        targetDocument.Remove(propertyName);
-                    }
-
-                    var rollbackOperation = (
-                        rollbackOperationKey.DatabaseName,
-                        rollbackOperationKey.ContainerName,
-                        targetDocument,
-                        PackageOperationType.Patch);
 
                     rollbackOperations.Add(rollbackOperation);
                 }
