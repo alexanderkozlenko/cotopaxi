@@ -38,9 +38,9 @@ public sealed partial class PackagingService
             new CosmosClient(cosmosCredential.ConnectionString, cosmosClientOptions) :
             new CosmosClient(cosmosCredential.AccountEndpoint.AbsoluteUri, cosmosCredential.AuthKeyOrResourceToken, cosmosClientOptions);
 
-        var deployOperations = new HashSet<(PackageOperationKey, PackageOperationType)>();
         var partitionKeyPathsCache = new Dictionary<(string, string), JsonPointer[]>();
-        var rollbackOperationSources = new Dictionary<PackageOperationKey, (Dictionary<PackageOperationType, JsonObject> SourceDocuments, JsonObject? TargetDocument)>();
+        var deployOperations = new HashSet<(PackageOperationKey, PackageOperationType)>();
+        var deployOperationsState = new Dictionary<PackageOperationKey, (Dictionary<PackageOperationType, JsonObject> Sources, JsonObject? Target)>();
 
         _logger.LogInformation("Building rollback package {TargetPath} for endpoint {CosmosEndpoint}", rollbackPackagePath, cosmosClient.Endpoint);
 
@@ -142,7 +142,7 @@ public sealed partial class PackagingService
                                     throw new InvalidOperationException($"Unable to include duplicate deployment entry cdbpkg:{sourcePackagePartitionUri}:$[{i}]");
                                 }
 
-                                if (!rollbackOperationSources.TryGetValue(deployOperationKey, out var rollbackOperationSource))
+                                if (!deployOperationsState.TryGetValue(deployOperationKey, out var deployOperationState))
                                 {
                                     var targetDocument = default(JsonObject?);
 
@@ -179,11 +179,11 @@ public sealed partial class PackagingService
                                         CosmosResource.RemoveSystemProperties(targetDocument);
                                     }
 
-                                    rollbackOperationSource = (new(), targetDocument);
-                                    rollbackOperationSources.Add(deployOperationKey, rollbackOperationSource);
+                                    deployOperationState = (new(), targetDocument);
+                                    deployOperationsState.Add(deployOperationKey, deployOperationState);
                                 }
 
-                                rollbackOperationSource.SourceDocuments.Add(sourcePackagePartition.OperationType, sourceDocument);
+                                deployOperationState.Sources.Add(sourcePackagePartition.OperationType, sourceDocument);
                             }
                         }
                     }
@@ -193,19 +193,19 @@ public sealed partial class PackagingService
 
         var rollbackOperations = new List<(string DatabaseName, string ContainerName, JsonObject Document, PackageOperationType OperationType)>();
 
-        foreach (var (rollbackOperationKey, rollbackOperationValue) in rollbackOperationSources)
+        foreach (var (operationKey, operationInfo) in deployOperationsState)
         {
             var sourceDocument = default(JsonObject);
-            var targetDocument = rollbackOperationValue.TargetDocument;
+            var targetDocument = operationInfo.Target;
 
             if (targetDocument is null)
             {
-                if (rollbackOperationValue.SourceDocuments.TryGetValue(PackageOperationType.Create, out sourceDocument) ||
-                    rollbackOperationValue.SourceDocuments.TryGetValue(PackageOperationType.Upsert, out sourceDocument))
+                if (operationInfo.Sources.TryGetValue(PackageOperationType.Create, out sourceDocument) ||
+                    operationInfo.Sources.TryGetValue(PackageOperationType.Upsert, out sourceDocument))
                 {
                     var rollbackOperation = (
-                        rollbackOperationKey.DatabaseName,
-                        rollbackOperationKey.ContainerName,
+                        operationKey.DatabaseName,
+                        operationKey.ContainerName,
                         sourceDocument,
                         PackageOperationType.Delete);
 
@@ -214,40 +214,46 @@ public sealed partial class PackagingService
             }
             else
             {
-                if (rollbackOperationValue.SourceDocuments.ContainsKey(PackageOperationType.Delete))
+                if (operationInfo.Sources.ContainsKey(PackageOperationType.Delete))
                 {
                     var rollbackOperation = (
-                        rollbackOperationKey.DatabaseName,
-                        rollbackOperationKey.ContainerName,
+                        operationKey.DatabaseName,
+                        operationKey.ContainerName,
                         targetDocument,
                         PackageOperationType.Upsert);
 
                     rollbackOperations.Add(rollbackOperation);
+
+                    continue;
                 }
-                else if (rollbackOperationValue.SourceDocuments.TryGetValue(PackageOperationType.Upsert, out sourceDocument))
+
+                if (operationInfo.Sources.TryGetValue(PackageOperationType.Upsert, out sourceDocument))
                 {
-                    var rollbackRequired = !JsonNode.DeepEquals(sourceDocument, targetDocument);
+                    var rollbackRequired = operationInfo.Sources.ContainsKey(PackageOperationType.Patch) || !JsonNode.DeepEquals(sourceDocument, targetDocument);
 
                     if (rollbackRequired)
                     {
                         var rollbackOperation = (
-                            rollbackOperationKey.DatabaseName,
-                            rollbackOperationKey.ContainerName,
+                            operationKey.DatabaseName,
+                            operationKey.ContainerName,
                             targetDocument,
                             PackageOperationType.Upsert);
 
                         rollbackOperations.Add(rollbackOperation);
                     }
+
+                    continue;
                 }
-                else if (rollbackOperationValue.SourceDocuments.TryGetValue(PackageOperationType.Patch, out sourceDocument))
+
+                if (operationInfo.Sources.TryGetValue(PackageOperationType.Patch, out sourceDocument))
                 {
                     var rollbackRequired = sourceDocument.Any(x => !targetDocument.TryGetPropertyValue(x.Key, out var v) || !JsonNode.DeepEquals(x.Value, v));
 
                     if (rollbackRequired)
                     {
                         var rollbackOperation = (
-                            rollbackOperationKey.DatabaseName,
-                            rollbackOperationKey.ContainerName,
+                            operationKey.DatabaseName,
+                            operationKey.ContainerName,
                             targetDocument,
                             PackageOperationType.Upsert);
 

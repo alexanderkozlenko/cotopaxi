@@ -38,8 +38,8 @@ public sealed partial class PackagingService
             new CosmosClient(cosmosCredential.ConnectionString, cosmosClientOptions) :
             new CosmosClient(cosmosCredential.AccountEndpoint.AbsoluteUri, cosmosCredential.AuthKeyOrResourceToken, cosmosClientOptions);
 
-        var deployOperations = new HashSet<(PackageOperationKey, PackageOperationType)>();
         var partitionKeyPathsCache = new Dictionary<(string, string), JsonPointer[]>();
+        var deployOperations = new HashSet<(PackageOperationKey, PackageOperationType)>();
 
         _logger.LogInformation("Deploying packages for endpoint {CosmosEndpoint}", cosmosClient.Endpoint);
 
