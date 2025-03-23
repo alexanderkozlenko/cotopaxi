@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Cotopaxi.Cosmos.PackageManagement;
 
-public sealed partial class PackagingService
+public sealed partial class PackageManager
 {
     public async Task<bool> CreatePackageAsync(string projectPath, string packagePath, string? packageVersion, CancellationToken cancellationToken)
     {
@@ -61,7 +61,7 @@ public sealed partial class PackagingService
                             projectSourceGroupByContainer.Key,
                             projectSourceGroupByOperations.Key);
 
-                        var packagePartitionKey = CreateUUID(packagePartitionKeySource);
+                        var packagePartitionKey = Uuid.CreateVersion8(packagePartitionKeySource);
 
                         var packagePartition = new PackagePartition(
                             packagePartitionKey,
@@ -69,7 +69,7 @@ public sealed partial class PackagingService
                             projectSourceGroupByContainer.Key,
                             projectSourceGroupByOperations.Key);
 
-                        var packagePartitionOperationName = PackageOperation.Format(packagePartition.OperationType);
+                        var packagePartitionOperationName = packagePartition.OperationType.ToString().ToLowerInvariant();
 
                         _logger.LogInformation(
                             "Packing deployment entries cdbpkg:{PartitionName} for container {DatabaseName}\\{ContainerName} ({OperationName})",
@@ -105,12 +105,14 @@ public sealed partial class PackagingService
                                     continue;
                                 }
 
-                                if (!CosmosResource.TryGetDocumentID(document, out var documentID) || !CosmosResource.IsValidResourceID(documentID))
+                                _logger.LogInformation("Packing deployment entry {SourcePath}:$[{DocumentIndex}]", projectSource.FilePath, i);
+
+                                if (!CosmosResource.TryGetDocumentId(document, out var documentId) || !CosmosResource.IsSupportedResourceId(documentId))
                                 {
                                     throw new InvalidOperationException($"Unable to get document identifier for {projectSource.FilePath}:$[{i}]");
                                 }
 
-                                CosmosResource.RemoveSystemProperties(document);
+                                CosmosResource.CleanupDocument(document);
 
                                 if (documentsByOperation.Any(x => JsonNode.DeepEquals(x, document)))
                                 {
@@ -118,8 +120,6 @@ public sealed partial class PackagingService
                                 }
 
                                 documentsByOperation.Add(document);
-
-                                _logger.LogInformation("Packing deployment entry {SourcePath}:$[{DocumentIndex}]", projectSource.FilePath, i);
                             }
                         }
 
@@ -165,24 +165,28 @@ public sealed partial class PackagingService
 
             foreach (var projectDatabaseNode in projectNode.Databases.Where(static x => x is not null))
             {
-                if (!CosmosResource.IsValidResourceID(projectDatabaseNode!.Name))
+                if (!CosmosResource.IsSupportedResourceId(projectDatabaseNode!.Name))
                 {
                     throw new JsonException($"JSON deserialization for type '{typeof(ProjectDatabaseNode)}' encountered errors");
                 }
 
                 foreach (var projectContainerNode in projectDatabaseNode.Containers.Where(static x => x is not null))
                 {
-                    if (!CosmosResource.IsValidResourceID(projectContainerNode!.Name))
+                    if (!CosmosResource.IsSupportedResourceId(projectContainerNode!.Name))
                     {
                         throw new JsonException($"JSON deserialization for type '{typeof(ProjectContainerNode)}' encountered errors");
                     }
 
                     foreach (var projectOperationNode in projectContainerNode.Operations.Where(static x => x is not null))
                     {
-                        if (!PackageOperation.TryParse(projectOperationNode!.Name, out var packageOperationType))
+                        var packageOperationType = projectOperationNode!.Name?.ToLowerInvariant() switch
                         {
-                            throw new JsonException($"JSON deserialization for type '{typeof(ProjectOperationNode)}' encountered errors");
-                        }
+                            "delete" => PackageOperationType.Delete,
+                            "create" => PackageOperationType.Create,
+                            "upsert" => PackageOperationType.Upsert,
+                            "patch" => PackageOperationType.Patch,
+                            _ => throw new JsonException($"JSON deserialization for type '{typeof(ProjectOperationNode)}' encountered errors"),
+                        };
 
                         foreach (var projectSourcePatternValue in projectOperationNode.Documents.Where(static x => x is not null).Distinct(StringComparer.OrdinalIgnoreCase))
                         {

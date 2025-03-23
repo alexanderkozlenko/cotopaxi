@@ -1,8 +1,6 @@
 ﻿// (c) Oleksandr Kozlenko. Licensed under the MIT license.
 
 using System.Diagnostics;
-using System.IO.Hashing;
-using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
@@ -10,9 +8,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Cotopaxi.Cosmos.PackageManagement;
 
-public sealed partial class PackagingService
+public sealed partial class PackageManager
 {
-    private static readonly string s_applicationName = $"cotopaxi/{typeof(PackagingService).Assembly.GetName().Version?.ToString(3)}";
+    private static readonly string s_applicationName = $"cotopaxi/{typeof(PackageManager).Assembly.GetName().Version?.ToString(3)}";
 
     private static readonly JsonSerializerOptions s_jsonSerializerOptions = new(JsonSerializerOptions.Default)
     {
@@ -22,7 +20,7 @@ public sealed partial class PackagingService
 
     private readonly ILogger _logger;
 
-    public PackagingService(ILogger<PackagingService> logger)
+    public PackageManager(ILogger<PackageManager> logger)
     {
         Debug.Assert(logger is not null);
 
@@ -38,15 +36,5 @@ public sealed partial class PackagingService
             .Select(x => Path.GetFullPath(Path.Combine(path, x.Path)))
             .Order(StringComparer.OrdinalIgnoreCase)
             .ToArray();
-    }
-
-    private static Guid CreateUUID(string source)
-    {
-        var hash = XxHash128.Hash(Encoding.Unicode.GetBytes(source));
-
-        hash[6] = (byte)((hash[6] & 0x0F) | 0x80);
-        hash[8] = (byte)((hash[8] & 0x3F) | 0x80);
-
-        return new(hash);
     }
 }

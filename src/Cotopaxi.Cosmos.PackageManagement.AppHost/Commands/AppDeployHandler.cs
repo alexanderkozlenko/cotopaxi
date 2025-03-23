@@ -3,17 +3,17 @@
 using System.CommandLine.Parsing;
 using System.Diagnostics;
 
-namespace Cotopaxi.Cosmos.PackageManagement.AppHost;
+namespace Cotopaxi.Cosmos.PackageManagement.AppHost.Commands;
 
 internal sealed class AppDeployHandler : HostCommandHandler
 {
-    private readonly PackagingService _service;
+    private readonly PackageManager _manager;
 
-    public AppDeployHandler(PackagingService service)
+    public AppDeployHandler(PackageManager manager)
     {
-        Debug.Assert(service is not null);
+        Debug.Assert(manager is not null);
 
-        _service = service;
+        _manager = manager;
     }
 
     protected override Task<bool> InvokeAsync(CommandResult commandResult, CancellationToken cancellationToken)
@@ -29,40 +29,40 @@ internal sealed class AppDeployHandler : HostCommandHandler
 
         Uri.TryCreate(Environment.GetEnvironmentVariable("AZURE_COSMOS_ENDPOINT"), UriKind.Absolute, out var cosmosAccountEndpointVariable);
 
-        var cosmosCredential = default(CosmosCredential);
+        var cosmosAuthInfo = default(CosmosAuthInfo);
 
         if (cosmosAccountEndpoint is not null)
         {
             if (!string.IsNullOrEmpty(cosmosAuthKeyOrResourceToken))
             {
-                cosmosCredential = new(cosmosAccountEndpoint, cosmosAuthKeyOrResourceToken);
+                cosmosAuthInfo = new(cosmosAccountEndpoint, cosmosAuthKeyOrResourceToken);
             }
             else if (!string.IsNullOrEmpty(cosmosAuthKeyOrResourceTokenVariable))
             {
-                cosmosCredential = new(cosmosAccountEndpoint, cosmosAuthKeyOrResourceTokenVariable);
+                cosmosAuthInfo = new(cosmosAccountEndpoint, cosmosAuthKeyOrResourceTokenVariable);
             }
         }
         else if (!string.IsNullOrEmpty(cosmosConnectionString))
         {
-            cosmosCredential = new(cosmosConnectionString);
+            cosmosAuthInfo = new(cosmosConnectionString);
         }
         else if (cosmosAccountEndpointVariable is not null)
         {
             if (!string.IsNullOrEmpty(cosmosAuthKeyOrResourceToken))
             {
-                cosmosCredential = new(cosmosAccountEndpointVariable, cosmosAuthKeyOrResourceToken);
+                cosmosAuthInfo = new(cosmosAccountEndpointVariable, cosmosAuthKeyOrResourceToken);
             }
             else if (!string.IsNullOrEmpty(cosmosAuthKeyOrResourceTokenVariable))
             {
-                cosmosCredential = new(cosmosAccountEndpointVariable, cosmosAuthKeyOrResourceTokenVariable);
+                cosmosAuthInfo = new(cosmosAccountEndpointVariable, cosmosAuthKeyOrResourceTokenVariable);
             }
         }
         else if (!string.IsNullOrEmpty(cosmosConnectionStringVariable))
         {
-            cosmosCredential = new(cosmosConnectionStringVariable);
+            cosmosAuthInfo = new(cosmosConnectionStringVariable);
         }
 
-        if (cosmosCredential is null)
+        if (cosmosAuthInfo is null)
         {
             throw new InvalidOperationException("Azure Cosmos DB authentication information is not provided");
         }
@@ -70,6 +70,6 @@ internal sealed class AppDeployHandler : HostCommandHandler
         var packagePathPattern = commandResult.GetValueForArgument(AppDeployCommand.PackageArgument);
         var packagePaths = GetFiles(Environment.CurrentDirectory, packagePathPattern);
 
-        return _service.DeployPackagesAsync(packagePaths, cosmosCredential, dryRun, cancellationToken);
+        return _manager.DeployPackagesAsync(packagePaths, cosmosAuthInfo, dryRun, cancellationToken);
     }
 }

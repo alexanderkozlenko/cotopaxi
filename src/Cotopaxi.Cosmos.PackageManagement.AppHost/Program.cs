@@ -4,6 +4,7 @@ using System.CommandLine;
 using System.CommandLine.Builder;
 using System.CommandLine.Hosting;
 using System.CommandLine.Parsing;
+using Cotopaxi.Cosmos.PackageManagement.AppHost.Commands;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -77,7 +78,7 @@ public static class Program
     private static void ConfigureServices(IServiceCollection services)
     {
         services
-            .AddSingleton<PackagingService>();
+            .AddSingleton<PackageManager>();
     }
 
     private static void ConfigureLogging(ILoggingBuilder builder)

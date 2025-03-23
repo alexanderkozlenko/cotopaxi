@@ -2,9 +2,8 @@
 
 using System.Diagnostics;
 using System.Globalization;
-using System.Text.Json.Nodes;
 
-namespace Cotopaxi.Cosmos.PackageManagement;
+namespace System.Text.Json.Nodes;
 
 public static class JsonNodeExtensions
 {

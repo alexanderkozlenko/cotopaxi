@@ -3,17 +3,17 @@
 using System.CommandLine.Parsing;
 using System.Diagnostics;
 
-namespace Cotopaxi.Cosmos.PackageManagement.AppHost;
+namespace Cotopaxi.Cosmos.PackageManagement.AppHost.Commands;
 
 internal sealed class AppPackHandler : HostCommandHandler
 {
-    private readonly PackagingService _service;
+    private readonly PackageManager _manager;
 
-    public AppPackHandler(PackagingService service)
+    public AppPackHandler(PackageManager manager)
     {
-        Debug.Assert(service is not null);
+        Debug.Assert(manager is not null);
 
-        _service = service;
+        _manager = manager;
     }
 
     protected override Task<bool> InvokeAsync(CommandResult commandResult, CancellationToken cancellationToken)
@@ -24,6 +24,6 @@ internal sealed class AppPackHandler : HostCommandHandler
         var packagePath = commandResult.GetValueForArgument(AppPackCommand.PackageArgument);
         var packageVersion = commandResult.GetValueForOption(AppPackCommand.VersionOption);
 
-        return _service.CreatePackageAsync(projectPath, packagePath, packageVersion, cancellationToken);
+        return _manager.CreatePackageAsync(projectPath, packagePath, packageVersion, cancellationToken);
     }
 }

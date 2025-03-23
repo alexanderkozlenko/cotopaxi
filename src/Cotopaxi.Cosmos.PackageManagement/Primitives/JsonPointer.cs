@@ -1,6 +1,6 @@
 ﻿// (c) Oleksandr Kozlenko. Licensed under the MIT license.
 
-namespace Cotopaxi.Cosmos.PackageManagement;
+namespace System.Text.Json;
 
 public readonly struct JsonPointer
 {

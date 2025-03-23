@@ -13,12 +13,12 @@ using Microsoft.Extensions.Logging;
 
 namespace Cotopaxi.Cosmos.PackageManagement;
 
-public sealed partial class PackagingService
+public sealed partial class PackageManager
 {
-    public async Task<bool> DeployPackagesAsync(IReadOnlyCollection<string> packagePaths, CosmosCredential cosmosCredential, bool dryRun, CancellationToken cancellationToken)
+    public async Task<bool> DeployPackagesAsync(IReadOnlyCollection<string> packagePaths, CosmosAuthInfo cosmosAuthInfo, bool dryRun, CancellationToken cancellationToken)
     {
         Debug.Assert(packagePaths is not null);
-        Debug.Assert(cosmosCredential is not null);
+        Debug.Assert(cosmosAuthInfo is not null);
 
         if (packagePaths.Count == 0)
         {
@@ -34,14 +34,21 @@ public sealed partial class PackagingService
             EnableContentResponseOnWrite = false,
         };
 
-        using var cosmosClient = cosmosCredential.IsConnectionString ?
-            new CosmosClient(cosmosCredential.ConnectionString, cosmosClientOptions) :
-            new CosmosClient(cosmosCredential.AccountEndpoint.AbsoluteUri, cosmosCredential.AuthKeyOrResourceToken, cosmosClientOptions);
+        using var cosmosClient = cosmosAuthInfo.IsConnectionString ?
+            new CosmosClient(cosmosAuthInfo.ConnectionString, cosmosClientOptions) :
+            new CosmosClient(cosmosAuthInfo.AccountEndpoint.AbsoluteUri, cosmosAuthInfo.AuthKeyOrResourceToken, cosmosClientOptions);
 
         var partitionKeyPathsCache = new Dictionary<(string, string), JsonPointer[]>();
         var deployOperations = new HashSet<(PackageOperationKey, PackageOperationType)>();
 
-        _logger.LogInformation("Deploying packages for endpoint {CosmosEndpoint}", cosmosClient.Endpoint);
+        if (!dryRun)
+        {
+            _logger.LogInformation("Deploying packages to endpoint {CosmosEndpoint}", cosmosClient.Endpoint);
+        }
+        else
+        {
+            _logger.LogInformation("[dry-run] Deploying packages to endpoint {CosmosEndpoint}", cosmosClient.Endpoint);
+        }
 
         foreach (var packagePath in packagePaths)
         {
@@ -97,7 +104,7 @@ public sealed partial class PackagingService
 
                         foreach (var (packagePartitionUri, packagePartition) in packagePartitionsByOperation)
                         {
-                            var packagePartitionOperationName = PackageOperation.Format(packagePartition.OperationType);
+                            var packagePartitionOperationName = packagePartition.OperationType.ToString().ToLowerInvariant();
 
                             if (!dryRun)
                             {
@@ -135,9 +142,9 @@ public sealed partial class PackagingService
                                     continue;
                                 }
 
-                                CosmosResource.RemoveSystemProperties(document);
+                                CosmosResource.CleanupDocument(document);
 
-                                if (!CosmosResource.TryGetDocumentID(document, out var documentID))
+                                if (!CosmosResource.TryGetDocumentId(document, out var documentId))
                                 {
                                     throw new InvalidOperationException($"Unable to get document identifier for cdbpkg:{packagePartitionUri}:$[{i}]");
                                 }
@@ -150,7 +157,7 @@ public sealed partial class PackagingService
                                 var deployOperationKey = new PackageOperationKey(
                                     packagePartition.DatabaseName,
                                     packagePartition.ContainerName,
-                                    documentID,
+                                    documentId,
                                     documentPartitionKey);
 
                                 if (!deployOperations.Add((deployOperationKey, packagePartition.OperationType)))
@@ -168,7 +175,7 @@ public sealed partial class PackagingService
                                         {
                                             case PackageOperationType.Delete:
                                                 {
-                                                    operationResponse = await container.DeleteItemAsync<JsonObject?>(documentID, documentPartitionKey, default, cancellationToken).ConfigureAwait(false);
+                                                    operationResponse = await container.DeleteItemAsync<JsonObject?>(documentId, documentPartitionKey, default, cancellationToken).ConfigureAwait(false);
                                                 }
                                                 break;
                                             case PackageOperationType.Create:
@@ -188,7 +195,7 @@ public sealed partial class PackagingService
                                                         .Select(static x => PatchOperation.Set("/" + x.Key, x.Value))
                                                         .ToArray();
 
-                                                    operationResponse = await container.PatchItemAsync<JsonObject?>(documentID, documentPartitionKey, patchOperations, default, cancellationToken).ConfigureAwait(false);
+                                                    operationResponse = await container.PatchItemAsync<JsonObject?>(documentId, documentPartitionKey, patchOperations, default, cancellationToken).ConfigureAwait(false);
                                                 }
                                                 break;
                                             default:

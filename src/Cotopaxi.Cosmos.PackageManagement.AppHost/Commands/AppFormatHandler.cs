@@ -3,17 +3,17 @@
 using System.CommandLine.Parsing;
 using System.Diagnostics;
 
-namespace Cotopaxi.Cosmos.PackageManagement.AppHost;
+namespace Cotopaxi.Cosmos.PackageManagement.AppHost.Commands;
 
 internal sealed class AppFormatHandler : HostCommandHandler
 {
-    private readonly PackagingService _service;
+    private readonly PackageManager _manager;
 
-    public AppFormatHandler(PackagingService service)
+    public AppFormatHandler(PackageManager manager)
     {
-        Debug.Assert(service is not null);
+        Debug.Assert(manager is not null);
 
-        _service = service;
+        _manager = manager;
     }
 
     protected override Task<bool> InvokeAsync(CommandResult commandResult, CancellationToken cancellationToken)
@@ -23,6 +23,6 @@ internal sealed class AppFormatHandler : HostCommandHandler
         var sourcePathPattern = commandResult.GetValueForArgument(AppFormatCommand.SourceArgument);
         var sourcePaths = GetFiles(Environment.CurrentDirectory, sourcePathPattern);
 
-        return _service.FormatSourcesAsync(sourcePaths, cancellationToken);
+        return _manager.FormatSourcesAsync(sourcePaths, cancellationToken);
     }
 }

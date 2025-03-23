@@ -34,9 +34,17 @@ public sealed class PackageModel : IDisposable
 
         var partitionPath = $"/cosmosdb.document/{partition.PartitionKey:D}.json";
         var partitionUri = new Uri(partitionPath, UriKind.Relative);
-        var partitionDec = _manifestDef.Entities.First(static x => x.EntityName == "cosmosdb.document");
+        var partitionDec = _manifestDef.Entities.Single(static x => x.EntityName == "cosmosdb.document");
         var partitionDef = _corpusDef.MakeObject<CdmDataPartitionDefinition>(CdmObjectType.DataPartitionDef);
-        var partitionOperationName = PackageOperation.Format(partition.OperationType);
+
+        var partitionOperationName = partition.OperationType switch
+        {
+            PackageOperationType.Delete => "delete",
+            PackageOperationType.Create => "create",
+            PackageOperationType.Upsert => "upsert",
+            PackageOperationType.Patch => "patch",
+            _ => throw new InvalidOperationException(),
+        };
 
         partitionDef.Location = _corpusDef.Storage.CreateAbsoluteCorpusPath(partitionPath);
         partitionDef.Arguments.Add("database", [partition.DatabaseName]);
@@ -45,7 +53,7 @@ public sealed class PackageModel : IDisposable
 
         if (partitionDec.DataPartitions.Any(x => x.Location == partitionDef.Location))
         {
-            throw new InvalidOperationException($"Unable to include duplicate partition {partition.PartitionKey}");
+            throw new InvalidOperationException("A partition with the same key already exists");
         }
 
         partitionDec.DataPartitions.Add(partitionDef);
@@ -55,47 +63,34 @@ public sealed class PackageModel : IDisposable
 
     public IReadOnlyDictionary<Uri, PackagePartition> GetPartitions()
     {
-        var partitions = new Dictionary<Uri, PackagePartition>();
-        var partitionDec = _manifestDef.Entities.SingleOrDefault(static x => x.EntityName == "cosmosdb.document");
+        var partitionDec = _manifestDef.Entities.Single(static x => x.EntityName == "cosmosdb.document");
+        var partitions = new Dictionary<Uri, PackagePartition>(partitionDec.DataPartitions.Count);
 
-        if (partitionDec is not null)
+        foreach (var partitionDef in partitionDec.DataPartitions)
         {
-            partitions.EnsureCapacity(partitionDec.DataPartitions.Count);
+            var partitionPath = _corpusDef.Storage.CorpusPathToAdapterPath(partitionDef.Location);
+            var partitionUri = new Uri(partitionPath, UriKind.Relative);
+            var partitionKey = Guid.ParseExact(Path.GetFileNameWithoutExtension(partitionPath), "D");
+            var partitionDatabaseName = partitionDef.Arguments["database"].Single();
+            var partitionContainerName = partitionDef.Arguments["container"].Single();
+            var partitionOperationName = partitionDef.Arguments["operation"].Single();
 
-            foreach (var partitionDef in partitionDec.DataPartitions)
+            var partitionOperationType = partitionOperationName?.ToLowerInvariant() switch
             {
-                var partitionPath = _corpusDef.Storage.CorpusPathToAdapterPath(partitionDef.Location);
-                var partitionUri = new Uri(partitionPath, UriKind.Relative);
+                "delete" => PackageOperationType.Delete,
+                "create" => PackageOperationType.Create,
+                "upsert" => PackageOperationType.Upsert,
+                "patch" => PackageOperationType.Patch,
+                _ => throw new NotSupportedException(),
+            };
 
-                if (!Guid.TryParseExact(Path.GetFileNameWithoutExtension(partitionPath), "D", out var partitionKey))
-                {
-                    continue;
-                }
+            var partition = new PackagePartition(
+                partitionKey,
+                partitionDatabaseName,
+                partitionContainerName,
+                partitionOperationType);
 
-                var partitionDatabaseName = partitionDef.Arguments["database"].Single();
-                var partitionContainerName = partitionDef.Arguments["container"].Single();
-                var partitionOperationName = partitionDef.Arguments["operation"].Single();
-
-                if (string.IsNullOrEmpty(partitionDatabaseName) ||
-                    string.IsNullOrEmpty(partitionContainerName) ||
-                    string.IsNullOrEmpty(partitionOperationName))
-                {
-                    continue;
-                }
-
-                if (!PackageOperation.TryParse(partitionOperationName, out var partitionOperationType))
-                {
-                    continue;
-                }
-
-                var partition = new PackagePartition(
-                    partitionKey,
-                    partitionDatabaseName,
-                    partitionContainerName,
-                    partitionOperationType);
-
-                partitions.Add(partitionUri, partition);
-            }
+            partitions.Add(partitionUri, partition);
         }
 
         return partitions.ToFrozenDictionary();
@@ -123,6 +118,8 @@ public sealed class PackageModel : IDisposable
     public static async Task<PackageModel> OpenAsync(Package package, CompressionOption compressionOption, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(package);
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         var corpusDef = CreateCorpus(package, compressionOption, cancellationToken);
 

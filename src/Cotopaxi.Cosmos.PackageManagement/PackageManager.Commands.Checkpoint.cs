@@ -13,13 +13,13 @@ using Microsoft.Extensions.Logging;
 
 namespace Cotopaxi.Cosmos.PackageManagement;
 
-public sealed partial class PackagingService
+public sealed partial class PackageManager
 {
-    public async Task<bool> CreateCheckpointPackagesAsync(IReadOnlyCollection<string> sourcePackagePaths, string rollbackPackagePath, CosmosCredential cosmosCredential, CancellationToken cancellationToken)
+    public async Task<bool> CreateCheckpointPackagesAsync(IReadOnlyCollection<string> sourcePackagePaths, string rollbackPackagePath, CosmosAuthInfo cosmosAuthInfo, CancellationToken cancellationToken)
     {
         Debug.Assert(sourcePackagePaths is not null);
         Debug.Assert(rollbackPackagePath is not null);
-        Debug.Assert(cosmosCredential is not null);
+        Debug.Assert(cosmosAuthInfo is not null);
 
         if (sourcePackagePaths.Count == 0)
         {
@@ -34,9 +34,9 @@ public sealed partial class PackagingService
             UseSystemTextJsonSerializerWithOptions = JsonSerializerOptions.Default,
         };
 
-        using var cosmosClient = cosmosCredential.IsConnectionString ?
-            new CosmosClient(cosmosCredential.ConnectionString, cosmosClientOptions) :
-            new CosmosClient(cosmosCredential.AccountEndpoint.AbsoluteUri, cosmosCredential.AuthKeyOrResourceToken, cosmosClientOptions);
+        using var cosmosClient = cosmosAuthInfo.IsConnectionString ?
+            new CosmosClient(cosmosAuthInfo.ConnectionString, cosmosClientOptions) :
+            new CosmosClient(cosmosAuthInfo.AccountEndpoint.AbsoluteUri, cosmosAuthInfo.AuthKeyOrResourceToken, cosmosClientOptions);
 
         var partitionKeyPathsCache = new Dictionary<(string, string), JsonPointer[]>();
         var deployOperations = new HashSet<(PackageOperationKey, PackageOperationType)>();
@@ -91,7 +91,7 @@ public sealed partial class PackagingService
 
                         foreach (var (sourcePackagePartitionUri, sourcePackagePartition) in sourcePackagePartitionsByOperation)
                         {
-                            var sourcePackagePartitionOperationName = PackageOperation.Format(sourcePackagePartition.OperationType);
+                            var sourcePackagePartitionOperationName = sourcePackagePartition.OperationType.ToString().ToLowerInvariant();
 
                             _logger.LogInformation(
                                 "Analyzing deployment entries cdbpkg:{PartitionKey} for container {DatabaseName}\\{ContainerName} ({OperationName})",
@@ -119,9 +119,9 @@ public sealed partial class PackagingService
 
                                 _logger.LogInformation("Analyzing deployment entry cdbpkg:{PartitionKey}:$[{DocumentIndex}]", sourcePackagePartition.PartitionKey, i);
 
-                                CosmosResource.RemoveSystemProperties(sourceDocument);
+                                CosmosResource.CleanupDocument(sourceDocument);
 
-                                if (!CosmosResource.TryGetDocumentID(sourceDocument, out var documentID))
+                                if (!CosmosResource.TryGetDocumentId(sourceDocument, out var documentId))
                                 {
                                     throw new InvalidOperationException($"Unable to get document identifier for cdbpkg:{sourcePackagePartitionUri}:$[{i}]");
                                 }
@@ -134,7 +134,7 @@ public sealed partial class PackagingService
                                 var deployOperationKey = new PackageOperationKey(
                                     sourcePackagePartition.DatabaseName,
                                     sourcePackagePartition.ContainerName,
-                                    documentID,
+                                    documentId,
                                     documentPartitionKey);
 
                                 if (!deployOperations.Add((deployOperationKey, sourcePackagePartition.OperationType)))
@@ -148,7 +148,7 @@ public sealed partial class PackagingService
 
                                     try
                                     {
-                                        var operationResponse = await container.ReadItemAsync<JsonObject?>(documentID, documentPartitionKey, default, cancellationToken).ConfigureAwait(false);
+                                        var operationResponse = await container.ReadItemAsync<JsonObject?>(documentId, documentPartitionKey, default, cancellationToken).ConfigureAwait(false);
 
                                         _logger.LogInformation(
                                             "Requesting document for deployment entry cdbpkg:{PartitionKey}:$[{DocumentIndex}] - HTTP {StatusCode}",
@@ -176,7 +176,7 @@ public sealed partial class PackagingService
 
                                     if (targetDocument is not null)
                                     {
-                                        CosmosResource.RemoveSystemProperties(targetDocument);
+                                        CosmosResource.CleanupDocument(targetDocument);
                                     }
 
                                     deployOperationState = (new(), targetDocument);
@@ -296,7 +296,7 @@ public sealed partial class PackagingService
                             rollbackOperationGroupByContainer.Key,
                             rollbackOperationGroupByOperation.Key);
 
-                        var packagePartitionOperationName = PackageOperation.Format(rollbackPackagePartition.OperationType);
+                        var packagePartitionOperationName = rollbackPackagePartition.OperationType.ToString().ToLowerInvariant();
 
                         _logger.LogInformation(
                             "Packing rollback entries cdbpkg:{PartitionKey} for container {DatabaseName}\\{ContainerName} ({OperationName})",

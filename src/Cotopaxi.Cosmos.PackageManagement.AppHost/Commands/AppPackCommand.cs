@@ -2,7 +2,7 @@
 
 using System.CommandLine;
 
-namespace Cotopaxi.Cosmos.PackageManagement.AppHost;
+namespace Cotopaxi.Cosmos.PackageManagement.AppHost.Commands;
 
 internal sealed class AppPackCommand : Command
 {

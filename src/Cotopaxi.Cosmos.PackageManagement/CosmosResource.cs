@@ -10,7 +10,7 @@ namespace Cotopaxi.Cosmos.PackageManagement;
 
 public static class CosmosResource
 {
-    private static readonly char[] s_invalidChars = ['/', '\\', '#', '?'];
+    private static readonly char[] s_unsupportedChars = ['/', '\\', '#', '?'];
 
     public static bool TryGetPartitionKey(JsonObject document, IEnumerable<JsonPointer> partitionKeyPaths, out PartitionKey value)
     {
@@ -66,7 +66,7 @@ public static class CosmosResource
         return true;
     }
 
-    public static bool TryGetDocumentID(JsonObject document, [NotNullWhen(true)] out string? value)
+    public static bool TryGetDocumentId(JsonObject document, [NotNullWhen(true)] out string? value)
     {
         Debug.Assert(document is not null);
 
@@ -86,7 +86,7 @@ public static class CosmosResource
         return false;
     }
 
-    public static void RemoveSystemProperties(JsonObject document)
+    public static void CleanupDocument(JsonObject document)
     {
         Debug.Assert(document is not null);
 
@@ -97,14 +97,31 @@ public static class CosmosResource
         document.Remove("_ts");
     }
 
-    public static bool IsValidResourceID(string? value)
+    public static void FormatDocument(JsonObject document)
+    {
+        Debug.Assert(document is not null);
+
+        document.Remove("_attachments");
+        document.Remove("_etag");
+        document.Remove("_rid");
+        document.Remove("_self");
+        document.Remove("_ts");
+
+        if (document.TryGetPropertyValue("id", out var identifierNode))
+        {
+            document.Remove("id");
+            document.Insert(0, "id", identifierNode);
+        }
+    }
+
+    public static bool IsSupportedResourceId(string? value)
     {
         if (value is not { Length: > 0 and < 256 })
         {
             return false;
         }
 
-        if (value.IndexOfAny(s_invalidChars) >= 0)
+        if (value.IndexOfAny(s_unsupportedChars) >= 0)
         {
             return false;
         }

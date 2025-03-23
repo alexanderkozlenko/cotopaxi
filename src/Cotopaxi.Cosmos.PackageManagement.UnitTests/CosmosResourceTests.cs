@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Nodes;
+﻿using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Azure.Cosmos;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -8,20 +9,20 @@ namespace Cotopaxi.Cosmos.PackageManagement.UnitTests;
 public sealed class CosmosResourceTests
 {
     [TestMethod]
-    public void TryGetPartitionKeyReturnsTrue1()
+    public void TryGetPartitionKeyReturnsTrueWhenSize1()
     {
         var document = new JsonObject
         {
-            ["category"] = "bikes",
+            ["p1"] = "v1",
         };
 
         var partitionKeyPaths = new JsonPointer[]
         {
-            new("/category"),
+            new("/p1"),
         };
 
         var expected = new PartitionKeyBuilder()
-            .Add("bikes")
+            .Add("v1")
             .Build();
 
         var result = CosmosResource.TryGetPartitionKey(document, partitionKeyPaths, out var actual);
@@ -31,23 +32,23 @@ public sealed class CosmosResourceTests
     }
 
     [TestMethod]
-    public void TryGetPartitionKeyReturnsTrue2()
+    public void TryGetPartitionKeyReturnsTrueWhenSize2()
     {
         var document = new JsonObject
         {
-            ["category"] = "bikes",
-            ["subcategory1"] = "hybrid",
+            ["p1"] = "v1",
+            ["p2"] = "v2",
         };
 
         var partitionKeyPaths = new JsonPointer[]
         {
-            new("/category"),
-            new("/subcategory1"),
+            new("/p1"),
+            new("/p2"),
         };
 
         var expected = new PartitionKeyBuilder()
-            .Add("bikes")
-            .Add("hybrid")
+            .Add("v1")
+            .Add("v2")
             .Build();
 
         var result = CosmosResource.TryGetPartitionKey(document, partitionKeyPaths, out var actual);
@@ -57,26 +58,26 @@ public sealed class CosmosResourceTests
     }
 
     [TestMethod]
-    public void TryGetPartitionKeyReturnsTrue3()
+    public void TryGetPartitionKeyReturnsTrueWhenSize3()
     {
         var document = new JsonObject
         {
-            ["category"] = "bikes",
-            ["subcategory1"] = "hybrid",
-            ["subcategory2"] = "gravel",
+            ["p1"] = "v1",
+            ["p2"] = "v2",
+            ["p3"] = "v3",
         };
 
         var partitionKeyPaths = new JsonPointer[]
         {
-            new("/category"),
-            new("/subcategory1"),
-            new("/subcategory2"),
+            new("/p1"),
+            new("/p2"),
+            new("/p3"),
         };
 
         var expected = new PartitionKeyBuilder()
-            .Add("bikes")
-            .Add("hybrid")
-            .Add("gravel")
+            .Add("v1")
+            .Add("v2")
+            .Add("v3")
             .Build();
 
         var result = CosmosResource.TryGetPartitionKey(document, partitionKeyPaths, out var actual);
@@ -86,23 +87,47 @@ public sealed class CosmosResourceTests
     }
 
     [TestMethod]
-    public void TryGetPartitionKeyReturnsTrue4()
+    public void TryGetPartitionKeyReturnsTrueWhenNull()
     {
         var document = new JsonObject
         {
-            ["category"] = "bikes",
+            ["p1"] = "v1",
+            ["p2"] = null,
         };
 
         var partitionKeyPaths = new JsonPointer[]
         {
-            new("/category"),
-            new("/subcategory1"),
-            new("/subcategory2"),
+            new("/p1"),
+            new("/p2"),
         };
 
         var expected = new PartitionKeyBuilder()
-            .Add("bikes")
-            .AddNoneType()
+            .Add("v1")
+            .AddNullValue()
+            .Build();
+
+        var result = CosmosResource.TryGetPartitionKey(document, partitionKeyPaths, out var actual);
+
+        Assert.IsTrue(result);
+        Assert.AreEqual(expected, actual);
+    }
+
+    [TestMethod]
+    public void TryGetPartitionKeyReturnsTrueWhenUndefined()
+    {
+        var document = new JsonObject
+        {
+            ["p1"] = "v1",
+        };
+
+        var partitionKeyPaths = new JsonPointer[]
+        {
+            new("/p1"),
+            new("/p2"),
+        };
+
+        var expected = new PartitionKeyBuilder()
+            .Add("v1")
             .AddNoneType()
             .Build();
 
@@ -117,12 +142,12 @@ public sealed class CosmosResourceTests
     {
         var document = new JsonObject
         {
-            ["category"] = new JsonObject(),
+            ["p1"] = new JsonObject(),
         };
 
         var partitionKeyPaths = new JsonPointer[]
         {
-            new("/category"),
+            new("/p1"),
         };
 
         var expected = default(PartitionKey);
@@ -141,56 +166,78 @@ public sealed class CosmosResourceTests
             ["id"] = "5f3edc36-17c0-4e11-a6da-a81440214abe",
         };
 
-        var result = CosmosResource.TryGetDocumentID(document, out var documentID);
+        var result = CosmosResource.TryGetDocumentId(document, out var documentId);
 
         Assert.IsTrue(result);
-        Assert.AreEqual("5f3edc36-17c0-4e11-a6da-a81440214abe", documentID);
+        Assert.AreEqual("5f3edc36-17c0-4e11-a6da-a81440214abe", documentId);
     }
 
     [TestMethod]
-    public void TryGetDocumentIDWhenReturnsFalse1()
+    public void TryGetDocumentIDWhenReturnsFalseWhenUndefined()
     {
-        var document = new JsonObject
-        {
-        };
+        var document = new JsonObject();
 
-        var result = CosmosResource.TryGetDocumentID(document, out var documentID);
+        var result = CosmosResource.TryGetDocumentId(document, out var documentId);
 
         Assert.IsFalse(result);
-        Assert.IsNull(documentID);
+        Assert.IsNull(documentId);
     }
 
     [TestMethod]
-    public void TryGetDocumentIDWhenReturnsFalse2()
+    public void TryGetDocumentIDWhenReturnsFalseWhenUnsupported()
     {
         var document = new JsonObject
         {
             ["id"] = new JsonObject(),
         };
 
-        var result = CosmosResource.TryGetDocumentID(document, out var documentID);
+        var result = CosmosResource.TryGetDocumentId(document, out var documentId);
 
         Assert.IsFalse(result);
-        Assert.IsNull(documentID);
+        Assert.IsNull(documentId);
     }
 
     [TestMethod]
-    public void RemoveSystemProperties()
+    public void CleanupDocument()
     {
         var document = new JsonObject
         {
-            ["id"] = new JsonObject(),
-            ["_attachments"] = "",
-            ["_etag"] = "",
-            ["_rid"] = "",
-            ["_self"] = "",
-            ["_ts"] = "",
+            ["id"] = "5f3edc36-17c0-4e11-a6da-a81440214abe",
+            ["pk"] = "pk",
+            ["_attachments"] = "_attachments",
+            ["_etag"] = "_etag",
+            ["_rid"] = "_rid",
+            ["_self"] = "_self",
+            ["_ts"] = "_ts",
         };
 
-        CosmosResource.RemoveSystemProperties(document);
+        CosmosResource.CleanupDocument(document);
 
-        Assert.AreEqual(1, document.Count);
+        Assert.AreEqual(2, document.Count);
         Assert.IsTrue(document.ContainsKey("id"));
+        Assert.IsTrue(document.ContainsKey("pk"));
+    }
+
+    [TestMethod]
+    public void FormatDocument()
+    {
+        var document = new JsonObject
+        {
+            ["pk"] = "pk",
+            ["id"] = "5f3edc36-17c0-4e11-a6da-a81440214abe",
+            ["_attachments"] = "_attachments",
+            ["_etag"] = "_etag",
+            ["_rid"] = "_rid",
+            ["_self"] = "_self",
+            ["_ts"] = "_ts",
+        };
+
+        CosmosResource.FormatDocument(document);
+
+        Assert.AreEqual(2, document.Count);
+        Assert.IsTrue(document.ContainsKey("id"));
+        Assert.IsTrue(document.ContainsKey("pk"));
+        Assert.AreEqual("id", document.GetAt(0).Key);
     }
 
     [DataTestMethod]
@@ -202,9 +249,9 @@ public sealed class CosmosResourceTests
     [DataRow("\\", false)]
     [DataRow("#", false)]
     [DataRow("?", false)]
-    public void IsValidUniqueID(string value, bool expected)
+    public void IsSupportedResourceId(string value, bool expected)
     {
-        var result = CosmosResource.IsValidResourceID(value);
+        var result = CosmosResource.IsSupportedResourceId(value);
 
         Assert.AreEqual(expected, result);
     }

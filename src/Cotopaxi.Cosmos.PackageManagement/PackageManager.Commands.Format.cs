@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Cotopaxi.Cosmos.PackageManagement;
 
-public sealed partial class PackagingService
+public sealed partial class PackageManager
 {
     public async Task<bool> FormatSourcesAsync(IReadOnlyCollection<string> sourcePaths, CancellationToken cancellationToken)
     {
@@ -24,6 +24,8 @@ public sealed partial class PackagingService
 
         foreach (var sourcePath in sourcePaths)
         {
+            _logger.LogInformation("Formatting {SourcePath}", sourcePath);
+
             var documents = default(JsonObject?[]);
 
             try
@@ -35,8 +37,6 @@ public sealed partial class PackagingService
             }
             catch (JsonException)
             {
-                _logger.LogWarning("Formatting {SourcePath} - SKIPPED", sourcePath);
-
                 continue;
             }
 
@@ -47,21 +47,13 @@ public sealed partial class PackagingService
                     continue;
                 }
 
-                CosmosResource.RemoveSystemProperties(document);
-
-                if (document.TryGetPropertyValue("id", out var propertyValueNode))
-                {
-                    document.Remove("id");
-                    document.Insert(0, "id", propertyValueNode);
-                }
+                CosmosResource.FormatDocument(document);
             }
 
             using (var sourceStream = new FileStream(sourcePath, FileMode.Create, FileAccess.Write, FileShare.None))
             {
                 await JsonSerializer.SerializeAsync(sourceStream, documents, jsonSerializerOptionsFormat, cancellationToken).ConfigureAwait(false);
             }
-
-            _logger.LogInformation("Formatting {SourcePath} - OK", sourcePath);
         }
 
         return true;

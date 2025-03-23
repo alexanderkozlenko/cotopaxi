@@ -5,9 +5,9 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Cotopaxi.Cosmos.PackageManagement;
 
-public sealed class CosmosCredential
+public sealed class CosmosAuthInfo
 {
-    public CosmosCredential(string connectionString)
+    public CosmosAuthInfo(string connectionString)
     {
         Debug.Assert(connectionString is { Length: > 0 });
 
@@ -15,7 +15,7 @@ public sealed class CosmosCredential
         IsConnectionString = true;
     }
 
-    public CosmosCredential(Uri accountEndpoint, string authKeyOrResourceToken)
+    public CosmosAuthInfo(Uri accountEndpoint, string authKeyOrResourceToken)
     {
         Debug.Assert(accountEndpoint is not null);
         Debug.Assert(authKeyOrResourceToken is { Length: > 0 });
