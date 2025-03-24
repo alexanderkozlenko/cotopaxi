@@ -64,8 +64,7 @@ Deploying the package to an Azure Cosmos DB account in Azure DevOps:
 ```txt
 cotopaxi deploy $(System.ArtifactsDirectory)/**/*.cdbpkg
 
-Deploying packages to endpoint https://cosmos-adventureworks.documents.azure.com:443
-Deploying package /home/vsts/work/r1/a/adventureworks.cdbpkg
+Deploying package /home/vsts/work/r1/a/adventureworks.cdbpkg to endpoint https://cosmos-adventureworks.documents.azure.com:443
 Deploying entries cdbpkg:dfcf04cb-886e-ae82-9172-fa4a1acb5d8b to container adventureworks\products (upsert)
 Deploying entry cdbpkg:dfcf04cb-886e-ae82-9172-fa4a1acb5d8b:$[0] (upsert) - HTTP 200
 ```

@@ -159,7 +159,7 @@ public sealed class CosmosResourceTests
     }
 
     [TestMethod]
-    public void TryGetDocumentIDWhenReturnsTrue()
+    public void TryGetDocumentIdWhenReturnsTrue()
     {
         var document = new JsonObject
         {
@@ -173,7 +173,7 @@ public sealed class CosmosResourceTests
     }
 
     [TestMethod]
-    public void TryGetDocumentIDWhenReturnsFalseWhenUndefined()
+    public void TryGetDocumentIdWhenReturnsFalseWhenUndefined()
     {
         var document = new JsonObject();
 
@@ -184,7 +184,7 @@ public sealed class CosmosResourceTests
     }
 
     [TestMethod]
-    public void TryGetDocumentIDWhenReturnsFalseWhenUnsupported()
+    public void TryGetDocumentIdWhenReturnsFalseWhenUnsupported()
     {
         var document = new JsonObject
         {

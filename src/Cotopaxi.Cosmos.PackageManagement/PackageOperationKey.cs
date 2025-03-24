@@ -8,6 +8,6 @@ internal readonly record struct PackageOperationKey
 (
     string DatabaseName,
     string ContainerName,
-    string DocumentID,
+    string DocumentId,
     PartitionKey DocumentPartitionKey
 );

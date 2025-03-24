@@ -41,24 +41,15 @@ public sealed partial class PackageManager
         var partitionKeyPathsCache = new Dictionary<(string, string), JsonPointer[]>();
         var deployOperations = new HashSet<(PackageOperationKey, PackageOperationType)>();
 
-        if (!dryRun)
-        {
-            _logger.LogInformation("Deploying packages to endpoint {CosmosEndpoint}", cosmosClient.Endpoint);
-        }
-        else
-        {
-            _logger.LogInformation("[dry-run] Deploying packages to endpoint {CosmosEndpoint}", cosmosClient.Endpoint);
-        }
-
         foreach (var packagePath in packagePaths)
         {
             if (!dryRun)
             {
-                _logger.LogInformation("Deploying package {PackagePath}", packagePath);
+                _logger.LogInformation("Deploying package {PackagePath} to endpoint {CosmosEndpoint}", packagePath, cosmosClient.Endpoint);
             }
             else
             {
-                _logger.LogInformation("[dry-run] Deploying package {PackagePath}", packagePath);
+                _logger.LogInformation("[dry-run] Deploying package {PackagePath} to endpoint {CosmosEndpoint}", packagePath, cosmosClient.Endpoint);
             }
 
             using var package = Package.Open(packagePath, FileMode.Open, FileAccess.Read, FileShare.Read);

@@ -16,7 +16,7 @@ public sealed partial class PackageManager
     {
         Debug.Assert(sourcePaths is not null);
 
-        var jsonSerializerOptionsFormat = new JsonSerializerOptions(JsonSerializerOptions.Default)
+        var jsonSerializerOptions = new JsonSerializerOptions(s_jsonSerializerOptions)
         {
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
             WriteIndented = true,
@@ -32,7 +32,7 @@ public sealed partial class PackageManager
             {
                 using (var sourceStream = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read))
                 {
-                    documents = await JsonSerializer.DeserializeAsync<JsonObject?[]>(sourceStream, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false) ?? [];
+                    documents = await JsonSerializer.DeserializeAsync<JsonObject?[]>(sourceStream, jsonSerializerOptions, cancellationToken).ConfigureAwait(false) ?? [];
                 }
             }
             catch (JsonException)
@@ -52,7 +52,7 @@ public sealed partial class PackageManager
 
             using (var sourceStream = new FileStream(sourcePath, FileMode.Create, FileAccess.Write, FileShare.None))
             {
-                await JsonSerializer.SerializeAsync(sourceStream, documents, jsonSerializerOptionsFormat, cancellationToken).ConfigureAwait(false);
+                await JsonSerializer.SerializeAsync(sourceStream, documents, jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
             }
         }
 
