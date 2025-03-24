@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8">
@@ -54,7 +54,7 @@
             <div id="navbar">
               <form class="search" role="search" id="search">
                 <i class="bi bi-search"></i>
-                <input class="form-control" id="search-query" type="search" disabled="" placeholder="Search" autocomplete="off" aria-label="Search">
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
               </form>
             </div>
           </div>
@@ -89,11 +89,11 @@
 <p></p>
 <h2 id="name">Name</h2>
 <p></p>
-<p><code>cotopaxi checkpoint</code> - Creates a package that reverts operations from the source package or packages.</p>
+<p><code>cotopaxi checkpoint</code> - Creates a database package with rollback operations.</p>
 <p></p>
 <h2 id="synopsis">Synopsis</h2>
 <p></p>
-<pre><code class="lang-txt">cotopaxi checkpoint &lt;source-package&gt; &lt;rollback-package&gt;
+<pre><code class="lang-txt">cotopaxi checkpoint &lt;package&gt; &lt;rollback-package&gt;
   [--endpoint &lt;endpoint&gt; --key &lt;key&gt;|--connection-string &lt;connection-string&gt;]
 
 cotopaxi checkpoint -h|--help
@@ -147,7 +147,7 @@ cotopaxi checkpoint -h|--help
 </tr>
 <tr>
 <td style="text-align: center;"><code>patch</code></td>
-<td style="text-align: center;"><code>patch</code></td>
+<td style="text-align: center;"><code>upsert</code></td>
 <td style="text-align: left;">The document does exist in the container</td>
 </tr>
 </tbody>
@@ -156,13 +156,13 @@ cotopaxi checkpoint -h|--help
 <h2 id="arguments">Arguments</h2>
 <p></p>
 <ul>
-<li><code>source-package</code><br>
-The path to a package or packages for deployment deploy to the Azure Cosmos DB account (globbing patterns are supported).</li>
+<li><code>package</code><br>
+The path to the database package or packages for deployment to the Azure Cosmos DB account (globbing patterns are supported).</li>
 </ul>
 <p></p>
 <ul>
 <li><code>rollback-package</code><br>
-The path to a package that reverts operations from the source package or packages.</li>
+The path to a resulting database package with rollback operations.</li>
 </ul>
 <p></p>
 <h2 id="options">Options</h2>

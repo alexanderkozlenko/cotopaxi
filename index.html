@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8">
@@ -54,7 +54,7 @@
             <div id="navbar">
               <form class="search" role="search" id="search">
                 <i class="bi bi-search"></i>
-                <input class="form-control" id="search-query" type="search" disabled="" placeholder="Search" autocomplete="off" aria-label="Search">
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
               </form>
             </div>
           </div>
@@ -130,8 +130,7 @@ Packing deployment entry /home/vsts/work/1/s/adventureworks/products/bikes.json:
 <p></p>
 <pre><code class="lang-txt">cotopaxi deploy $(System.ArtifactsDirectory)/**/*.cdbpkg
 
-Deploying package /home/vsts/work/r1/a/adventureworks.cdbpkg to account cosmos-adventureworks
-Requesting properties for container adventureworks\products - HTTP 200
+Deploying package /home/vsts/work/r1/a/adventureworks.cdbpkg to endpoint https://cosmos-adventureworks.documents.azure.com:443
 Deploying entries cdbpkg:dfcf04cb-886e-ae82-9172-fa4a1acb5d8b to container adventureworks\products (upsert)
 Deploying entry cdbpkg:dfcf04cb-886e-ae82-9172-fa4a1acb5d8b:$[0] (upsert) - HTTP 200
 </code></pre>

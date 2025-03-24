@@ -11,7 +11,8 @@
           "name": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 256
+            "maxLength": 255,
+            "pattern": "^(?!.*[\\/\\\\#\\?]).+$"
           },
           "containers": {
             "type": "array",
@@ -21,7 +22,8 @@
                 "name": {
                   "type": "string",
                   "minLength": 1,
-                  "maxLength": 256
+                  "maxLength": 255,
+                  "pattern": "^(?!.*[\\/\\\\#\\?]).+$"
                 },
                 "operations": {
                   "type": "array",
@@ -31,9 +33,10 @@
                       "name": {
                         "type": "string",
                         "enum": [
+                          "delete",
                           "create",
                           "upsert",
-                          "delete"
+                          "patch"
                         ]
                       },
                       "documents": {
