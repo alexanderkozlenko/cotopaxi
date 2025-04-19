@@ -4,7 +4,7 @@ using Microsoft.Azure.Cosmos;
 
 namespace Cotopaxi.Cosmos.PackageManagement;
 
-internal readonly record struct PackageOperationKey
+internal readonly record struct PackageDocumentKey
 (
     string DatabaseName,
     string ContainerName,

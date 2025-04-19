@@ -22,53 +22,16 @@ internal sealed class AppDeployHandler : HostCommandHandler
 
         var cosmosAccountEndpoint = commandResult.GetValueForOption(AppDeployCommand.EndpointOption);
         var cosmosAuthKeyOrResourceToken = commandResult.GetValueForOption(AppDeployCommand.KeyOption);
-        var cosmosAuthKeyOrResourceTokenVariable = Environment.GetEnvironmentVariable("AZURE_COSMOS_KEY");
         var cosmosConnectionString = commandResult.GetValueForOption(AppDeployCommand.ConnectionStringOption);
-        var cosmosConnectionStringVariable = Environment.GetEnvironmentVariable("AZURE_COSMOS_CONNECTION_STRING");
-        var dryRun = commandResult.GetValueForOption(AppDeployCommand.DryRunOption);
 
-        Uri.TryCreate(Environment.GetEnvironmentVariable("AZURE_COSMOS_ENDPOINT"), UriKind.Absolute, out var cosmosAccountEndpointVariable);
-
-        var cosmosAuthInfo = default(CosmosAuthInfo);
-
-        if (cosmosAccountEndpoint is not null)
-        {
-            if (!string.IsNullOrEmpty(cosmosAuthKeyOrResourceToken))
-            {
-                cosmosAuthInfo = new(cosmosAccountEndpoint, cosmosAuthKeyOrResourceToken);
-            }
-            else if (!string.IsNullOrEmpty(cosmosAuthKeyOrResourceTokenVariable))
-            {
-                cosmosAuthInfo = new(cosmosAccountEndpoint, cosmosAuthKeyOrResourceTokenVariable);
-            }
-        }
-        else if (!string.IsNullOrEmpty(cosmosConnectionString))
-        {
-            cosmosAuthInfo = new(cosmosConnectionString);
-        }
-        else if (cosmosAccountEndpointVariable is not null)
-        {
-            if (!string.IsNullOrEmpty(cosmosAuthKeyOrResourceToken))
-            {
-                cosmosAuthInfo = new(cosmosAccountEndpointVariable, cosmosAuthKeyOrResourceToken);
-            }
-            else if (!string.IsNullOrEmpty(cosmosAuthKeyOrResourceTokenVariable))
-            {
-                cosmosAuthInfo = new(cosmosAccountEndpointVariable, cosmosAuthKeyOrResourceTokenVariable);
-            }
-        }
-        else if (!string.IsNullOrEmpty(cosmosConnectionStringVariable))
-        {
-            cosmosAuthInfo = new(cosmosConnectionStringVariable);
-        }
-
-        if (cosmosAuthInfo is null)
+        if (!CosmosAuthInfoFactory.TryGetCreateCosmosAuthInfo(cosmosAccountEndpoint, cosmosAuthKeyOrResourceToken, cosmosConnectionString, out var cosmosAuthInfo))
         {
             throw new InvalidOperationException("Azure Cosmos DB authentication information is not provided");
         }
 
         var packagePathPattern = commandResult.GetValueForArgument(AppDeployCommand.PackageArgument);
         var packagePaths = GetFiles(Environment.CurrentDirectory, packagePathPattern);
+        var dryRun = commandResult.GetValueForOption(AppDeployCommand.DryRunOption);
 
         return _manager.DeployPackagesAsync(packagePaths, cosmosAuthInfo, dryRun, cancellationToken);
     }

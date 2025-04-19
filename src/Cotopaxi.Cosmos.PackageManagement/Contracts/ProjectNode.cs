@@ -2,7 +2,7 @@
 
 using System.Text.Json.Serialization;
 
-namespace Cotopaxi.Cosmos.PackageManagement;
+namespace Cotopaxi.Cosmos.PackageManagement.Contracts;
 
 internal sealed class ProjectNode
 {

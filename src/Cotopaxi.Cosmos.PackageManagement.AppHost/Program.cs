@@ -40,6 +40,15 @@ public static class Program
                 AppCheckpointCommand.KeyOption,
                 AppCheckpointCommand.ConnectionStringOption,
             },
+            new AppDiffCommand()
+            {
+                AppDiffCommand.Package1Argument,
+                AppDiffCommand.Package2Argument,
+                AppDiffCommand.EndpointOption,
+                AppDiffCommand.KeyOption,
+                AppDiffCommand.ConnectionStringOption,
+                AppDiffCommand.ExitCodeOption,
+            },
             new AppFormatCommand()
             {
                 AppFormatCommand.SourceArgument,
@@ -72,6 +81,7 @@ public static class Program
             .UseCommandHandler<AppPackCommand, AppPackHandler>()
             .UseCommandHandler<AppDeployCommand, AppDeployHandler>()
             .UseCommandHandler<AppCheckpointCommand, AppCheckpointHandler>()
+            .UseCommandHandler<AppDiffCommand, AppDiffHandler>()
             .UseCommandHandler<AppFormatCommand, AppFormatHandler>();
     }
 

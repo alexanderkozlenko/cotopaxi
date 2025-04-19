@@ -8,6 +8,7 @@ using System.Globalization;
 using System.IO.Packaging;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Cotopaxi.Cosmos.PackageManagement.Contracts;
 using Cotopaxi.Cosmos.Packaging;
 using Microsoft.Extensions.Logging;
 
@@ -24,8 +25,6 @@ public sealed partial class PackageManager
         {
             ["Version"] = packageVersion,
         };
-
-        _logger.LogInformation("Building deployment package {PackagePath} for project {ProjectPath}", packagePath, projectPath);
 
         var projectSources = await ListProjectSourcesAsync(projectPath, projectVariables.ToFrozenDictionary(), cancellationToken).ConfigureAwait(false);
 
@@ -70,14 +69,6 @@ public sealed partial class PackageManager
                             projectSourceGroupByOperations.Key);
 
                         var packagePartitionOperationName = packagePartition.OperationType.ToString().ToLowerInvariant();
-
-                        _logger.LogInformation(
-                            "Packing deployment entries cdbpkg:{PartitionName} for container {DatabaseName}\\{ContainerName} ({OperationName})",
-                            packagePartitionKey,
-                            packagePartition.DatabaseName,
-                            packagePartition.ContainerName,
-                            packagePartitionOperationName);
-
                         var packagePartitionUri = packageModel.CreatePartition(packagePartition);
 
                         var projectSourcesByOperation = projectSourceGroupByOperations
@@ -105,7 +96,13 @@ public sealed partial class PackageManager
                                     continue;
                                 }
 
-                                _logger.LogInformation("Packing deployment entry {SourcePath}:$[{DocumentIndex}]", projectSource.FilePath, i);
+                                _logger.LogInformation(
+                                    "Packing {SourcePath}:$[{DocumentIndex}] for {OperationName} in {DatabaseName}\\{ContainerName}",
+                                    projectSource.FilePath,
+                                    i,
+                                    packagePartitionOperationName,
+                                    packagePartition.DatabaseName,
+                                    packagePartition.ContainerName);
 
                                 if (!CosmosResource.TryGetDocumentId(document, out var documentId) || !CosmosResource.IsSupportedResourceId(documentId))
                                 {
@@ -116,7 +113,7 @@ public sealed partial class PackageManager
 
                                 if (documentsByOperation.Any(x => JsonNode.DeepEquals(x, document)))
                                 {
-                                    throw new InvalidOperationException($"Unable to include duplicate deployment entry {projectSource.FilePath}:$[{i}]");
+                                    throw new InvalidOperationException($"Unable to include duplicate entry {projectSource.FilePath}:$[{i}]");
                                 }
 
                                 documentsByOperation.Add(document);

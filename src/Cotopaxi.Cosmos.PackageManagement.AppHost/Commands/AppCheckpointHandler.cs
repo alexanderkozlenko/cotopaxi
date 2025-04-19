@@ -22,46 +22,9 @@ internal sealed class AppCheckpointHandler : HostCommandHandler
 
         var cosmosAccountEndpoint = commandResult.GetValueForOption(AppCheckpointCommand.EndpointOption);
         var cosmosAuthKeyOrResourceToken = commandResult.GetValueForOption(AppCheckpointCommand.KeyOption);
-        var cosmosAuthKeyOrResourceTokenVariable = Environment.GetEnvironmentVariable("AZURE_COSMOS_KEY");
         var cosmosConnectionString = commandResult.GetValueForOption(AppCheckpointCommand.ConnectionStringOption);
-        var cosmosConnectionStringVariable = Environment.GetEnvironmentVariable("AZURE_COSMOS_CONNECTION_STRING");
 
-        Uri.TryCreate(Environment.GetEnvironmentVariable("AZURE_COSMOS_ENDPOINT"), UriKind.Absolute, out var cosmosAccountEndpointVariable);
-
-        var cosmosAuthInfo = default(CosmosAuthInfo);
-
-        if (cosmosAccountEndpoint is not null)
-        {
-            if (!string.IsNullOrEmpty(cosmosAuthKeyOrResourceToken))
-            {
-                cosmosAuthInfo = new(cosmosAccountEndpoint, cosmosAuthKeyOrResourceToken);
-            }
-            else if (!string.IsNullOrEmpty(cosmosAuthKeyOrResourceTokenVariable))
-            {
-                cosmosAuthInfo = new(cosmosAccountEndpoint, cosmosAuthKeyOrResourceTokenVariable);
-            }
-        }
-        else if (!string.IsNullOrEmpty(cosmosConnectionString))
-        {
-            cosmosAuthInfo = new(cosmosConnectionString);
-        }
-        else if (cosmosAccountEndpointVariable is not null)
-        {
-            if (!string.IsNullOrEmpty(cosmosAuthKeyOrResourceToken))
-            {
-                cosmosAuthInfo = new(cosmosAccountEndpointVariable, cosmosAuthKeyOrResourceToken);
-            }
-            else if (!string.IsNullOrEmpty(cosmosAuthKeyOrResourceTokenVariable))
-            {
-                cosmosAuthInfo = new(cosmosAccountEndpointVariable, cosmosAuthKeyOrResourceTokenVariable);
-            }
-        }
-        else if (!string.IsNullOrEmpty(cosmosConnectionStringVariable))
-        {
-            cosmosAuthInfo = new(cosmosConnectionStringVariable);
-        }
-
-        if (cosmosAuthInfo is null)
+        if (!CosmosAuthInfoFactory.TryGetCreateCosmosAuthInfo(cosmosAccountEndpoint, cosmosAuthKeyOrResourceToken, cosmosConnectionString, out var cosmosAuthInfo))
         {
             throw new InvalidOperationException("Azure Cosmos DB authentication information is not provided");
         }

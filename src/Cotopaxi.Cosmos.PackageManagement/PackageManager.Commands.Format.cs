@@ -24,8 +24,6 @@ public sealed partial class PackageManager
 
         foreach (var sourcePath in sourcePaths)
         {
-            _logger.LogInformation("Formatting {SourcePath}", sourcePath);
-
             var documents = default(JsonObject?[]);
 
             try
@@ -39,6 +37,8 @@ public sealed partial class PackageManager
             {
                 continue;
             }
+
+            _logger.LogInformation("Formatting {SourcePath}", sourcePath);
 
             foreach (var document in documents)
             {

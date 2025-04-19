@@ -5,9 +5,9 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Cotopaxi.Cosmos.PackageManagement;
 
-public sealed class ProjectSourceComparer : IEqualityComparer<ProjectSource?>
+public sealed class ProjectSourceComparer : IEqualityComparer<ProjectSource>
 {
-    public static readonly IEqualityComparer<ProjectSource?> Instance = new ProjectSourceComparer();
+    public static readonly IEqualityComparer<ProjectSource> Instance = new ProjectSourceComparer();
 
     public bool Equals(ProjectSource? x, ProjectSource? y)
     {
@@ -16,7 +16,6 @@ public sealed class ProjectSourceComparer : IEqualityComparer<ProjectSource?>
             string.Equals(x?.DatabaseName, y?.DatabaseName, StringComparison.Ordinal) &&
             string.Equals(x?.ContainerName, y?.ContainerName, StringComparison.Ordinal) &&
             string.Equals(x?.FilePath, y?.FilePath, StringComparison.OrdinalIgnoreCase);
-
     }
 
     public int GetHashCode([DisallowNull] ProjectSource? obj)

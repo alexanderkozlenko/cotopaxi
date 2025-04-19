@@ -22,8 +22,6 @@ public sealed partial class PackageManager
 
         if (packagePaths.Count == 0)
         {
-            _logger.LogInformation("Packages matching the specified pattern were not found");
-
             return true;
         }
 
@@ -39,7 +37,7 @@ public sealed partial class PackageManager
             new CosmosClient(cosmosAuthInfo.AccountEndpoint.AbsoluteUri, cosmosAuthInfo.AuthKeyOrResourceToken, cosmosClientOptions);
 
         var partitionKeyPathsCache = new Dictionary<(string, string), JsonPointer[]>();
-        var deployOperations = new HashSet<(PackageOperationKey, PackageOperationType)>();
+        var deployOperations = new HashSet<(PackageDocumentKey, PackageOperationType)>();
 
         foreach (var packagePath in packagePaths)
         {
@@ -96,26 +94,6 @@ public sealed partial class PackageManager
                         foreach (var (packagePartitionUri, packagePartition) in packagePartitionsByOperation)
                         {
                             var packagePartitionOperationName = packagePartition.OperationType.ToString().ToLowerInvariant();
-
-                            if (!dryRun)
-                            {
-                                _logger.LogInformation(
-                                    "Deploying entries cdbpkg:{PartitionKey} to container {DatabaseName}\\{ContainerName} ({OperationName})",
-                                    packagePartition.PartitionKey,
-                                    packagePartition.DatabaseName,
-                                    packagePartition.ContainerName,
-                                    packagePartitionOperationName);
-                            }
-                            else
-                            {
-                                _logger.LogInformation(
-                                    "[dry-run] Deploying entries cdbpkg:{PartitionKey} to container {DatabaseName}\\{ContainerName} ({OperationName})",
-                                    packagePartition.PartitionKey,
-                                    packagePartition.DatabaseName,
-                                    packagePartition.ContainerName,
-                                    packagePartitionOperationName);
-                            }
-
                             var packagePart = package.GetPart(packagePartitionUri);
                             var documents = default(JsonObject?[]);
 
@@ -123,6 +101,8 @@ public sealed partial class PackageManager
                             {
                                 documents = await JsonSerializer.DeserializeAsync<JsonObject?[]>(packagePartStream, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false) ?? [];
                             }
+
+                            deployOperations.EnsureCapacity(deployOperations.Count + documents.Length);
 
                             for (var i = 0; i < documents.Length; i++)
                             {
@@ -145,15 +125,15 @@ public sealed partial class PackageManager
                                     throw new InvalidOperationException($"Unable to get document partition key for cdbpkg:{packagePartitionUri}:$[{i}]");
                                 }
 
-                                var deployOperationKey = new PackageOperationKey(
+                                var documentKey = new PackageDocumentKey(
                                     packagePartition.DatabaseName,
                                     packagePartition.ContainerName,
                                     documentId,
                                     documentPartitionKey);
 
-                                if (!deployOperations.Add((deployOperationKey, packagePartition.OperationType)))
+                                if (!deployOperations.Add((documentKey, packagePartition.OperationType)))
                                 {
-                                    throw new InvalidOperationException($"Unable to include duplicate deployment entry cdbpkg:{packagePartitionUri}:$[{i}]");
+                                    throw new InvalidOperationException($"Unable to include duplicate entry cdbpkg:{packagePartitionUri}:$[{i}]");
                                 }
 
                                 if (!dryRun)
@@ -196,10 +176,12 @@ public sealed partial class PackageManager
                                         }
 
                                         _logger.LogInformation(
-                                            "Deploying entry cdbpkg:{PartitionKey}:$[{DocumentIndex}] ({OperationName}) - HTTP {StatusCode}",
+                                            "Executing {OperationName} cdbpkg:{PartitionKey}:$[{DocumentIndex}] in {DatabaseName}\\{ContainerName} - HTTP {StatusCode}",
+                                            packagePartitionOperationName,
                                             packagePartition.PartitionKey,
                                             i,
-                                            packagePartitionOperationName,
+                                            packagePartition.DatabaseName,
+                                            packagePartition.ContainerName,
                                             (int)operationResponse.StatusCode);
 
                                     }
@@ -210,10 +192,12 @@ public sealed partial class PackageManager
                                             ((packagePartition.OperationType == PackageOperationType.Delete) && (ex.StatusCode == HttpStatusCode.NotFound)))
                                         {
                                             _logger.LogWarning(
-                                                "Deploying entry cdbpkg:{PartitionKey}:$[{DocumentIndex}] ({OperationName}) - HTTP {StatusCode}",
+                                                "Executing {OperationName} cdbpkg:{PartitionKey}:$[{DocumentIndex}] in {DatabaseName}\\{ContainerName} - HTTP {StatusCode}",
+                                                packagePartitionOperationName,
                                                 packagePartition.PartitionKey,
                                                 i,
-                                                packagePartitionOperationName,
+                                                packagePartition.DatabaseName,
+                                                packagePartition.ContainerName,
                                                 (int)ex.StatusCode);
                                         }
                                         else
@@ -225,10 +209,12 @@ public sealed partial class PackageManager
                                 else
                                 {
                                     _logger.LogInformation(
-                                        "[dry-run] Deploying entry cdbpkg:{PartitionKey}:$[{DocumentIndex}] ({OperationName}) - HTTP ???",
+                                        "[dry-run] Executing {OperationName} cdbpkg:{PartitionKey}:$[{DocumentIndex}] in {DatabaseName}\\{ContainerName} - HTTP ???",
+                                        packagePartitionOperationName,
                                         packagePartition.PartitionKey,
                                         i,
-                                        packagePartitionOperationName);
+                                        packagePartition.DatabaseName,
+                                        packagePartition.ContainerName);
                                 }
                             }
                         }

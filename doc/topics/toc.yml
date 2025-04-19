@@ -6,5 +6,7 @@
   href: cli-deploy.md
 - name: cotopaxi checkpoint
   href: cli-checkpoint.md
+- name: cotopaxi diff
+  href: cli-diff.md
 - name: cotopaxi format
   href: cli-format.md

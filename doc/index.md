@@ -50,9 +50,8 @@ Packing the database documents for deployment in Azure DevOps:
 ```txt
 cotopaxi pack $(Build.SourcesDirectory)/adventureworks.json $(Build.StagingDirectory)/adventureworks.cdbpkg
 
-Building deployment package /home/vsts/work/1/a/adventureworks.cdbpkg for project /home/vsts/work/1/s/adventureworks.json
-Packing deployment entries dfcf04cb-886e-ae82-9172-fa4a1acb5d8b for container adventureworks\products (upsert)
-Packing deployment entry /home/vsts/work/1/s/adventureworks/products/bikes.json:$[0]
+Packing /home/vsts/work/1/s/adventureworks/products/bikes.json:$[0] for upsert in adventureworks\products
+Packing /home/vsts/work/1/s/adventureworks/products/bikes.json:$[1] for upsert in adventureworks\products
 ```
 
 <p />
@@ -65,8 +64,8 @@ Deploying the package to an Azure Cosmos DB account in Azure DevOps:
 cotopaxi deploy $(System.ArtifactsDirectory)/**/*.cdbpkg
 
 Deploying package /home/vsts/work/r1/a/adventureworks.cdbpkg to endpoint https://cosmos-adventureworks.documents.azure.com:443
-Deploying entries cdbpkg:dfcf04cb-886e-ae82-9172-fa4a1acb5d8b to container adventureworks\products (upsert)
-Deploying entry cdbpkg:dfcf04cb-886e-ae82-9172-fa4a1acb5d8b:$[0] (upsert) - HTTP 200
+Executing upsert cdbpkg:dfcf04cb-886e-ae82-9172-fa4a1acb5d8b:$[0] in adventureworks\products - HTTP 200
+Executing upsert cdbpkg:dfcf04cb-886e-ae82-9172-fa4a1acb5d8b:$[1] in adventureworks\products - HTTP 200
 ```
 
 <p />
