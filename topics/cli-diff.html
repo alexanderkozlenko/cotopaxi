@@ -2,21 +2,21 @@
 <html>
   <head>
     <meta charset="utf-8">
-      <title>Cotopaxi - Overview </title>
+      <title>cotopaxi diff </title>
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <meta name="title" content="Cotopaxi - Overview ">
+      <meta name="title" content="cotopaxi diff ">
       
       
-      <link rel="icon" href="images/app-32.png">
-      <link rel="stylesheet" href="public/docfx.min.css">
-      <link rel="stylesheet" href="public/main.css">
+      <link rel="icon" href="../images/app-32.png">
+      <link rel="stylesheet" href="../public/docfx.min.css">
+      <link rel="stylesheet" href="../public/main.css">
       <meta name="docfx:navrel" content="">
-      <meta name="docfx:tocrel" content="topics/toc.html">
+      <meta name="docfx:tocrel" content="toc.html">
       
-      <meta name="docfx:rel" content="">
+      <meta name="docfx:rel" content="../">
       
       <meta name="docfx:disabletocfilter" content="true">
-      <meta name="docfx:docurl" content="https://github.com/alexanderkozlenko/cotopaxi/blob/gh-pages/index.md/#L1">
+      <meta name="docfx:docurl" content="https://github.com/alexanderkozlenko/cotopaxi/blob/gh-pages/topics/cli-diff.md/#L1">
       <meta name="loc:inThisArticle" content="In this article">
       <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
       <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
@@ -30,7 +30,7 @@
       <meta name="loc:copy" content="Copy">
       <meta name="loc:downloadPdf" content="Download PDF">
 
-      <script type="module" src="./public/docfx.min.js"></script>
+      <script type="module" src="./../public/docfx.min.js"></script>
 
       <script>
         const theme = localStorage.getItem('theme') || 'auto'
@@ -43,8 +43,8 @@
     <header class="bg-body border-bottom">
       <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
         <div class="container-xxl flex-nowrap">
-          <a class="navbar-brand" href="index.html">
-            <img id="logo" class="svg" src="images/app-32.png" alt="Cotopaxi">
+          <a class="navbar-brand" href="../index.html">
+            <img id="logo" class="svg" src="../images/app-32.png" alt="Cotopaxi">
             Cotopaxi
           </a>
           <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
@@ -84,62 +84,71 @@
         </div>
 
         <article data-uid="">
-<h1 id="cotopaxi---overview">Cotopaxi - Overview</h1>
+<h1 id="cotopaxi-diff">cotopaxi diff</h1>
 
 <p></p>
-<h2 id="about">About</h2>
+<h2 id="name">Name</h2>
 <p></p>
-<p>A toolset for deploying data to Azure Cosmos DB as part of a cloud-native application, designed for straightforward integration with CI/CD pipelines. The package format is based on the Common Data Model (CDM) and the Open Packaging Conventions (OPC) standards.</p>
+<p><code>cotopaxi diff</code> - Shows changes between database packages.</p>
 <p></p>
-<h2 id="how-to-use">How to Use</h2>
+<h2 id="synopsis">Synopsis</h2>
 <p></p>
-<p>Creating a package project:</p>
-<p></p>
-<pre><code class="lang-json">{
-  &quot;databases&quot;: [
-    {
-      &quot;name&quot;: &quot;adventureworks&quot;,
-      &quot;containers&quot;: [
-        {
-          &quot;name&quot;: &quot;products&quot;,
-          &quot;operations&quot;: [
-            {
-              &quot;name&quot;: &quot;upsert&quot;,
-              &quot;documents&quot;: [
-                &quot;adventureworks/products/**/*.json&quot;
-              ]
-            }
-          ]
-        }
-      ]
-    }
-  ]
-}
-</code></pre>
-<p></p>
-<p>Packing the database documents for deployment in Azure DevOps:</p>
-<p></p>
-<pre><code class="lang-txt">cotopaxi pack $(Build.SourcesDirectory)/adventureworks.json $(Build.StagingDirectory)/adventureworks.cdbpkg
+<pre><code class="lang-txt">cotopaxi diff &lt;package1&gt; &lt;package2&gt;
+  [--endpoint &lt;endpoint&gt; --key &lt;key&gt;|--connection-string &lt;connection-string&gt;]
+  [--exit-code]
 
-Packing /home/vsts/work/1/s/adventureworks/products/bikes.json:$[0] for upsert in adventureworks\products
-Packing /home/vsts/work/1/s/adventureworks/products/bikes.json:$[1] for upsert in adventureworks\products
+cotopaxi diff -h|--help
 </code></pre>
 <p></p>
-<p>Deploying the package to an Azure Cosmos DB account in Azure DevOps:</p>
+<h2 id="description">Description</h2>
 <p></p>
-<pre><code class="lang-txt">cotopaxi deploy $(System.ArtifactsDirectory)/**/*.cdbpkg
-
-Deploying package /home/vsts/work/r1/a/adventureworks.cdbpkg to endpoint https://cosmos-adventureworks.documents.azure.com:443
-Executing upsert cdbpkg:dfcf04cb-886e-ae82-9172-fa4a1acb5d8b:$[0] in adventureworks\products - HTTP 200
-Executing upsert cdbpkg:dfcf04cb-886e-ae82-9172-fa4a1acb5d8b:$[1] in adventureworks\products - HTTP 200
-</code></pre>
+<p>The command uses a connection to the Azure Cosmos DB account to get partition keys configuration.</p>
 <p></p>
-<h2 id="specifications">Specifications</h2>
+<h2 id="arguments">Arguments</h2>
 <p></p>
 <ul>
-<li><a href="https://learn.microsoft.com/en-us/common-data-model">Microsoft - Common Data Model</a></li>
-<li><a href="https://ecma-international.org/publications-and-standards/standards/ecma-376">ECMA - Open Packaging Conventions</a></li>
+<li><code>package1</code><br>
+The database package to compare.</li>
 </ul>
+<p></p>
+<ul>
+<li><code>package2</code><br>
+The database package to compare with.</li>
+</ul>
+<p></p>
+<h2 id="options">Options</h2>
+<p></p>
+<ul>
+<li><code>--endpoint &lt;endpoint&gt;</code><br>
+The address of the Azure Cosmos DB account. Can be specified with <code>AZURE_COSMOS_ENDPOINT</code> environment variable. Must be used with <code>--key</code> option or <code>AZURE_COSMOS_KEY</code> environment variable.</li>
+</ul>
+<p></p>
+<ul>
+<li><code>--key &lt;key&gt;</code><br>
+The account key or resource token for the Azure Cosmos DB account. Can be specified with <code>AZURE_COSMOS_KEY</code> environment variable. Must be used with <code>--endpoint</code> option or <code>AZURE_COSMOS_ENDPOINT</code> environment variable.</li>
+</ul>
+<p></p>
+<ul>
+<li><code>--connection-string &lt;connection-string&gt;</code><br>
+The connection string for the Azure Cosmos DB account. Can be specified with <code>AZURE_COSMOS_CONNECTION_STRING</code> environment variable.</li>
+</ul>
+<p></p>
+<ul>
+<li><code>--exit-code</code><br>
+Make the program exit with 1 if there were differences and 0 otherwise.</li>
+</ul>
+<p></p>
+<ul>
+<li><code>-h|--help</code><br>
+Prints out a description of how to use the command.</li>
+</ul>
+<p></p>
+<h2 id="examples">Examples</h2>
+<p></p>
+<p>Show changes in a new version of a database package:</p>
+<p></p>
+<pre><code class="lang-txt">cotopaxi diff example-v2.cdbpkg example-v1.cdbpkg --endpoint https://example.documents.azure.com:443 --key $key$
+</code></pre>
 
 </article>
 
