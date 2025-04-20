@@ -36,80 +36,107 @@ public sealed partial class PackageManager
         var package1Documents = await GetPackageDocumentsAsync(package1Path, cosmosClient, partitionKeyPathsCache, cancellationToken).ConfigureAwait(false);
         var package2Documents = await GetPackageDocumentsAsync(package2Path, cosmosClient, partitionKeyPathsCache, cancellationToken).ConfigureAwait(false);
 
-        var packageItemsRemoved = package2Documents
+        var packageItemsDeleted = package2Documents
             .Where(x => !package1Documents.ContainsKey(x.Key))
-            .Select(static x => x.Key)
-            .OrderBy(static x => x.DocumentKey.DatabaseName)
-            .ThenBy(static x => x.DocumentKey.ContainerName)
+            .Select(static x => (
+                DatabaseName: x.Key.DocumentKey.DatabaseName,
+                ContainerName: x.Key.DocumentKey.ContainerName,
+                DocumentId: x.Key.DocumentKey.DocumentId,
+                DocumentPartitionKey: x.Key.DocumentKey.DocumentPartitionKey.ToString(),
+                OperationType: x.Key.OperationType))
+            .OrderBy(static x => x.DatabaseName, StringComparer.Ordinal)
+            .ThenBy(static x => x.ContainerName, StringComparer.Ordinal)
+            .ThenBy(static x => x.DocumentId, StringComparer.Ordinal)
+            .ThenBy(static x => x.DocumentPartitionKey, StringComparer.Ordinal)
             .ThenBy(static x => x.OperationType)
-            .ThenBy(static x => x.DocumentKey.DocumentId)
-            .ThenBy(static x => x.DocumentKey.DocumentPartitionKey.ToString())
             .ToArray();
 
         var packageItemsUpdated = package2Documents
             .Where(x => package1Documents.TryGetValue(x.Key, out var value) && !JsonNode.DeepEquals(x.Value, value))
-            .Select(static x => x.Key)
-            .OrderBy(static x => x.DocumentKey.DatabaseName)
-            .ThenBy(static x => x.DocumentKey.ContainerName)
+            .Select(static x => (
+                DatabaseName: x.Key.DocumentKey.DatabaseName,
+                ContainerName: x.Key.DocumentKey.ContainerName,
+                DocumentId: x.Key.DocumentKey.DocumentId,
+                DocumentPartitionKey: x.Key.DocumentKey.DocumentPartitionKey.ToString(),
+                OperationType: x.Key.OperationType))
+            .OrderBy(static x => x.DatabaseName, StringComparer.Ordinal)
+            .ThenBy(static x => x.ContainerName, StringComparer.Ordinal)
+            .ThenBy(static x => x.DocumentId, StringComparer.Ordinal)
+            .ThenBy(static x => x.DocumentPartitionKey, StringComparer.Ordinal)
             .ThenBy(static x => x.OperationType)
-            .ThenBy(static x => x.DocumentKey.DocumentId)
-            .ThenBy(static x => x.DocumentKey.DocumentPartitionKey.ToString())
             .ToArray();
 
-        var packageItemsAdded = package1Documents
+        var packageItemsCreated = package1Documents
             .Where(x => !package2Documents.ContainsKey(x.Key))
-            .Select(static x => x.Key)
-            .OrderBy(static x => x.DocumentKey.DatabaseName)
-            .ThenBy(static x => x.DocumentKey.ContainerName)
+            .Select(static x => (
+                DatabaseName: x.Key.DocumentKey.DatabaseName,
+                ContainerName: x.Key.DocumentKey.ContainerName,
+                DocumentId: x.Key.DocumentKey.DocumentId,
+                DocumentPartitionKey: x.Key.DocumentKey.DocumentPartitionKey.ToString(),
+                OperationType: x.Key.OperationType))
+            .OrderBy(static x => x.DatabaseName, StringComparer.Ordinal)
+            .ThenBy(static x => x.ContainerName, StringComparer.Ordinal)
+            .ThenBy(static x => x.DocumentId, StringComparer.Ordinal)
+            .ThenBy(static x => x.DocumentPartitionKey, StringComparer.Ordinal)
             .ThenBy(static x => x.OperationType)
-            .ThenBy(static x => x.DocumentKey.DocumentId)
-            .ThenBy(static x => x.DocumentKey.DocumentPartitionKey.ToString())
             .ToArray();
 
-        foreach (var (documentKey, operationType) in packageItemsRemoved)
+        foreach (var packageItem in packageItemsDeleted)
         {
             _logger.LogInformation(
-                "- {OperationName} {DatabaseName}\\{ContainerName}\\{DocumentId} {DocumentPartitionKey}",
-                operationType.ToString().ToLowerInvariant(),
-                documentKey.DatabaseName,
-                documentKey.ContainerName,
-                documentKey.DocumentId,
-                documentKey.DocumentPartitionKey);
+                "--- {OperationName} {DatabaseName}\\{ContainerName}\\{DocumentId} {DocumentPartitionKey}",
+                Format(packageItem.OperationType),
+                packageItem.DatabaseName,
+                packageItem.ContainerName,
+                packageItem.DocumentId,
+                packageItem.DocumentPartitionKey);
         }
 
-        foreach (var (documentKey, operationType) in packageItemsUpdated)
+        foreach (var packageItem in packageItemsUpdated)
         {
             _logger.LogInformation(
-                "* {OperationName} {DatabaseName}\\{ContainerName}\\{DocumentId} {DocumentPartitionKey}",
-                operationType.ToString().ToLowerInvariant(),
-                documentKey.DatabaseName,
-                documentKey.ContainerName,
-                documentKey.DocumentId,
-                documentKey.DocumentPartitionKey);
+                "*** {OperationName} {DatabaseName}\\{ContainerName}\\{DocumentId} {DocumentPartitionKey}",
+                Format(packageItem.OperationType),
+                packageItem.DatabaseName,
+                packageItem.ContainerName,
+                packageItem.DocumentId,
+                packageItem.DocumentPartitionKey);
         }
 
-        foreach (var (documentKey, operationType) in packageItemsAdded)
+        foreach (var packageItem in packageItemsCreated)
         {
             _logger.LogInformation(
-                "+ {OperationName} {DatabaseName}\\{ContainerName}\\{DocumentId} {DocumentPartitionKey}",
-                operationType.ToString().ToLowerInvariant(),
-                documentKey.DatabaseName,
-                documentKey.ContainerName,
-                documentKey.DocumentId,
-                documentKey.DocumentPartitionKey);
+                "+++ {OperationName} {DatabaseName}\\{ContainerName}\\{DocumentId} {DocumentPartitionKey}",
+                Format(packageItem.OperationType),
+                packageItem.DatabaseName,
+                packageItem.ContainerName,
+                packageItem.DocumentId,
+                packageItem.DocumentPartitionKey);
         }
 
         if (useExitCode)
         {
-            if ((packageItemsRemoved.Length != 0) ||
-                (packageItemsUpdated.Length != 0) ||
-                (packageItemsAdded.Length != 0))
+            if ((packageItemsDeleted.Length > 0) ||
+                (packageItemsUpdated.Length > 0) ||
+                (packageItemsCreated.Length > 0))
             {
                 return false;
             }
         }
 
         return true;
+
+        static string Format(PackageOperationType value)
+        {
+            return value switch
+            {
+                PackageOperationType.Delete => "delete",
+                PackageOperationType.Create => "create",
+                PackageOperationType.Upsert => "upsert",
+                PackageOperationType.Patch => "patch ",
+                _ => throw new NotSupportedException(),
+            };
+        }
     }
 
     private static async Task<FrozenDictionary<(PackageDocumentKey DocumentKey, PackageOperationType OperationType), JsonObject>> GetPackageDocumentsAsync(string packagePath, CosmosClient cosmosClient, Dictionary<(string, string), JsonPointer[]> partitionKeyPathsCache, CancellationToken cancellationToken)
