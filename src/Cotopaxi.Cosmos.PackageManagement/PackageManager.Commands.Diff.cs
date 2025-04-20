@@ -152,81 +152,57 @@ public sealed partial class PackageManager
 
         var packageDocuments = new Dictionary<(PackageDocumentKey DocumentKey, PackageOperationType OperationType), JsonObject>();
 
-        var packagePartitionGroupsByDatabase = packagePartitions
-            .GroupBy(static x => x.Value.DatabaseName, StringComparer.Ordinal)
-            .OrderBy(static x => x.Key, StringComparer.Ordinal);
-
-        foreach (var packagePartitionGroupByDatabase in packagePartitionGroupsByDatabase)
+        foreach (var (packagePartitionUri, packagePartition) in packagePartitions)
         {
-            var packagePartitionGroupsByContainer = packagePartitionGroupByDatabase
-                .GroupBy(static x => x.Value.ContainerName, StringComparer.Ordinal)
-                .OrderBy(static x => x.Key, StringComparer.Ordinal);
+            var container = cosmosClient.GetContainer(packagePartition.DatabaseName, packagePartition.ContainerName);
+            var containerPartitionKeyPathsKey = (packagePartition.DatabaseName, packagePartition.ContainerName);
 
-            foreach (var packagePartitionGroupByContainer in packagePartitionGroupsByContainer)
+            if (!partitionKeyPathsCache.TryGetValue(containerPartitionKeyPathsKey, out var containerPartitionKeyPaths))
             {
-                var container = cosmosClient.GetContainer(packagePartitionGroupByDatabase.Key, packagePartitionGroupByContainer.Key);
-                var containerPartitionKeyPathsKey = (packagePartitionGroupByDatabase.Key, packagePartitionGroupByContainer.Key);
+                var containerResponse = await container.ReadContainerAsync(default, cancellationToken).ConfigureAwait(false);
 
-                if (!partitionKeyPathsCache.TryGetValue(containerPartitionKeyPathsKey, out var containerPartitionKeyPaths))
+                containerPartitionKeyPaths = containerResponse.Resource.PartitionKeyPaths.Select(static x => new JsonPointer(x)).ToArray();
+                partitionKeyPathsCache.Add(containerPartitionKeyPathsKey, containerPartitionKeyPaths);
+            }
+
+            var packagePart = package.GetPart(packagePartitionUri);
+            var documents = default(JsonObject?[]);
+
+            using (var packagePartStream = packagePart.GetStream(FileMode.Open, FileAccess.Read))
+            {
+                documents = await JsonSerializer.DeserializeAsync<JsonObject?[]>(packagePartStream, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false) ?? [];
+            }
+
+            packageDocuments.EnsureCapacity(packageDocuments.Count + documents.Length);
+
+            for (var i = 0; i < documents.Length; i++)
+            {
+                var document = documents[i];
+
+                if (document is null)
                 {
-                    var containerResponse = await container.ReadContainerAsync(default, cancellationToken).ConfigureAwait(false);
-
-                    containerPartitionKeyPaths = containerResponse.Resource.PartitionKeyPaths.Select(static x => new JsonPointer(x)).ToArray();
-                    partitionKeyPathsCache.Add(containerPartitionKeyPathsKey, containerPartitionKeyPaths);
+                    continue;
                 }
 
-                var packagePartitionGroupsByOperation = packagePartitionGroupByContainer
-                    .GroupBy(static x => x.Value.OperationType)
-                    .OrderBy(static x => x.Key);
-
-                foreach (var packagePartitionGroupByOperation in packagePartitionGroupsByOperation)
+                if (!CosmosResource.TryGetDocumentId(document, out var documentId))
                 {
-                    var packagePartitionsByOperation = packagePartitionGroupByOperation
-                        .OrderBy(static x => x.Key.OriginalString, StringComparer.Ordinal);
+                    throw new InvalidOperationException($"Unable to get document identifier for cdbpkg:{packagePartitionUri}:$[{i}]");
+                }
 
-                    foreach (var (packagePartitionUri, packagePartition) in packagePartitionsByOperation)
-                    {
-                        var packagePart = package.GetPart(packagePartitionUri);
-                        var documents = default(JsonObject?[]);
+                if (!CosmosResource.TryGetPartitionKey(document, containerPartitionKeyPaths!, out var documentPartitionKey))
+                {
+                    throw new InvalidOperationException($"Unable to get document partition key for cdbpkg:{packagePartitionUri}:$[{i}]");
+                }
 
-                        using (var package1PartStream = packagePart.GetStream(FileMode.Open, FileAccess.Read))
-                        {
-                            documents = await JsonSerializer.DeserializeAsync<JsonObject?[]>(package1PartStream, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false) ?? [];
-                        }
+                var documentKey = new PackageDocumentKey(
+                    packagePartition.DatabaseName,
+                    packagePartition.ContainerName,
+                    documentId,
+                    documentPartitionKey);
 
-                        packageDocuments.EnsureCapacity(packageDocuments.Count + documents.Length);
-
-                        for (var i = 0; i < documents.Length; i++)
-                        {
-                            var document = documents[i];
-
-                            if (document is null)
-                            {
-                                continue;
-                            }
-
-                            if (!CosmosResource.TryGetDocumentId(document, out var documentId))
-                            {
-                                throw new InvalidOperationException($"Unable to get document identifier for cdbpkg:{packagePartitionUri}:$[{i}]");
-                            }
-
-                            if (!CosmosResource.TryGetPartitionKey(document, containerPartitionKeyPaths!, out var documentPartitionKey))
-                            {
-                                throw new InvalidOperationException($"Unable to get document partition key for cdbpkg:{packagePartitionUri}:$[{i}]");
-                            }
-
-                            var documentKey = new PackageDocumentKey(
-                                packagePartition.DatabaseName,
-                                packagePartition.ContainerName,
-                                documentId,
-                                documentPartitionKey);
-
-                            if (!packageDocuments.TryAdd((documentKey, packagePartition.OperationType), document))
-                            {
-                                throw new InvalidOperationException($"Unable to include duplicate entry cdbpkg:{packagePartitionUri}:$[{i}]");
-                            }
-                        }
-                    }
+                if (!packageDocuments.TryAdd((documentKey, packagePartition.OperationType), document))
+                {
+                    throw new InvalidOperationException($"Unable to include duplicate entry cdbpkg:{packagePartitionUri}:$[{i}]");
                 }
             }
         }
