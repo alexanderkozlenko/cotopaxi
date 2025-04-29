@@ -82,7 +82,7 @@ Prints out a description of how to use the command.
 
 <p />
 
-Create a rollback package with an Azure DevOps release using `AZURE_COSMOS_ENDPOINT` and `AZURE_COSMOS_KEY` environment variables:
+Create a rollback package with an Azure DevOps pipeline using both environment variables:
 
 <p />
 

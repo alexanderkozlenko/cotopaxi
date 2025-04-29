@@ -30,6 +30,7 @@ public static class Program
                 AppDeployCommand.EndpointOption,
                 AppDeployCommand.KeyOption,
                 AppDeployCommand.ConnectionStringOption,
+                AppDeployCommand.ProfileOption,
                 AppDeployCommand.DryRunOption,
             },
             new AppCheckpointCommand()
@@ -47,6 +48,7 @@ public static class Program
                 AppDiffCommand.EndpointOption,
                 AppDiffCommand.KeyOption,
                 AppDiffCommand.ConnectionStringOption,
+                AppDiffCommand.ProfileOption,
                 AppDiffCommand.ExitCodeOption,
             },
             new AppFormatCommand()

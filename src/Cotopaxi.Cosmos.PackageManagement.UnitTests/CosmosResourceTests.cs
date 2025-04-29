@@ -9,7 +9,126 @@ namespace Cotopaxi.Cosmos.PackageManagement.UnitTests;
 public sealed class CosmosResourceTests
 {
     [TestMethod]
-    public void TryGetPartitionKeyReturnsTrueWhenSize1()
+    public void TryGetPartitionKeyFromArrayWithSize1()
+    {
+        var source = new JsonArray
+        {
+            "v1",
+        };
+
+        var expected = new PartitionKeyBuilder()
+            .Add("v1")
+            .Build();
+
+        var result = CosmosResource.TryGetPartitionKey(source, out var actual);
+
+        Assert.IsTrue(result);
+        Assert.AreEqual(expected, actual);
+    }
+
+    [TestMethod]
+    public void TryGetPartitionKeyFromArrayWithSize2()
+    {
+        var source = new JsonArray
+        {
+            "v1",
+            "v2",
+        };
+
+        var expected = new PartitionKeyBuilder()
+            .Add("v1")
+            .Add("v2")
+            .Build();
+
+        var result = CosmosResource.TryGetPartitionKey(source, out var actual);
+
+        Assert.IsTrue(result);
+        Assert.AreEqual(expected, actual);
+    }
+
+    [TestMethod]
+    public void TryGetPartitionKeyFromArrayWithSize3()
+    {
+        var source = new JsonArray
+        {
+            "v1",
+            "v2",
+            "v3",
+        };
+
+        var expected = new PartitionKeyBuilder()
+            .Add("v1")
+            .Add("v2")
+            .Add("v3")
+            .Build();
+
+        var result = CosmosResource.TryGetPartitionKey(source, out var actual);
+
+        Assert.IsTrue(result);
+        Assert.AreEqual(expected, actual);
+    }
+
+    [TestMethod]
+    public void TryGetPartitionKeyFromArrayWithNullValue()
+    {
+        var source = new JsonArray
+        {
+            "v1",
+            null,
+        };
+
+        var expected = new PartitionKeyBuilder()
+            .Add("v1")
+            .AddNullValue()
+            .Build();
+
+        var result = CosmosResource.TryGetPartitionKey(source, out var actual);
+
+        Assert.IsTrue(result);
+        Assert.AreEqual(expected, actual);
+    }
+
+    [TestMethod]
+    public void TryGetPartitionKeyFromArrayWithUndefinedValue()
+    {
+        var source = new JsonArray
+        {
+            "v1",
+            new JsonObject(),
+        };
+
+        var expected = new PartitionKeyBuilder()
+            .Add("v1")
+            .AddNoneType()
+            .Build();
+
+        var result = CosmosResource.TryGetPartitionKey(source, out var actual);
+
+        Assert.IsTrue(result);
+        Assert.AreEqual(expected, actual);
+    }
+
+    [TestMethod]
+    public void TryGetPartitionKeyFromArrayWithUnsupportedValue()
+    {
+        var source = new JsonArray
+        {
+            new JsonObject
+            {
+                ["p"] = "v",
+            },
+        };
+
+        var expected = default(PartitionKey);
+
+        var result = CosmosResource.TryGetPartitionKey(source, out var actual);
+
+        Assert.IsFalse(result);
+        Assert.AreEqual(expected, actual);
+    }
+
+    [TestMethod]
+    public void TryGetPartitionKeyFromObjectWithSize1()
     {
         var document = new JsonObject
         {
@@ -32,7 +151,7 @@ public sealed class CosmosResourceTests
     }
 
     [TestMethod]
-    public void TryGetPartitionKeyReturnsTrueWhenSize2()
+    public void TryGetPartitionKeyFromObjectWithSize2()
     {
         var document = new JsonObject
         {
@@ -58,7 +177,7 @@ public sealed class CosmosResourceTests
     }
 
     [TestMethod]
-    public void TryGetPartitionKeyReturnsTrueWhenSize3()
+    public void TryGetPartitionKeyFromObjectWithSize3()
     {
         var document = new JsonObject
         {
@@ -87,7 +206,7 @@ public sealed class CosmosResourceTests
     }
 
     [TestMethod]
-    public void TryGetPartitionKeyReturnsTrueWhenNull()
+    public void TryGetPartitionKeyFromObjectWithNullValue()
     {
         var document = new JsonObject
         {
@@ -113,7 +232,7 @@ public sealed class CosmosResourceTests
     }
 
     [TestMethod]
-    public void TryGetPartitionKeyReturnsTrueWhenUndefined()
+    public void TryGetPartitionKeyFromObjectWithUndefinedValue()
     {
         var document = new JsonObject
         {
@@ -138,11 +257,14 @@ public sealed class CosmosResourceTests
     }
 
     [TestMethod]
-    public void TryGetPartitionKeyReturnsFalse()
+    public void TryGetPartitionKeyFromObjectWithUnsupportedValue()
     {
         var document = new JsonObject
         {
-            ["p1"] = new JsonObject(),
+            ["p1"] = new JsonObject
+            {
+                ["p"] = "v",
+            },
         };
 
         var partitionKeyPaths = new JsonPointer[]
@@ -159,7 +281,7 @@ public sealed class CosmosResourceTests
     }
 
     [TestMethod]
-    public void TryGetDocumentIdWhenReturnsTrue()
+    public void TryGetDocumentId()
     {
         var document = new JsonObject
         {
@@ -173,7 +295,7 @@ public sealed class CosmosResourceTests
     }
 
     [TestMethod]
-    public void TryGetDocumentIdWhenReturnsFalseWhenUndefined()
+    public void TryGetDocumentIdWithUndefinedValue()
     {
         var document = new JsonObject();
 
@@ -184,7 +306,7 @@ public sealed class CosmosResourceTests
     }
 
     [TestMethod]
-    public void TryGetDocumentIdWhenReturnsFalseWhenUnsupported()
+    public void TryGetDocumentIdWithUnsupportedValue()
     {
         var document = new JsonObject
         {

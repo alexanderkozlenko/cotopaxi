@@ -1,12 +1,15 @@
 ﻿// (c) Oleksandr Kozlenko. Licensed under the MIT license.
 
 #pragma warning disable CA1848
+#pragma warning disable CA1869
 
 using System.Collections.Frozen;
 using System.Diagnostics;
 using System.IO.Packaging;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Cotopaxi.Cosmos.PackageManagement.Contracts;
 using Cotopaxi.Cosmos.Packaging;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
@@ -15,7 +18,7 @@ namespace Cotopaxi.Cosmos.PackageManagement;
 
 public sealed partial class PackageManager
 {
-    public async Task<bool> ComparePackagesAsync(string package1Path, string package2Path, CosmosAuthInfo cosmosAuthInfo, bool useExitCode, CancellationToken cancellationToken)
+    public async Task<bool> ComparePackagesAsync(string package1Path, string package2Path, CosmosAuthInfo cosmosAuthInfo, string? profilePath, bool useExitCode, CancellationToken cancellationToken)
     {
         Debug.Assert(package1Path is not null);
         Debug.Assert(package2Path is not null);
@@ -38,83 +41,57 @@ public sealed partial class PackageManager
 
         var packageItemsDeleted = package2Documents
             .Where(x => !package1Documents.ContainsKey(x.Key))
-            .Select(static x => (
-                DatabaseName: x.Key.DocumentKey.DatabaseName,
-                ContainerName: x.Key.DocumentKey.ContainerName,
-                DocumentId: x.Key.DocumentKey.DocumentId,
-                DocumentPartitionKey: x.Key.DocumentKey.DocumentPartitionKey.ToString(),
-                OperationType: x.Key.OperationType))
-            .OrderBy(static x => x.DatabaseName, StringComparer.Ordinal)
-            .ThenBy(static x => x.ContainerName, StringComparer.Ordinal)
-            .ThenBy(static x => x.DocumentId, StringComparer.Ordinal)
-            .ThenBy(static x => x.DocumentPartitionKey, StringComparer.Ordinal)
-            .ThenBy(static x => x.OperationType)
+            .Select(static x => x.Key)
             .ToArray();
 
         var packageItemsUpdated = package2Documents
             .Where(x => package1Documents.TryGetValue(x.Key, out var value) && !JsonNode.DeepEquals(x.Value, value))
-            .Select(static x => (
-                DatabaseName: x.Key.DocumentKey.DatabaseName,
-                ContainerName: x.Key.DocumentKey.ContainerName,
-                DocumentId: x.Key.DocumentKey.DocumentId,
-                DocumentPartitionKey: x.Key.DocumentKey.DocumentPartitionKey.ToString(),
-                OperationType: x.Key.OperationType))
-            .OrderBy(static x => x.DatabaseName, StringComparer.Ordinal)
-            .ThenBy(static x => x.ContainerName, StringComparer.Ordinal)
-            .ThenBy(static x => x.DocumentId, StringComparer.Ordinal)
-            .ThenBy(static x => x.DocumentPartitionKey, StringComparer.Ordinal)
-            .ThenBy(static x => x.OperationType)
+            .Select(static x => x.Key)
             .ToArray();
 
         var packageItemsCreated = package1Documents
             .Where(x => !package2Documents.ContainsKey(x.Key))
-            .Select(static x => (
-                DatabaseName: x.Key.DocumentKey.DatabaseName,
-                ContainerName: x.Key.DocumentKey.ContainerName,
-                DocumentId: x.Key.DocumentKey.DocumentId,
-                DocumentPartitionKey: x.Key.DocumentKey.DocumentPartitionKey.ToString(),
-                OperationType: x.Key.OperationType))
-            .OrderBy(static x => x.DatabaseName, StringComparer.Ordinal)
-            .ThenBy(static x => x.ContainerName, StringComparer.Ordinal)
-            .ThenBy(static x => x.DocumentId, StringComparer.Ordinal)
-            .ThenBy(static x => x.DocumentPartitionKey, StringComparer.Ordinal)
-            .ThenBy(static x => x.OperationType)
+            .Select(static x => x.Key)
             .ToArray();
 
-        foreach (var packageItem in packageItemsDeleted)
+        PrintDiffSection("---", packageItemsDeleted);
+        PrintDiffSection("***", packageItemsUpdated);
+        PrintDiffSection("+++", packageItemsCreated);
+
+        if (profilePath is not null)
         {
-            _logger.LogInformation(
-                "--- {OperationName} {DatabaseName}\\{ContainerName}\\{DocumentId} {DocumentPartitionKey}",
-                Format(packageItem.OperationType),
-                packageItem.DatabaseName,
-                packageItem.ContainerName,
-                packageItem.DocumentId,
-                packageItem.DocumentPartitionKey);
+            var profileDocumentKeys = new HashSet<PackageDocumentKey>();
+
+            profileDocumentKeys.UnionWith(packageItemsUpdated.Select(static x => x.DocumentKey));
+            profileDocumentKeys.UnionWith(packageItemsCreated.Select(static x => x.DocumentKey));
+
+            var profileDocumentKeyNodes = profileDocumentKeys
+                .OrderBy(static x => x.DatabaseName, StringComparer.Ordinal)
+                .ThenBy(static x => x.ContainerName, StringComparer.Ordinal)
+                .ThenBy(static x => x.DocumentId, StringComparer.Ordinal)
+                .ThenBy(static x => x.DocumentPartitionKey.ToString(), StringComparer.Ordinal)
+                .Select(static x => new PackageDocumentKeyNode
+                {
+                    DatabaseName = x.DatabaseName,
+                    ContainerName = x.ContainerName,
+                    DocumentId = x.DocumentId,
+                    DocumentPartitionKey = x.DocumentPartitionKey,
+                })
+                .ToArray();
+
+            var jsonSerializerOptions = new JsonSerializerOptions(s_jsonSerializerOptions)
+            {
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                WriteIndented = true,
+            };
+
+            using (var profileStream = new FileStream(profilePath, FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                await JsonSerializer.SerializeAsync(profileStream, profileDocumentKeyNodes, jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+            }
         }
 
-        foreach (var packageItem in packageItemsUpdated)
-        {
-            _logger.LogInformation(
-                "*** {OperationName} {DatabaseName}\\{ContainerName}\\{DocumentId} {DocumentPartitionKey}",
-                Format(packageItem.OperationType),
-                packageItem.DatabaseName,
-                packageItem.ContainerName,
-                packageItem.DocumentId,
-                packageItem.DocumentPartitionKey);
-        }
-
-        foreach (var packageItem in packageItemsCreated)
-        {
-            _logger.LogInformation(
-                "+++ {OperationName} {DatabaseName}\\{ContainerName}\\{DocumentId} {DocumentPartitionKey}",
-                Format(packageItem.OperationType),
-                packageItem.DatabaseName,
-                packageItem.ContainerName,
-                packageItem.DocumentId,
-                packageItem.DocumentPartitionKey);
-        }
-
-        if (useExitCode)
+        if (useExitCode && (profilePath is null))
         {
             if ((packageItemsDeleted.Length > 0) ||
                 (packageItemsUpdated.Length > 0) ||
@@ -125,17 +102,43 @@ public sealed partial class PackageManager
         }
 
         return true;
+    }
 
-        static string Format(PackageOperationType value)
+    private void PrintDiffSection(string category, IEnumerable<(PackageDocumentKey DocumentKey, PackageOperationType OperationType)> source)
+    {
+        var printItems = source
+            .Select(static x => (
+                DatabaseName: x.DocumentKey.DatabaseName,
+                ContainerName: x.DocumentKey.ContainerName,
+                DocumentId: x.DocumentKey.DocumentId,
+                DocumentPartitionKey: x.DocumentKey.DocumentPartitionKey.ToString(),
+                OperationType: x.OperationType))
+            .OrderBy(static x => x.DatabaseName, StringComparer.Ordinal)
+            .ThenBy(static x => x.ContainerName, StringComparer.Ordinal)
+            .ThenBy(static x => x.DocumentId, StringComparer.Ordinal)
+            .ThenBy(static x => x.DocumentPartitionKey, StringComparer.Ordinal)
+            .ThenBy(static x => x.OperationType)
+            .ToArray();
+
+        foreach (var printItem in printItems)
         {
-            return value switch
+            var operationName = printItem.OperationType switch
             {
                 PackageOperationType.Delete => "delete",
                 PackageOperationType.Create => "create",
                 PackageOperationType.Upsert => "upsert",
-                PackageOperationType.Patch => "patch ",
+                PackageOperationType.Patch => "patch",
                 _ => throw new NotSupportedException(),
             };
+
+            _logger.LogInformation(
+                "{Category} {OperationName} {DatabaseName}\\{ContainerName}\\{DocumentId} {DocumentPartitionKey}",
+                category,
+                operationName.PadRight(6),
+                printItem.DatabaseName,
+                printItem.ContainerName,
+                printItem.DocumentId,
+                printItem.DocumentPartitionKey);
         }
     }
 

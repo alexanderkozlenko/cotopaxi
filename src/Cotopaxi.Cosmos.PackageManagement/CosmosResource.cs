@@ -12,6 +12,65 @@ public static class CosmosResource
 {
     private static readonly char[] s_unsupportedChars = ['/', '\\', '#', '?'];
 
+    public static bool TryGetPartitionKey(JsonArray source, out PartitionKey value)
+    {
+        Debug.Assert(source is not null);
+
+        var builder = new PartitionKeyBuilder();
+
+        foreach (var partitionKeyNode in source)
+        {
+            if (partitionKeyNode is not null)
+            {
+                var valueKind = partitionKeyNode.GetValueKind();
+
+                if (valueKind == JsonValueKind.String)
+                {
+                    builder.Add(partitionKeyNode.GetValue<string>());
+                }
+                else if (valueKind == JsonValueKind.Number)
+                {
+                    builder.Add(partitionKeyNode.GetValue<double>());
+                }
+                else if (valueKind == JsonValueKind.True)
+                {
+                    builder.Add(true);
+                }
+                else if (valueKind == JsonValueKind.False)
+                {
+                    builder.Add(false);
+                }
+                else if (valueKind == JsonValueKind.Object)
+                {
+                    if (((JsonObject)partitionKeyNode).Count == 0)
+                    {
+                        builder.AddNoneType();
+                    }
+                    else
+                    {
+                        value = default;
+
+                        return false;
+                    }
+                }
+                else
+                {
+                    value = default;
+
+                    return false;
+                }
+            }
+            else
+            {
+                builder.AddNullValue();
+            }
+        }
+
+        value = builder.Build();
+
+        return true;
+    }
+
     public static bool TryGetPartitionKey(JsonObject document, IEnumerable<JsonPointer> partitionKeyPaths, out PartitionKey value)
     {
         Debug.Assert(document is not null);

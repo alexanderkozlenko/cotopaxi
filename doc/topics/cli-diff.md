@@ -17,6 +17,7 @@
 ```txt
 cotopaxi diff <package1> <package2>
   [--endpoint <endpoint> --key <key>|--connection-string <connection-string>]
+  [--profile <profile>]
   [--exit-code]
 
 cotopaxi diff -h|--help
@@ -65,8 +66,13 @@ The connection string for the Azure Cosmos DB account. Can be specified with `AZ
 
 <p />
 
+- `--profile`  
+The path to the deployment profile to generate based on new and modified documents. The option automatically discards `--exit-code` instruction.
+
+<p />
+
 - `--exit-code`  
-Make the program exit with 1 if there were differences and 0 otherwise.
+Instruct the program to exit with 1 if there were differences and 0 otherwise.
 
 <p />
 
@@ -79,10 +85,20 @@ Prints out a description of how to use the command.
 
 <p />
 
-Show changes in a new version of a database package:
+Show changes in a new version of database package:
 
 <p />
 
 ```txt
 cotopaxi diff example-v2.cdbpkg example-v1.cdbpkg --endpoint https://example.documents.azure.com:443 --key $key$
+```
+
+<p />
+
+Generate a deployment profile based on changes in a new version of database package:
+
+<p />
+
+```txt
+cotopaxi diff example-v2.cdbpkg example-v1.cdbpkg --endpoint https://example.documents.azure.com:443 --key $key$ --profile example-v2.cdbdep
 ```

@@ -31,8 +31,10 @@ internal sealed class AppDeployHandler : HostCommandHandler
 
         var packagePathPattern = commandResult.GetValueForArgument(AppDeployCommand.PackageArgument);
         var packagePaths = GetFiles(Environment.CurrentDirectory, packagePathPattern);
+        var profilePathPattern = commandResult.GetValueForOption(AppDeployCommand.ProfileOption);
+        var profilePaths = !string.IsNullOrEmpty(profilePathPattern) ? GetFiles(Environment.CurrentDirectory, profilePathPattern) : null;
         var dryRun = commandResult.GetValueForOption(AppDeployCommand.DryRunOption);
 
-        return _manager.DeployPackagesAsync(packagePaths, cosmosAuthInfo, dryRun, cancellationToken);
+        return _manager.DeployPackagesAsync(packagePaths, cosmosAuthInfo, profilePaths, dryRun, cancellationToken);
     }
 }

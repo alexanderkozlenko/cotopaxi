@@ -64,7 +64,10 @@ A documents file must be a JSON array of objects, where each object has the `id`
 <p />
 
 - `project`  
-The path to the project that specifies deployment entries to include.
+The path to the project that specifies deployment entries to include (JSON [schema](https://alexanderkozlenko.github.io/cotopaxi/schemas/project.json)).
+
+<p />
+
 - `package`  
 The path to a resulting database package.
 
@@ -118,7 +121,7 @@ cotopaxi pack $(Build.SourcesDirectory)/example.json $(Build.StagingDirectory)/e
 
 <p />
 
-The corresponding project file `example.json`:
+The corresponding project `example.json`:
 
 <p />
 
@@ -148,7 +151,7 @@ The corresponding project file `example.json`:
 
 <p />
 
-The corresponding documents file `adventureworks/products/bikes.json`:
+The corresponding documents source `adventureworks/products/bikes.json`:
 
 <p />
 

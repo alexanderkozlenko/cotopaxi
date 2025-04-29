@@ -17,6 +17,7 @@
 ```txt
 cotopaxi deploy <package>
   [--endpoint <endpoint> --key <key>|--connection-string <connection-string>]
+  [--profile <profile>]
   [--dry-run]
 
 cotopaxi deploy -h|--help
@@ -36,10 +37,10 @@ The operations on the same document defined by a unique identifier and partition
 
 <p />
 
-1. Delete
-2. Create
-3. Upsert
-4. Patch
+1. Delete a document if it exists
+2. Create a document if it does not exist
+3. Upsert a document
+4. Patch a document if it exists
 
 <p />
 
@@ -71,6 +72,11 @@ The connection string for the Azure Cosmos DB account. Can be specified with `AZ
 
 <p />
 
+- `--profile`  
+The path to the deployment profile or profiles that specify documents eligible for updates (JSON [schema](https://alexanderkozlenko.github.io/cotopaxi/schemas/profile.json)).
+
+<p />
+
 - `--dry-run`  
 Show which operations would be executed instead of actually executing them.
 
@@ -95,7 +101,7 @@ cotopaxi deploy example.cdbpkg --endpoint https://example.documents.azure.com:44
 
 <p />
 
-Deploying a package locally using `AZURE_COSMOS_KEY` environment variable:
+Deploying a package locally using only `AZURE_COSMOS_KEY` environment variable:
 
 <p />
 
@@ -105,7 +111,7 @@ cotopaxi deploy example.cdbpkg --endpoint https://example.documents.azure.com:44
 
 <p />
 
-Deploying packages with an Azure DevOps release using `AZURE_COSMOS_ENDPOINT` and `AZURE_COSMOS_KEY` environment variables:
+Deploying packages with an Azure DevOps pipeline using both environment variables:
 
 <p />
 
@@ -115,10 +121,29 @@ cotopaxi deploy $(System.ArtifactsDirectory)/**/*.cdbpkg
 
 <p />
 
-Showing operations for deployment with an Azure DevOps release using `AZURE_COSMOS_ENDPOINT` and `AZURE_COSMOS_KEY` environment variables:
+Deploying packages with an Azure DevOps pipeline using both environment variables and deployment profiles:
 
 <p />
 
 ```txt
-cotopaxi deploy $(System.ArtifactsDirectory)/**/*.cdbpkg --dry-run
+cotopaxi deploy $(System.ArtifactsDirectory)/**/*.cdbpkg --profile $(System.ArtifactsDirectory)/**/*.cdbdep
+```
+
+<p />
+
+The corresponding deployment profile `example.cdbdep`:
+
+<p />
+
+```json
+[
+  {
+    "databaseName": "adventureworks",
+    "containerName": "products",
+    "documentId": "3202cb6f-42af-4fe6-a3c5-d61927721e75",
+    "documentPartitionKey": [
+      "bikes"
+    ]
+  }
+]
 ```

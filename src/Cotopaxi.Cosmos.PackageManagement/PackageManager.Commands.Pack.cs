@@ -176,16 +176,7 @@ public sealed partial class PackageManager
 
                     foreach (var projectOperationNode in projectContainerNode.Operations.Where(static x => x is not null))
                     {
-                        var packageOperationType = projectOperationNode!.Name?.ToLowerInvariant() switch
-                        {
-                            "delete" => PackageOperationType.Delete,
-                            "create" => PackageOperationType.Create,
-                            "upsert" => PackageOperationType.Upsert,
-                            "patch" => PackageOperationType.Patch,
-                            _ => throw new JsonException($"JSON deserialization for type '{typeof(ProjectOperationNode)}' encountered errors"),
-                        };
-
-                        foreach (var projectSourcePatternValue in projectOperationNode.Documents.Where(static x => x is not null).Distinct(StringComparer.OrdinalIgnoreCase))
+                        foreach (var projectSourcePatternValue in projectOperationNode!.Documents.Where(static x => x is not null).Distinct(StringComparer.OrdinalIgnoreCase))
                         {
                             var projectSourcePattern = projectSourcePatternValue!;
 
@@ -205,7 +196,7 @@ public sealed partial class PackageManager
                                     projectSourcePath,
                                     projectDatabaseNode.Name,
                                     projectContainerNode.Name,
-                                    packageOperationType);
+                                    projectOperationNode.OperationType);
 
                                 projectSources.Add(projectSource);
                             }

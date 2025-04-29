@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://alexanderkozlenko.github.io/cotopaxi/schemas/profile.json",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "databaseName": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 255,
+        "pattern": "^(?!.*[\\/\\\\#\\?]).+$"
+      },
+      "containerName": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 255,
+        "pattern": "^(?!.*[\\/\\\\#\\?]).+$"
+      },
+      "documentId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 255,
+        "pattern": "^(?!.*[\\/\\\\#\\?]).+$"
+      },
+      "documentPartitionKey": {
+        "type": "array",
+        "items": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "maxProperties": 0
+            }
+          ]
+        },
+        "minItems": 1,
+        "maxItems": 3
+      }
+    },
+    "required": [
+      "databaseName",
+      "containerName",
+      "documentId",
+      "documentPartitionKey"
+    ]
+  }
+}

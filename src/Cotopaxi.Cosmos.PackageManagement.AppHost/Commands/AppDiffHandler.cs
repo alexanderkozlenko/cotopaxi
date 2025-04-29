@@ -31,8 +31,11 @@ internal sealed class AppDiffHandler : HostCommandHandler
 
         var package1Path = Path.GetFullPath(commandResult.GetValueForArgument(AppDiffCommand.Package1Argument), Environment.CurrentDirectory);
         var package2Path = Path.GetFullPath(commandResult.GetValueForArgument(AppDiffCommand.Package2Argument), Environment.CurrentDirectory);
+        var profilePath = commandResult.GetValueForOption(AppDiffCommand.ProfileOption);
         var useExitCode = commandResult.GetValueForOption(AppDiffCommand.ExitCodeOption);
 
-        return _manager.ComparePackagesAsync(package1Path, package2Path, cosmosAuthInfo, useExitCode, cancellationToken);
+        profilePath = !string.IsNullOrEmpty(profilePath) ? Path.GetFullPath(profilePath, Environment.CurrentDirectory) : null;
+
+        return _manager.ComparePackagesAsync(package1Path, package2Path, cosmosAuthInfo, profilePath, useExitCode, cancellationToken);
     }
 }
