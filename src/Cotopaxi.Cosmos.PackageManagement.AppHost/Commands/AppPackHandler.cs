@@ -5,7 +5,7 @@ using System.Diagnostics;
 
 namespace Cotopaxi.Cosmos.PackageManagement.AppHost.Commands;
 
-internal sealed class AppPackHandler : HostCommandHandler
+internal sealed class AppPackHandler : HostCommandHandler<AppPackCommand>
 {
     private readonly PackageManager _manager;
 
@@ -16,13 +16,13 @@ internal sealed class AppPackHandler : HostCommandHandler
         _manager = manager;
     }
 
-    protected override Task<bool> InvokeAsync(CommandResult commandResult, CancellationToken cancellationToken)
+    protected override Task<bool> InvokeAsync(AppPackCommand command, SymbolResult result, CancellationToken cancellationToken)
     {
-        Debug.Assert(commandResult is not null);
+        Debug.Assert(result is not null);
 
-        var projectPath = commandResult.GetValueForArgument(AppPackCommand.ProjectArgument);
-        var packagePath = commandResult.GetValueForArgument(AppPackCommand.PackageArgument);
-        var packageVersion = commandResult.GetValueForOption(AppPackCommand.VersionOption);
+        var projectPath = result.GetValueForArgument(command.ProjectArgument);
+        var packagePath = result.GetValueForArgument(command.PackageArgument);
+        var packageVersion = result.GetValueForOption(command.VersionOption);
 
         return _manager.CreatePackageAsync(projectPath, packagePath, packageVersion, cancellationToken);
     }

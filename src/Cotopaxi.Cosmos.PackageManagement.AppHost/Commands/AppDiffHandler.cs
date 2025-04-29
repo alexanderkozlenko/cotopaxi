@@ -5,7 +5,7 @@ using System.Diagnostics;
 
 namespace Cotopaxi.Cosmos.PackageManagement.AppHost.Commands;
 
-internal sealed class AppDiffHandler : HostCommandHandler
+internal sealed class AppDiffHandler : HostCommandHandler<AppDiffCommand>
 {
     private readonly PackageManager _manager;
 
@@ -16,23 +16,23 @@ internal sealed class AppDiffHandler : HostCommandHandler
         _manager = manager;
     }
 
-    protected override Task<bool> InvokeAsync(CommandResult commandResult, CancellationToken cancellationToken)
+    protected override Task<bool> InvokeAsync(AppDiffCommand command, SymbolResult result, CancellationToken cancellationToken)
     {
-        Debug.Assert(commandResult is not null);
+        Debug.Assert(result is not null);
 
-        var cosmosAccountEndpoint = commandResult.GetValueForOption(AppDiffCommand.EndpointOption);
-        var cosmosAuthKeyOrResourceToken = commandResult.GetValueForOption(AppDiffCommand.KeyOption);
-        var cosmosConnectionString = commandResult.GetValueForOption(AppDiffCommand.ConnectionStringOption);
+        var cosmosAccountEndpoint = result.GetValueForOption(command.EndpointOption);
+        var cosmosAuthKeyOrResourceToken = result.GetValueForOption(command.KeyOption);
+        var cosmosConnectionString = result.GetValueForOption(command.ConnectionStringOption);
 
         if (!CosmosAuthInfoFactory.TryGetCreateCosmosAuthInfo(cosmosAccountEndpoint, cosmosAuthKeyOrResourceToken, cosmosConnectionString, out var cosmosAuthInfo))
         {
             throw new InvalidOperationException("Azure Cosmos DB authentication information is not provided");
         }
 
-        var package1Path = Path.GetFullPath(commandResult.GetValueForArgument(AppDiffCommand.Package1Argument), Environment.CurrentDirectory);
-        var package2Path = Path.GetFullPath(commandResult.GetValueForArgument(AppDiffCommand.Package2Argument), Environment.CurrentDirectory);
-        var profilePath = commandResult.GetValueForOption(AppDiffCommand.ProfileOption);
-        var useExitCode = commandResult.GetValueForOption(AppDiffCommand.ExitCodeOption);
+        var package1Path = Path.GetFullPath(result.GetValueForArgument(command.Package1Argument), Environment.CurrentDirectory);
+        var package2Path = Path.GetFullPath(result.GetValueForArgument(command.Package2Argument), Environment.CurrentDirectory);
+        var profilePath = result.GetValueForOption(command.ProfileOption);
+        var useExitCode = result.GetValueForOption(command.ExitCodeOption);
 
         profilePath = !string.IsNullOrEmpty(profilePath) ? Path.GetFullPath(profilePath, Environment.CurrentDirectory) : null;
 

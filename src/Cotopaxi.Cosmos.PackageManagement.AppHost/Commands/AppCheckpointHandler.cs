@@ -5,7 +5,7 @@ using System.Diagnostics;
 
 namespace Cotopaxi.Cosmos.PackageManagement.AppHost.Commands;
 
-internal sealed class AppCheckpointHandler : HostCommandHandler
+internal sealed class AppCheckpointHandler : HostCommandHandler<AppCheckpointCommand>
 {
     private readonly PackageManager _manager;
 
@@ -16,22 +16,22 @@ internal sealed class AppCheckpointHandler : HostCommandHandler
         _manager = manager;
     }
 
-    protected override Task<bool> InvokeAsync(CommandResult commandResult, CancellationToken cancellationToken)
+    protected override Task<bool> InvokeAsync(AppCheckpointCommand command, SymbolResult result, CancellationToken cancellationToken)
     {
-        Debug.Assert(commandResult is not null);
+        Debug.Assert(result is not null);
 
-        var cosmosAccountEndpoint = commandResult.GetValueForOption(AppCheckpointCommand.EndpointOption);
-        var cosmosAuthKeyOrResourceToken = commandResult.GetValueForOption(AppCheckpointCommand.KeyOption);
-        var cosmosConnectionString = commandResult.GetValueForOption(AppCheckpointCommand.ConnectionStringOption);
+        var cosmosAccountEndpoint = result.GetValueForOption(command.EndpointOption);
+        var cosmosAuthKeyOrResourceToken = result.GetValueForOption(command.KeyOption);
+        var cosmosConnectionString = result.GetValueForOption(command.ConnectionStringOption);
 
         if (!CosmosAuthInfoFactory.TryGetCreateCosmosAuthInfo(cosmosAccountEndpoint, cosmosAuthKeyOrResourceToken, cosmosConnectionString, out var cosmosAuthInfo))
         {
             throw new InvalidOperationException("Azure Cosmos DB authentication information is not provided");
         }
 
-        var sourcePackagePathPattern = commandResult.GetValueForArgument(AppCheckpointCommand.PackageArgument);
-        var sourcePackagePaths = GetFiles(Environment.CurrentDirectory, sourcePackagePathPattern);
-        var rollbackPackagePath = commandResult.GetValueForArgument(AppCheckpointCommand.RollbackPackageArgument);
+        var sourcePackagePathPattern = result.GetValueForArgument(command.PackageArgument);
+        var sourcePackagePaths = PackageManager.GetFiles(Environment.CurrentDirectory, sourcePackagePathPattern);
+        var rollbackPackagePath = result.GetValueForArgument(command.RollbackPackageArgument);
 
         return _manager.CreateCheckpointPackagesAsync(sourcePackagePaths, rollbackPackagePath, cosmosAuthInfo, cancellationToken);
     }

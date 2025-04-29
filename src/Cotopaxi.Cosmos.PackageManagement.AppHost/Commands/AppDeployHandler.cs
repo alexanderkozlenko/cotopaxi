@@ -5,7 +5,7 @@ using System.Diagnostics;
 
 namespace Cotopaxi.Cosmos.PackageManagement.AppHost.Commands;
 
-internal sealed class AppDeployHandler : HostCommandHandler
+internal sealed class AppDeployHandler : HostCommandHandler<AppDeployCommand>
 {
     private readonly PackageManager _manager;
 
@@ -16,24 +16,24 @@ internal sealed class AppDeployHandler : HostCommandHandler
         _manager = manager;
     }
 
-    protected override Task<bool> InvokeAsync(CommandResult commandResult, CancellationToken cancellationToken)
+    protected override Task<bool> InvokeAsync(AppDeployCommand command, SymbolResult result, CancellationToken cancellationToken)
     {
-        Debug.Assert(commandResult is not null);
+        Debug.Assert(result is not null);
 
-        var cosmosAccountEndpoint = commandResult.GetValueForOption(AppDeployCommand.EndpointOption);
-        var cosmosAuthKeyOrResourceToken = commandResult.GetValueForOption(AppDeployCommand.KeyOption);
-        var cosmosConnectionString = commandResult.GetValueForOption(AppDeployCommand.ConnectionStringOption);
+        var cosmosAccountEndpoint = result.GetValueForOption(command.EndpointOption);
+        var cosmosAuthKeyOrResourceToken = result.GetValueForOption(command.KeyOption);
+        var cosmosConnectionString = result.GetValueForOption(command.ConnectionStringOption);
 
         if (!CosmosAuthInfoFactory.TryGetCreateCosmosAuthInfo(cosmosAccountEndpoint, cosmosAuthKeyOrResourceToken, cosmosConnectionString, out var cosmosAuthInfo))
         {
             throw new InvalidOperationException("Azure Cosmos DB authentication information is not provided");
         }
 
-        var packagePathPattern = commandResult.GetValueForArgument(AppDeployCommand.PackageArgument);
-        var packagePaths = GetFiles(Environment.CurrentDirectory, packagePathPattern);
-        var profilePathPattern = commandResult.GetValueForOption(AppDeployCommand.ProfileOption);
-        var profilePaths = !string.IsNullOrEmpty(profilePathPattern) ? GetFiles(Environment.CurrentDirectory, profilePathPattern) : null;
-        var dryRun = commandResult.GetValueForOption(AppDeployCommand.DryRunOption);
+        var packagePathPattern = result.GetValueForArgument(command.PackageArgument);
+        var packagePaths = PackageManager.GetFiles(Environment.CurrentDirectory, packagePathPattern);
+        var profilePathPattern = result.GetValueForOption(command.ProfileOption);
+        var profilePaths = !string.IsNullOrEmpty(profilePathPattern) ? PackageManager.GetFiles(Environment.CurrentDirectory, profilePathPattern) : null;
+        var dryRun = result.GetValueForOption(command.DryRunOption);
 
         return _manager.DeployPackagesAsync(packagePaths, cosmosAuthInfo, profilePaths, dryRun, cancellationToken);
     }

@@ -18,43 +18,11 @@ public static class Program
     {
         var command = new RootCommand("The package manager for Azure Cosmos DB")
         {
-            new AppPackCommand()
-            {
-                AppPackCommand.ProjectArgument,
-                AppPackCommand.PackageArgument,
-                AppPackCommand.VersionOption,
-            },
-            new AppDeployCommand()
-            {
-                AppDeployCommand.PackageArgument,
-                AppDeployCommand.EndpointOption,
-                AppDeployCommand.KeyOption,
-                AppDeployCommand.ConnectionStringOption,
-                AppDeployCommand.ProfileOption,
-                AppDeployCommand.DryRunOption,
-            },
-            new AppCheckpointCommand()
-            {
-                AppCheckpointCommand.PackageArgument,
-                AppCheckpointCommand.RollbackPackageArgument,
-                AppCheckpointCommand.EndpointOption,
-                AppCheckpointCommand.KeyOption,
-                AppCheckpointCommand.ConnectionStringOption,
-            },
-            new AppDiffCommand()
-            {
-                AppDiffCommand.Package1Argument,
-                AppDiffCommand.Package2Argument,
-                AppDiffCommand.EndpointOption,
-                AppDiffCommand.KeyOption,
-                AppDiffCommand.ConnectionStringOption,
-                AppDiffCommand.ProfileOption,
-                AppDiffCommand.ExitCodeOption,
-            },
-            new AppFormatCommand()
-            {
-                AppFormatCommand.SourceArgument,
-            },
+            new AppPackCommand(),
+            new AppDeployCommand(),
+            new AppCheckpointCommand(),
+            new AppDiffCommand(),
+            new AppFormatCommand(),
         };
 
         var builder = new CommandLineBuilder(command)
