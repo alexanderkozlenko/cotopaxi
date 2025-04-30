@@ -116,16 +116,16 @@ public sealed partial class PackageManager
                                     continue;
                                 }
 
-                                CosmosResource.CleanupDocument(document);
+                                CosmosDocument.Prune(document);
 
-                                if (!CosmosResource.TryGetDocumentId(document, out var documentId))
+                                if (!CosmosDocument.TryGetId(document, out var documentId))
                                 {
-                                    throw new InvalidOperationException($"Unable to get document identifier for cdbpkg:{packagePartitionUri}:$[{i}]");
+                                    throw new InvalidOperationException($"Failed to extract document identifier from cdbpkg:{packagePartitionUri}:$[{i}]");
                                 }
 
-                                if (!CosmosResource.TryGetPartitionKey(document, containerPartitionKeyPaths, out var documentPartitionKey))
+                                if (!CosmosDocument.TryGetPartitionKey(document, containerPartitionKeyPaths, out var documentPartitionKey))
                                 {
-                                    throw new InvalidOperationException($"Unable to get document partition key for cdbpkg:{packagePartitionUri}:$[{i}]");
+                                    throw new InvalidOperationException($"Failed to extract document partition key from cdbpkg:{packagePartitionUri}:$[{i}]");
                                 }
 
                                 var documentKey = new PackageDocumentKey(
@@ -136,7 +136,7 @@ public sealed partial class PackageManager
 
                                 if (!deployOperations.Add((documentKey, packagePartition.OperationType)))
                                 {
-                                    throw new InvalidOperationException($"Unable to include duplicate entry cdbpkg:{packagePartitionUri}:$[{i}]");
+                                    throw new InvalidOperationException($"A duplicate document+operation entry cdbpkg:{packagePartitionUri}:$[{i}]");
                                 }
 
                                 if (!dryRun)
@@ -270,17 +270,10 @@ public sealed partial class PackageManager
 
             foreach (var documentKeyNode in documentKeyNodes.Where(static x => x is not null))
             {
-                if (!CosmosResource.IsSupportedResourceId(documentKeyNode!.DatabaseName) ||
-                    !CosmosResource.IsSupportedResourceId(documentKeyNode!.ContainerName) ||
-                    !CosmosResource.IsSupportedResourceId(documentKeyNode!.DocumentId))
-                {
-                    throw new JsonException($"JSON deserialization for type '{typeof(PackageDocumentKeyNode)}' encountered errors");
-                }
-
                 var documentKey = new PackageDocumentKey(
-                    documentKeyNode!.DatabaseName,
-                    documentKeyNode!.ContainerName,
-                    documentKeyNode!.DocumentId,
+                    documentKeyNode!.DatabaseName.Value,
+                    documentKeyNode!.ContainerName.Value,
+                    documentKeyNode!.DocumentId.Value,
                     documentKeyNode!.DocumentPartitionKey);
 
                 documentKeys.Add(documentKey);

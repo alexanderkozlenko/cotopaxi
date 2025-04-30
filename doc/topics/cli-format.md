@@ -6,7 +6,7 @@
 
 <p />
 
-`cotopaxi format` - Formats and cleans up the files with deployment entries.
+`cotopaxi format` - Formats and prunes the sources with deployment entries.
 
 <p />
 
@@ -26,7 +26,7 @@ cotopaxi format -h|--help
 
 <p />
 
-The package formats the JSON files, removes comments and the system properties: `_etag`, `_rid`, `_self`, `_ts`.
+The command formats sources, removes comments and the system properties: `_etag`, `_rid`, `_self`, `_ts`.
 
 <p />
 
@@ -35,7 +35,7 @@ The package formats the JSON files, removes comments and the system properties: 
 <p />
 
 - `source`  
-The path to a file or files with deployment entries to format and clean up.
+The path to a source or sources with deployment entries to format and prune.
 
 <p />
 

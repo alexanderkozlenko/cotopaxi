@@ -7,25 +7,28 @@ namespace Cotopaxi.Cosmos.PackageManagement.Contracts;
 
 internal sealed class PackageDocumentKeyNode
 {
+    [JsonConverter(typeof(CosmosResourceNameConverter))]
     [JsonRequired]
     [JsonPropertyName("databaseName")]
-    public required string DatabaseName
+    public required CosmosResourceName DatabaseName
     {
         get;
         set;
     }
 
+    [JsonConverter(typeof(CosmosResourceNameConverter))]
     [JsonRequired]
     [JsonPropertyName("containerName")]
-    public required string ContainerName
+    public required CosmosResourceName ContainerName
     {
         get;
         set;
     }
 
+    [JsonConverter(typeof(CosmosDocumentIdConverter))]
     [JsonRequired]
     [JsonPropertyName("documentId")]
-    public required string DocumentId
+    public required CosmosDocumentId DocumentId
     {
         get;
         set;

@@ -64,7 +64,7 @@ A documents file must be a JSON array of objects, where each object has the `id`
 <p />
 
 - `project`  
-The path to the project that specifies deployment entries to include (JSON [schema](https://alexanderkozlenko.github.io/cotopaxi/schemas/project.json)).
+The path to the project that specifies deployment entries to include (schema: [`project.schema.json`](https://alexanderkozlenko.github.io/cotopaxi/schemas/project.schema.json)).
 
 <p />
 

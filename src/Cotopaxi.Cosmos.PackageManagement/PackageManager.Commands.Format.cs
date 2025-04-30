@@ -47,7 +47,7 @@ public sealed partial class PackageManager
                     continue;
                 }
 
-                CosmosResource.FormatDocument(document);
+                CosmosDocument.Format(document);
             }
 
             using (var sourceStream = new FileStream(sourcePath, FileMode.Create, FileAccess.Write, FileShare.None))

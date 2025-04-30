@@ -115,16 +115,16 @@ public sealed partial class PackageManager
                                     sourcePackagePartition.DatabaseName,
                                     sourcePackagePartition.ContainerName);
 
-                                CosmosResource.CleanupDocument(sourceDocument);
+                                CosmosDocument.Prune(sourceDocument);
 
-                                if (!CosmosResource.TryGetDocumentId(sourceDocument, out var documentId))
+                                if (!CosmosDocument.TryGetId(sourceDocument, out var documentId))
                                 {
-                                    throw new InvalidOperationException($"Unable to get document identifier for cdbpkg:{sourcePackagePartitionUri}:$[{i}]");
+                                    throw new InvalidOperationException($"Failed to extract document identifier from cdbpkg:{sourcePackagePartitionUri}:$[{i}]");
                                 }
 
-                                if (!CosmosResource.TryGetPartitionKey(sourceDocument, containerPartitionKeyPaths!, out var documentPartitionKey))
+                                if (!CosmosDocument.TryGetPartitionKey(sourceDocument, containerPartitionKeyPaths!, out var documentPartitionKey))
                                 {
-                                    throw new InvalidOperationException($"Unable to get document partition key for cdbpkg:{sourcePackagePartitionUri}:$[{i}]");
+                                    throw new InvalidOperationException($"Failed to extract document partition key from cdbpkg:{sourcePackagePartitionUri}:$[{i}]");
                                 }
 
                                 var documentKey = new PackageDocumentKey(
@@ -135,7 +135,7 @@ public sealed partial class PackageManager
 
                                 if (!deployOperations.Add((documentKey, sourcePackagePartition.OperationType)))
                                 {
-                                    throw new InvalidOperationException($"Unable to include duplicate entry cdbpkg:{sourcePackagePartitionUri}:$[{i}]");
+                                    throw new InvalidOperationException($"A duplicate document+operation entry cdbpkg:{sourcePackagePartitionUri}:$[{i}]");
                                 }
 
                                 if (!deployDocumentStates.TryGetValue(documentKey, out var deployDocumentState))
@@ -176,7 +176,7 @@ public sealed partial class PackageManager
 
                                     if (targetDocument is not null)
                                     {
-                                        CosmosResource.CleanupDocument(targetDocument);
+                                        CosmosDocument.Prune(targetDocument);
                                     }
 
                                     deployDocumentState = (new(), targetDocument);

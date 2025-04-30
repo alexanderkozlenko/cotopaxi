@@ -6,9 +6,10 @@ namespace Cotopaxi.Cosmos.PackageManagement.Contracts;
 
 internal sealed class ProjectContainerNode
 {
+    [JsonConverter(typeof(CosmosResourceNameConverter))]
     [JsonRequired]
     [JsonPropertyName("name")]
-    public required string Name
+    public required CosmosResourceName Name
     {
         get;
         set;

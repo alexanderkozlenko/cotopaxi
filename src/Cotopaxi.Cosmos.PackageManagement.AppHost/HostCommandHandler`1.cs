@@ -24,13 +24,13 @@ internal abstract class HostCommandHandler<T> : ICommandHandler
     {
         Debug.Assert(context is not null);
 
+        var result = context.ParseResult.CommandResult;
+        var cancellationToken = context.GetCancellationToken();
         var logger = context.GetHost().Services.GetRequiredService<ILogger<HostCommandHandler<T>>>();
 
         try
         {
-            var result = await InvokeAsync((T)context.ParseResult.CommandResult.Command, context.ParseResult.CommandResult, context.GetCancellationToken());
-
-            return result ? 0 : 1;
+            return await InvokeAsync((T)result.Command, result, cancellationToken) ? 0 : 1;
         }
         catch (Exception ex)
         {

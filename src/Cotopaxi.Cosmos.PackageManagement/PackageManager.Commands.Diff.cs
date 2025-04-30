@@ -72,9 +72,9 @@ public sealed partial class PackageManager
                 .ThenBy(static x => x.DocumentPartitionKey.ToString(), StringComparer.Ordinal)
                 .Select(static x => new PackageDocumentKeyNode
                 {
-                    DatabaseName = x.DatabaseName,
-                    ContainerName = x.ContainerName,
-                    DocumentId = x.DocumentId,
+                    DatabaseName = new(x.DatabaseName),
+                    ContainerName = new(x.ContainerName),
+                    DocumentId = new(x.DocumentId),
                     DocumentPartitionKey = x.DocumentPartitionKey,
                 })
                 .ToArray();
@@ -187,14 +187,14 @@ public sealed partial class PackageManager
                     continue;
                 }
 
-                if (!CosmosResource.TryGetDocumentId(document, out var documentId))
+                if (!CosmosDocument.TryGetId(document, out var documentId))
                 {
-                    throw new InvalidOperationException($"Unable to get document identifier for cdbpkg:{packagePartitionUri}:$[{i}]");
+                    throw new InvalidOperationException($"Failed to extract document identifier from cdbpkg:{packagePartitionUri}:$[{i}]");
                 }
 
-                if (!CosmosResource.TryGetPartitionKey(document, containerPartitionKeyPaths!, out var documentPartitionKey))
+                if (!CosmosDocument.TryGetPartitionKey(document, containerPartitionKeyPaths!, out var documentPartitionKey))
                 {
-                    throw new InvalidOperationException($"Unable to get document partition key for cdbpkg:{packagePartitionUri}:$[{i}]");
+                    throw new InvalidOperationException($"Failed to extract document partition key from cdbpkg:{packagePartitionUri}:$[{i}]");
                 }
 
                 var documentKey = new PackageDocumentKey(
@@ -205,7 +205,7 @@ public sealed partial class PackageManager
 
                 if (!packageDocuments.TryAdd((documentKey, packagePartition.OperationType), document))
                 {
-                    throw new InvalidOperationException($"Unable to include duplicate entry cdbpkg:{packagePartitionUri}:$[{i}]");
+                    throw new InvalidOperationException($"A duplicate document+operation entry cdbpkg:{packagePartitionUri}:$[{i}]");
                 }
             }
         }

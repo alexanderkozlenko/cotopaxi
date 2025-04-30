@@ -104,16 +104,21 @@ public sealed partial class PackageManager
                                     packagePartition.DatabaseName,
                                     packagePartition.ContainerName);
 
-                                if (!CosmosResource.TryGetDocumentId(document, out var documentId) || !CosmosResource.IsSupportedResourceId(documentId))
+                                CosmosDocument.Prune(document);
+
+                                if (!CosmosDocument.TryGetId(document, out var documentId))
                                 {
-                                    throw new InvalidOperationException($"Unable to get document identifier for {projectSource.FilePath}:$[{i}]");
+                                    throw new InvalidOperationException($"Failed to extract document identifier from {projectSource.FilePath}:$[{i}]");
                                 }
 
-                                CosmosResource.CleanupDocument(document);
+                                if (!CosmosDocumentId.IsWellFormed(documentId))
+                                {
+                                    throw new InvalidOperationException($"A malformed document identifier in {projectSource.FilePath}:$[{i}]");
+                                }
 
                                 if (documentsByOperation.Any(x => JsonNode.DeepEquals(x, document)))
                                 {
-                                    throw new InvalidOperationException($"Unable to include duplicate entry {projectSource.FilePath}:$[{i}]");
+                                    throw new InvalidOperationException($"A duplicate document+operation entry {projectSource.FilePath}:$[{i}]");
                                 }
 
                                 documentsByOperation.Add(document);
@@ -162,19 +167,9 @@ public sealed partial class PackageManager
 
             foreach (var projectDatabaseNode in projectNode.Databases.Where(static x => x is not null))
             {
-                if (!CosmosResource.IsSupportedResourceId(projectDatabaseNode!.Name))
+                foreach (var projectContainerNode in projectDatabaseNode!.Containers.Where(static x => x is not null))
                 {
-                    throw new JsonException($"JSON deserialization for type '{typeof(ProjectDatabaseNode)}' encountered errors");
-                }
-
-                foreach (var projectContainerNode in projectDatabaseNode.Containers.Where(static x => x is not null))
-                {
-                    if (!CosmosResource.IsSupportedResourceId(projectContainerNode!.Name))
-                    {
-                        throw new JsonException($"JSON deserialization for type '{typeof(ProjectContainerNode)}' encountered errors");
-                    }
-
-                    foreach (var projectOperationNode in projectContainerNode.Operations.Where(static x => x is not null))
+                    foreach (var projectOperationNode in projectContainerNode!.Operations.Where(static x => x is not null))
                     {
                         foreach (var projectSourcePatternValue in projectOperationNode!.Documents.Where(static x => x is not null).Distinct(StringComparer.OrdinalIgnoreCase))
                         {
@@ -194,8 +189,8 @@ public sealed partial class PackageManager
                             {
                                 var projectSource = new ProjectSource(
                                     projectSourcePath,
-                                    projectDatabaseNode.Name,
-                                    projectContainerNode.Name,
+                                    projectDatabaseNode.Name.Value,
+                                    projectContainerNode.Name.Value,
                                     projectOperationNode.OperationType);
 
                                 projectSources.Add(projectSource);

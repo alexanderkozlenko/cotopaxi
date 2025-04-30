@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://alexanderkozlenko.github.io/cotopaxi/schemas/profile.json",
+  "$id": "https://alexanderkozlenko.github.io/cotopaxi/schemas/profile.schema.json",
   "type": "array",
   "items": {
     "type": "object",
@@ -8,27 +8,28 @@
       "databaseName": {
         "type": "string",
         "minLength": 1,
-        "maxLength": 255,
-        "pattern": "^(?!.*[\\/\\\\#\\?]).+$"
+        "maxLength": 255
       },
       "containerName": {
         "type": "string",
         "minLength": 1,
-        "maxLength": 255,
-        "pattern": "^(?!.*[\\/\\\\#\\?]).+$"
+        "maxLength": 255
       },
       "documentId": {
         "type": "string",
         "minLength": 1,
-        "maxLength": 255,
-        "pattern": "^(?!.*[\\/\\\\#\\?]).+$"
+        "maxLength": 1023,
+        "pattern": "^(?!.*[\\/\\]).+$",
+        "$comment": "Maximum length of ID value: 1023 bytes"
       },
       "documentPartitionKey": {
         "type": "array",
         "items": {
           "anyOf": [
             {
-              "type": "string"
+              "type": "string",
+              "maxLength": 2048,
+              "$comment": "Maximum length of partition key value: 2048 bytes (101 bytes if large partition-key isn't enabled)"
             },
             {
               "type": "number"
@@ -41,7 +42,8 @@
             },
             {
               "type": "object",
-              "maxProperties": 0
+              "maxProperties": 0,
+              "$comment": "Represents a partition key value that allows creating and accessing items without a value for partition key"
             }
           ]
         },

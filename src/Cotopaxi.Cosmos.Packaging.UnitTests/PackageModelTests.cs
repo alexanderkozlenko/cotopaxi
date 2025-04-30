@@ -7,7 +7,7 @@ namespace Cotopaxi.Cosmos.Packaging.UnitTests;
 public sealed class PackageModelTests
 {
     [TestMethod]
-    public async Task OpenSaveOpen()
+    public async Task CreateSaveOpen()
     {
         using var memoryStream = new MemoryStream();
 
@@ -70,8 +70,8 @@ public sealed class PackageModelTests
 
                 packageModel.CreatePartition(packagePartition);
 
-                Assert.ThrowsExactly<InvalidOperationException>(() =>
-                    packageModel.CreatePartition(packagePartition));
+                Assert.ThrowsExactly<InvalidOperationException>(
+                    () => packageModel.CreatePartition(packagePartition));
             }
         }
     }

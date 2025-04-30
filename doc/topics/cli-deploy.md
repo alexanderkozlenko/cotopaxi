@@ -73,7 +73,7 @@ The connection string for the Azure Cosmos DB account. Can be specified with `AZ
 <p />
 
 - `--profile`  
-The path to the deployment profile or profiles that specify documents eligible for updates (JSON [schema](https://alexanderkozlenko.github.io/cotopaxi/schemas/profile.json)).
+The path to the deployment profile or profiles that specify documents eligible for updates (schema: [`profile.schema.json`](https://alexanderkozlenko.github.io/cotopaxi/schemas/profile.schema.json)).
 
 <p />
 

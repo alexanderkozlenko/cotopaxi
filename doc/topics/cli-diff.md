@@ -67,12 +67,12 @@ The connection string for the Azure Cosmos DB account. Can be specified with `AZ
 <p />
 
 - `--profile`  
-The path to the deployment profile to generate based on new and modified documents. The option automatically discards `--exit-code` instruction.
+The path to the deployment profile to generate based on new and modified documents, which can be used with `deploy` command. The option automatically discards `--exit-code` instruction.
 
 <p />
 
 - `--exit-code`  
-Instruct the program to exit with 1 if there were differences and 0 otherwise.
+Instruct the program to exit with `1` if there were differences and `0` otherwise.
 
 <p />
 

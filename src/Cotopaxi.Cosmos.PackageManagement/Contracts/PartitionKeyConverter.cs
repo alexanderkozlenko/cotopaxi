@@ -13,7 +13,7 @@ internal sealed class PartitionKeyConverter : JsonConverter<PartitionKey>
     {
         if (JsonNode.Parse(ref reader) is JsonArray node)
         {
-            if (CosmosResource.TryGetPartitionKey(node, out var value))
+            if (CosmosDocument.TryGetPartitionKey(node, out var value))
             {
                 return value;
             }

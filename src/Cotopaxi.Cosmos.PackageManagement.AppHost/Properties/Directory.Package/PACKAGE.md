@@ -4,7 +4,8 @@ A toolset for deploying data to Azure Cosmos DB as part of a cloud-native applic
 
 ## Key Features
 
-- Provides "dry run" mode for deployment testing and the ability to perform a "rollback" deployment.
+- Supports scoped deployments based on deployment profiles.
+- Supports deployment rollbacks using generated rollback packages.
 
 ## Documentation
 

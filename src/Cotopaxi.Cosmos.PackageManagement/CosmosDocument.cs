@@ -8,10 +8,8 @@ using Microsoft.Azure.Cosmos;
 
 namespace Cotopaxi.Cosmos.PackageManagement;
 
-public static class CosmosResource
+public static class CosmosDocument
 {
-    private static readonly char[] s_unsupportedChars = ['/', '\\', '#', '?'];
-
     public static bool TryGetPartitionKey(JsonArray source, out PartitionKey value)
     {
         Debug.Assert(source is not null);
@@ -125,13 +123,13 @@ public static class CosmosResource
         return true;
     }
 
-    public static bool TryGetDocumentId(JsonObject document, [NotNullWhen(true)] out string? value)
+    public static bool TryGetId(JsonObject document, [NotNullWhen(true)] out string? value)
     {
         Debug.Assert(document is not null);
 
-        if (document.TryGetPropertyValue("id", out var propertyValueNode))
+        if (document.TryGetPropertyValue("id", out var idNode))
         {
-            if (propertyValueNode is JsonValue valueNode)
+            if (idNode is JsonValue valueNode)
             {
                 if (valueNode.TryGetValue(out value))
                 {
@@ -145,7 +143,7 @@ public static class CosmosResource
         return false;
     }
 
-    public static void CleanupDocument(JsonObject document)
+    public static void Prune(JsonObject document)
     {
         Debug.Assert(document is not null);
 
@@ -156,35 +154,16 @@ public static class CosmosResource
         document.Remove("_ts");
     }
 
-    public static void FormatDocument(JsonObject document)
+    public static void Format(JsonObject document)
     {
         Debug.Assert(document is not null);
 
-        document.Remove("_attachments");
-        document.Remove("_etag");
-        document.Remove("_rid");
-        document.Remove("_self");
-        document.Remove("_ts");
+        Prune(document);
 
-        if (document.TryGetPropertyValue("id", out var identifierNode))
+        if (document.TryGetPropertyValue("id", out var idNode))
         {
             document.Remove("id");
-            document.Insert(0, "id", identifierNode);
+            document.Insert(0, "id", idNode);
         }
-    }
-
-    public static bool IsSupportedResourceId(string? value)
-    {
-        if (value is not { Length: > 0 and < 256 })
-        {
-            return false;
-        }
-
-        if (value.IndexOfAny(s_unsupportedChars) >= 0)
-        {
-            return false;
-        }
-
-        return true;
     }
 }
