@@ -95,6 +95,7 @@
 <p></p>
 <pre><code class="lang-txt">cotopaxi deploy &lt;package&gt;
   [--endpoint &lt;endpoint&gt; --key &lt;key&gt;|--connection-string &lt;connection-string&gt;]
+  [--profile &lt;profile&gt;]
   [--dry-run]
 
 cotopaxi deploy -h|--help
@@ -107,10 +108,10 @@ cotopaxi deploy -h|--help
 <p>The operations on the same document defined by a unique identifier and partition key values are executed in the following order:</p>
 <p></p>
 <ol>
-<li>Delete</li>
-<li>Create</li>
-<li>Upsert</li>
-<li>Patch</li>
+<li>Delete a document if it exists</li>
+<li>Create a document if it does not exist</li>
+<li>Upsert a document</li>
+<li>Patch a document if it exists</li>
 </ol>
 <p></p>
 <h2 id="arguments">Arguments</h2>
@@ -138,6 +139,11 @@ The connection string for the Azure Cosmos DB account. Can be specified with <co
 </ul>
 <p></p>
 <ul>
+<li><code>--profile</code><br>
+The path to the deployment profile or profiles that specify documents eligible for updates (schema: <a href="https://alexanderkozlenko.github.io/cotopaxi/schemas/profile.schema.json"><code>profile.schema.json</code></a>).</li>
+</ul>
+<p></p>
+<ul>
 <li><code>--dry-run</code><br>
 Show which operations would be executed instead of actually executing them.</li>
 </ul>
@@ -154,19 +160,33 @@ Prints out a description of how to use the command.</li>
 <pre><code class="lang-txt">cotopaxi deploy example.cdbpkg --endpoint https://example.documents.azure.com:443 --key $key$
 </code></pre>
 <p></p>
-<p>Deploying a package locally using <code>AZURE_COSMOS_KEY</code> environment variable:</p>
+<p>Deploying a package locally using only <code>AZURE_COSMOS_KEY</code> environment variable:</p>
 <p></p>
 <pre><code class="lang-txt">cotopaxi deploy example.cdbpkg --endpoint https://example.documents.azure.com:443
 </code></pre>
 <p></p>
-<p>Deploying packages with an Azure DevOps release using <code>AZURE_COSMOS_ENDPOINT</code> and <code>AZURE_COSMOS_KEY</code> environment variables:</p>
+<p>Deploying packages with an Azure DevOps pipeline using both environment variables:</p>
 <p></p>
 <pre><code class="lang-txt">cotopaxi deploy $(System.ArtifactsDirectory)/**/*.cdbpkg
 </code></pre>
 <p></p>
-<p>Showing operations for deployment with an Azure DevOps release using <code>AZURE_COSMOS_ENDPOINT</code> and <code>AZURE_COSMOS_KEY</code> environment variables:</p>
+<p>Deploying packages with an Azure DevOps pipeline using both environment variables and deployment profiles:</p>
 <p></p>
-<pre><code class="lang-txt">cotopaxi deploy $(System.ArtifactsDirectory)/**/*.cdbpkg --dry-run
+<pre><code class="lang-txt">cotopaxi deploy $(System.ArtifactsDirectory)/**/*.cdbpkg --profile $(System.ArtifactsDirectory)/**/*.cdbdep
+</code></pre>
+<p></p>
+<p>The corresponding deployment profile <code>example.cdbdep</code>:</p>
+<p></p>
+<pre><code class="lang-json">[
+  {
+    &quot;databaseName&quot;: &quot;adventureworks&quot;,
+    &quot;containerName&quot;: &quot;products&quot;,
+    &quot;documentId&quot;: &quot;3202cb6f-42af-4fe6-a3c5-d61927721e75&quot;,
+    &quot;documentPartitionKey&quot;: [
+      &quot;bikes&quot;
+    ]
+  }
+]
 </code></pre>
 
 </article>

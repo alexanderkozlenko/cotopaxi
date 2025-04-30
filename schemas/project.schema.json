@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12",
-  "$id": "https://alexanderkozlenko.github.io/cotopaxi/schemas/project.json",
+  "$id": "https://alexanderkozlenko.github.io/cotopaxi/schemas/project.schema.json",
   "type": "object",
   "properties": {
     "databases": {
@@ -11,8 +11,7 @@
           "name": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 255,
-            "pattern": "^(?!.*[\\/\\\\#\\?]).+$"
+            "maxLength": 255
           },
           "containers": {
             "type": "array",
@@ -22,8 +21,7 @@
                 "name": {
                   "type": "string",
                   "minLength": 1,
-                  "maxLength": 255,
-                  "pattern": "^(?!.*[\\/\\\\#\\?]).+$"
+                  "maxLength": 255
                 },
                 "operations": {
                   "type": "array",

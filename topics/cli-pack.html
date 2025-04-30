@@ -138,7 +138,10 @@ Given a unique identifier and partition key values, deletes a document if it exi
 <p></p>
 <ul>
 <li><code>project</code><br>
-The path to the project that specifies deployment entries to include.</li>
+The path to the project that specifies deployment entries to include (schema: <a href="https://alexanderkozlenko.github.io/cotopaxi/schemas/project.schema.json"><code>project.schema.json</code></a>).</li>
+</ul>
+<p></p>
+<ul>
 <li><code>package</code><br>
 The path to a resulting database package.</li>
 </ul>
@@ -172,7 +175,7 @@ Prints out a description of how to use the command.</li>
 <pre><code class="lang-txt">cotopaxi pack $(Build.SourcesDirectory)/example.json $(Build.StagingDirectory)/example.cdbpkg --version $(Build.SourceVersion)
 </code></pre>
 <p></p>
-<p>The corresponding project file <code>example.json</code>:</p>
+<p>The corresponding project <code>example.json</code>:</p>
 <p></p>
 <pre><code class="lang-json">{
   &quot;databases&quot;: [
@@ -197,7 +200,7 @@ Prints out a description of how to use the command.</li>
 }
 </code></pre>
 <p></p>
-<p>The corresponding documents file <code>adventureworks/products/bikes.json</code>:</p>
+<p>The corresponding documents source <code>adventureworks/products/bikes.json</code>:</p>
 <p></p>
 <pre><code class="lang-json">[
   {
