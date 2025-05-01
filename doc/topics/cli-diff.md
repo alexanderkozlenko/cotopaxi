@@ -38,12 +38,12 @@ The command uses a connection to the Azure Cosmos DB account to get partition ke
 <p />
 
 - `package1`  
-The database package to compare.
+The path to the database package to compare.
 
 <p />
 
 - `package2`  
-The database package to compare with.
+The path to the database package to compare with.
 
 <p />
 

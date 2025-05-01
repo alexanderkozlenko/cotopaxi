@@ -6,8 +6,8 @@ namespace Cotopaxi.Cosmos.PackageManagement.AppHost.Commands;
 
 internal sealed class AppDiffCommand : Command
 {
-    public readonly Argument<string> Package1Argument = new("package1", "The database package to compare");
-    public readonly Argument<string> Package2Argument = new("package2", "The database package to compare with");
+    public readonly Argument<string> Package1Argument = new("package1", "The path to the database package to compare");
+    public readonly Argument<string> Package2Argument = new("package2", "The path to the database package to compare with");
     public readonly Option<Uri> EndpointOption = new("--endpoint", "The address of the Azure Cosmos DB account");
     public readonly Option<string> KeyOption = new("--key", "The account key or resource token for the Azure Cosmos DB account");
     public readonly Option<string> ConnectionStringOption = new("--connection-string", "The connection string for the Azure Cosmos DB account");

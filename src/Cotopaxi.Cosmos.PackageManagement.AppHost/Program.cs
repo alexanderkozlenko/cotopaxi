@@ -22,6 +22,7 @@ public static class Program
             new AppDeployCommand(),
             new AppCheckpointCommand(),
             new AppDiffCommand(),
+            new AppShowCommand(),
             new AppFormatCommand(),
         };
 
@@ -52,6 +53,7 @@ public static class Program
             .UseCommandHandler<AppDeployCommand, AppDeployHandler>()
             .UseCommandHandler<AppCheckpointCommand, AppCheckpointHandler>()
             .UseCommandHandler<AppDiffCommand, AppDiffHandler>()
+            .UseCommandHandler<AppShowCommand, AppShowHandler>()
             .UseCommandHandler<AppFormatCommand, AppFormatHandler>();
     }
 
