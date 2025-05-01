@@ -5,7 +5,7 @@
 using System.Diagnostics;
 using System.IO.Packaging;
 using System.Text.Json;
-using System.Text.Json.Nodes;
+using Cotopaxi.Cosmos.PackageManagement.Contracts;
 using Cotopaxi.Cosmos.Packaging;
 using Microsoft.Extensions.Logging;
 
@@ -20,7 +20,7 @@ public sealed partial class PackageManager
         using var package = Package.Open(packagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
 
         _logger.LogInformation(
-            "Package {PackageIdentifier} {PackageTimestamp} {PackageSummary}",
+            "cdbpkg {PackageIdentifier} {PackageTimestamp} {PackageSummary}",
             package.PackageProperties.Identifier,
             package.PackageProperties.Created?.ToUniversalTime().ToString("O"),
             package.PackageProperties.Version ?? package.PackageProperties.Subject);
@@ -35,15 +35,15 @@ public sealed partial class PackageManager
         foreach (var (packagePartitionUri, packagePartition) in packagePartitions)
         {
             var packagePart = package.GetPart(packagePartitionUri);
-            var documents = default(JsonObject?[]);
+            var documents = default(PackagePartitionItemNode[]);
 
             using (var packagePartStream = packagePart.GetStream(FileMode.Open, FileAccess.Read))
             {
-                documents = await JsonSerializer.DeserializeAsync<JsonObject?[]>(packagePartStream, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false) ?? [];
+                documents = await JsonSerializer.DeserializeAsync<PackagePartitionItemNode[]>(packagePartStream, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false) ?? [];
             }
 
             _logger.LogInformation(
-                "Package partition {PartitionKey}: {DatabaseName}\\{ContainerName} {OperationName} [{PartitionSize}]",
+                "cdbpkg:{PartitionKey}: {DatabaseName}\\{ContainerName} {OperationName} [{PartitionSize}]",
                 packagePartition.PartitionKey,
                 packagePartition.DatabaseName,
                 packagePartition.ContainerName,
