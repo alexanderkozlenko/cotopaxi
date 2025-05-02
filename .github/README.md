@@ -16,4 +16,4 @@ A toolset for deploying data to Azure Cosmos DB as part of a cloud-native applic
 
 - [Cotopaxi - Documentation](https://alexanderkozlenko.github.io/cotopaxi)
 - [Microsoft - Common Data Model](https://learn.microsoft.com/en-us/common-data-model)
-- [ECMA - Open Packaging Conventions](https://ecma-international.org/publications-and-standards/standards/ecma-376)
+- [ECMA - ECMA-376, Open Packaging Conventions](https://ecma-international.org/publications-and-standards/standards/ecma-376)

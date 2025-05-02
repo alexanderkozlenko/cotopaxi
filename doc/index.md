@@ -1,4 +1,4 @@
-# Cotopaxi - Overview
+# cotopaxi
 
 <p />
 
@@ -76,4 +76,4 @@ Executing upsert cdbpkg:dfcf04cb-886e-ae82-9172-fa4a1acb5d8b:$[1] in adventurewo
 
 - [Microsoft - Azure Cosmos DB service quotas](https://learn.microsoft.com/en-us/azure/cosmos-db/concepts-limits)
 - [Microsoft - Common Data Model](https://learn.microsoft.com/en-us/common-data-model)
-- [ECMA - Open Packaging Conventions](https://ecma-international.org/publications-and-standards/standards/ecma-376)
+- [ECMA - ECMA-376, Open Packaging Conventions](https://ecma-international.org/publications-and-standards/standards/ecma-376)
