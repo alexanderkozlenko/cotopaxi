@@ -1,6 +1,7 @@
 ﻿// (c) Oleksandr Kozlenko. Licensed under the MIT license.
 
 using System.CommandLine.Parsing;
+using Cotopaxi.Cosmos.PackageManagement.Primitives;
 
 namespace Cotopaxi.Cosmos.PackageManagement.AppHost.Commands;
 
@@ -20,9 +21,9 @@ internal sealed class AppDeployHandler : HostCommandHandler<AppDeployCommand>
         var cosmosConnectionString = result.GetValueForOption(command.ConnectionStringOption);
         var cosmosAuthInfo = CosmosAuthInfoFactory.CreateCosmosAuthInfo(cosmosAccountEndpoint, cosmosAuthKeyOrResourceToken, cosmosConnectionString);
         var packagePathPattern = result.GetValueForArgument(command.PackageArgument);
-        var packagePaths = PackageManager.GetFiles(Environment.CurrentDirectory, packagePathPattern);
+        var packagePaths = GlobbingMatcher.GetFiles(Environment.CurrentDirectory, packagePathPattern);
         var profilePathPattern = result.GetValueForOption(command.ProfileOption);
-        var profilePaths = !string.IsNullOrEmpty(profilePathPattern) ? PackageManager.GetFiles(Environment.CurrentDirectory, profilePathPattern) : null;
+        var profilePaths = !string.IsNullOrEmpty(profilePathPattern) ? GlobbingMatcher.GetFiles(Environment.CurrentDirectory, profilePathPattern) : null;
         var dryRun = result.GetValueForOption(command.DryRunOption);
 
         return _manager.DeployPackagesAsync(packagePaths, cosmosAuthInfo, profilePaths, dryRun, cancellationToken);

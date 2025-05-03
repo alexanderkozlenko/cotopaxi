@@ -9,6 +9,7 @@ using System.IO.Packaging;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Cotopaxi.Cosmos.PackageManagement.Contracts;
+using Cotopaxi.Cosmos.PackageManagement.Primitives;
 using Cotopaxi.Cosmos.Packaging;
 using Microsoft.Extensions.Logging;
 
@@ -32,7 +33,7 @@ public sealed partial class PackageManager
 
         try
         {
-            using var package = Package.Open(packagePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None);
+            using var package = Package.Open(packagePath, FileMode.Create, FileAccess.Write, FileShare.None);
             using var packageModel = await PackageModel.OpenAsync(package, default, cancellationToken).ConfigureAwait(false);
 
             var projectSourceGroupsByDatabase = projectSources
@@ -183,7 +184,7 @@ public sealed partial class PackageManager
                                 }
                             }
 
-                            var projectSourcePaths = GetFiles(projectSearchPath, projectSourcePattern!);
+                            var projectSourcePaths = GlobbingMatcher.GetFiles(projectSearchPath, projectSourcePattern!);
 
                             foreach (var projectSourcePath in projectSourcePaths)
                             {

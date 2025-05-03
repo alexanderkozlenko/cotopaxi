@@ -36,15 +36,7 @@ public sealed class PackageModel : IDisposable
         var partitionUri = new Uri(partitionPath, UriKind.Relative);
         var partitionDec = _manifestDef.Entities.Single(static x => x.EntityName == "cosmosdb.document");
         var partitionDef = _corpusDef.MakeObject<CdmDataPartitionDefinition>(CdmObjectType.DataPartitionDef);
-
-        var partitionOperationName = partition.OperationType switch
-        {
-            PackageOperationType.Delete => "delete",
-            PackageOperationType.Create => "create",
-            PackageOperationType.Upsert => "upsert",
-            PackageOperationType.Patch => "patch",
-            _ => throw new InvalidOperationException(),
-        };
+        var partitionOperationName = PackageOperation.Format(partition.OperationType);
 
         partitionDef.Location = _corpusDef.Storage.CreateAbsoluteCorpusPath(partitionPath);
         partitionDef.Arguments.Add("database", [partition.DatabaseName]);
@@ -74,15 +66,7 @@ public sealed class PackageModel : IDisposable
             var partitionDatabaseName = partitionDef.Arguments["database"].Single();
             var partitionContainerName = partitionDef.Arguments["container"].Single();
             var partitionOperationName = partitionDef.Arguments["operation"].Single();
-
-            var partitionOperationType = partitionOperationName?.ToLowerInvariant() switch
-            {
-                "delete" => PackageOperationType.Delete,
-                "create" => PackageOperationType.Create,
-                "upsert" => PackageOperationType.Upsert,
-                "patch" => PackageOperationType.Patch,
-                _ => throw new NotSupportedException(),
-            };
+            var partitionOperationType = PackageOperation.Parse(partitionOperationName);
 
             var partition = new PackagePartition(
                 partitionKey,
@@ -100,31 +84,27 @@ public sealed class PackageModel : IDisposable
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (_package.FileOpenAccess != FileAccess.Read)
+        var corpusSaveOptions = new CopyOptions
         {
-            var corpusSaveOptions = new CopyOptions
-            {
-                SaveConfigFile = false,
-            };
+            SaveConfigFile = false,
+        };
 
-            await _manifestDef.SaveAsAsync(_manifestDef.Name, saveReferenced: true, corpusSaveOptions).ConfigureAwait(false);
+        await _manifestDef.SaveAsAsync(_manifestDef.Name, saveReferenced: true, corpusSaveOptions).ConfigureAwait(false);
 
-            var manifestPath = _corpusDef.Storage.CorpusPathToAdapterPath(_manifestDef.AtCorpusPath);
+        var manifestPath = _corpusDef.Storage.CorpusPathToAdapterPath(_manifestDef.AtCorpusPath);
 
-            _package.CreateRelationship(new(manifestPath, UriKind.Relative), TargetMode.Internal, s_manifestRelType);
-        }
+        _package.CreateRelationship(new(manifestPath, UriKind.Relative), TargetMode.Internal, s_manifestRelType);
     }
 
     public static async Task<PackageModel> OpenAsync(Package package, CompressionOption compressionOption, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(package);
 
-        cancellationToken.ThrowIfCancellationRequested();
+        var manifestRel = package.FileOpenAccess.HasFlag(FileAccess.Read) ? package.GetRelationshipsByType(s_manifestRelType).SingleOrDefault() : null;
 
-        var corpusDef = CreateCorpus(package, compressionOption, cancellationToken);
-
-        if (package.FileOpenAccess != FileAccess.Read)
+        if (manifestRel is null)
         {
+            var corpusDef = CreateCorpusDef(package, compressionOption);
             var manifestDef = corpusDef.MakeObject<CdmManifestDefinition>(CdmObjectType.ManifestDef, "cosmosdb");
             var entitiesDef = corpusDef.MakeObject<CdmDocumentDefinition>(CdmObjectType.DocumentDef, "cosmosdb.entities.cdm.json");
             var partitionDef = corpusDef.MakeObject<CdmEntityDefinition>(CdmObjectType.EntityDef, "cosmosdb.document");
@@ -154,7 +134,9 @@ public sealed class PackageModel : IDisposable
         }
         else
         {
-            var manifestRel = package.GetRelationshipsByType(s_manifestRelType).Single();
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var corpusDef = CreateCorpusDef(package, compressionOption);
             var manifestPath = corpusDef.Storage.AdapterPathToCorpusPath(manifestRel.TargetUri.OriginalString);
             var manifestDef = await corpusDef.FetchObjectAsync<CdmManifestDefinition>(manifestPath).ConfigureAwait(false);
 
@@ -162,23 +144,34 @@ public sealed class PackageModel : IDisposable
         }
     }
 
-    private static CdmCorpusDefinition CreateCorpus(Package package, CompressionOption compressionOption, CancellationToken cancellationToken)
+    private static CdmCorpusDefinition CreateCorpusDef(Package package, CompressionOption compressionOption)
     {
+        var cancellationTokenSource = new CancellationTokenSource();
         var corpusDef = new CdmCorpusDefinition();
 
         var corpusEventCallback = new EventCallback
         {
-            Invoke = static (_, message) => throw new InvalidOperationException(message),
+            Invoke = HandleCorpusEvent,
         };
 
         corpusDef.SetEventCallback(corpusEventCallback, CdmStatusLevel.Error);
 
-        var adapter = new PackageAdapter(package, compressionOption, cancellationToken);
+        var adapter = new PackageAdapter(package, compressionOption, cancellationTokenSource);
 
         corpusDef.Storage.Unmount("local");
         corpusDef.Storage.Mount(PackageAdapter.Scheme, adapter);
         corpusDef.Storage.DefaultNamespace = PackageAdapter.Scheme;
 
         return corpusDef;
+
+        void HandleCorpusEvent(CdmStatusLevel level, string message)
+        {
+            if (level == CdmStatusLevel.Error)
+            {
+                cancellationTokenSource.Cancel();
+
+                throw new InvalidOperationException(message);
+            }
+        }
     }
 }

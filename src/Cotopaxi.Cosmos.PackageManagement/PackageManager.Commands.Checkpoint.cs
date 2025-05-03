@@ -40,9 +40,11 @@ public sealed partial class PackageManager
         var deployOperations = new HashSet<(PackageDocumentKey, PackageOperationType)>();
         var deployDocumentStates = new Dictionary<PackageDocumentKey, (Dictionary<PackageOperationType, JsonObject> Sources, JsonObject? Target)>();
 
+        _logger.LogInformation("Generating rollback package {TargetPath} for endpoint {CosmosEndpoint}", rollbackPackagePath, cosmosClient.Endpoint);
+
         foreach (var sourcePackagePath in sourcePackagePaths)
         {
-            _logger.LogInformation("Analyzing package {SourcePath} for endpoint {CosmosEndpoint}", sourcePackagePath, cosmosClient.Endpoint);
+            _logger.LogInformation("Analyzing source package {SourcePath}", sourcePackagePath);
 
             using var sourcePackage = Package.Open(sourcePackagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
 
@@ -267,7 +269,7 @@ public sealed partial class PackageManager
 
         try
         {
-            using var rollbackPackage = Package.Open(rollbackPackagePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None);
+            using var rollbackPackage = Package.Open(rollbackPackagePath, FileMode.Create, FileAccess.Write, FileShare.None);
             using var rollbackPackageModel = await PackageModel.OpenAsync(rollbackPackage, default, cancellationToken).ConfigureAwait(false);
 
             var rollbackOperationGroupsByDatabase = rollbackOperations
