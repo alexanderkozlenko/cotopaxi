@@ -32,7 +32,7 @@ internal sealed class PackageAdapter : StorageAdapter
         return _package.FileOpenAccess.HasFlag(FileAccess.Write);
     }
 
-    public override async Task<JsonElement> ReadAsync(string adapterPath, CancellationToken cancellationToken)
+    public override async Task<JsonDocument> ReadAsync(string adapterPath, CancellationToken cancellationToken)
     {
         Debug.Assert(adapterPath is not null);
 
@@ -40,19 +40,20 @@ internal sealed class PackageAdapter : StorageAdapter
 
         using (var packagePartStream = packagePart.GetStream(FileMode.Open, FileAccess.Read))
         {
-            return await JsonSerializer.DeserializeAsync<JsonElement>(packagePartStream, cancellationToken: cancellationToken).ConfigureAwait(false);
+            return await JsonDocument.ParseAsync(packagePartStream, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
     }
 
-    public override async Task WriteAsync(string adapterPath, JsonElement content, CancellationToken cancellationToken)
+    public override async Task WriteAsync(string adapterPath, JsonDocument document, CancellationToken cancellationToken)
     {
         Debug.Assert(adapterPath is not null);
+        Debug.Assert(document is not null);
 
         var packagePart = _package.CreatePart(new(adapterPath, UriKind.Relative), "application/json", _compressionOption);
 
         using (var packagePartStream = packagePart.GetStream(FileMode.Create, FileAccess.Write))
         {
-            await JsonSerializer.SerializeAsync(packagePartStream, content, cancellationToken: cancellationToken).ConfigureAwait(false);
+            await JsonSerializer.SerializeAsync(packagePartStream, document.RootElement, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
     }
 }

@@ -5,7 +5,6 @@
 using System.Diagnostics;
 using System.IO.Packaging;
 using System.Text.Json;
-using Cotopaxi.Cosmos.PackageManagement.Contracts;
 using Cotopaxi.Cosmos.Packaging;
 using Microsoft.Extensions.Logging;
 
@@ -34,12 +33,21 @@ public sealed partial class PackageManager
 
         foreach (var (packagePartitionUri, packagePartition) in packagePartitions)
         {
+            var packagePartitionSize = 0;
             var packagePart = package.GetPart(packagePartitionUri);
-            var documents = default(PackagePartitionItemNode[]);
 
             using (var packagePartStream = packagePart.GetStream(FileMode.Open, FileAccess.Read))
             {
-                documents = await JsonSerializer.DeserializeAsync<PackagePartitionItemNode[]>(packagePartStream, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false) ?? [];
+                var jsonDocumentOptions = new JsonDocumentOptions
+                {
+                    AllowTrailingCommas = true,
+                    CommentHandling = JsonCommentHandling.Skip,
+                };
+
+                using (var packagePartDocument = await JsonDocument.ParseAsync(packagePartStream, jsonDocumentOptions, cancellationToken).ConfigureAwait(false))
+                {
+                    packagePartitionSize = packagePartDocument.RootElement.GetArrayLength();
+                }
             }
 
             _logger.LogInformation(
@@ -48,7 +56,7 @@ public sealed partial class PackageManager
                 packagePartition.DatabaseName,
                 packagePartition.ContainerName,
                 packagePartition.OperationType.ToString().ToLowerInvariant(),
-                documents.Length);
+                packagePartitionSize);
         }
 
         return true;

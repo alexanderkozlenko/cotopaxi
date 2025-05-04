@@ -12,8 +12,8 @@ public sealed partial class PackageManager
 
     private static readonly JsonSerializerOptions s_jsonSerializerOptions = new(JsonSerializerOptions.Default)
     {
-        ReadCommentHandling = JsonCommentHandling.Skip,
         AllowTrailingCommas = true,
+        ReadCommentHandling = JsonCommentHandling.Skip,
     };
 
     private readonly ILogger _logger;

@@ -37,9 +37,11 @@ internal abstract class StorageAdapter : StorageAdapterBase
 
         var cancellationToken = _cancellationTokenSource.Token;
         var adapterPath = CreateAdapterPath(corpusPath);
-        var content = await ReadAsync(adapterPath, cancellationToken).ConfigureAwait(false);
 
-        return content.ToString();
+        using (var document = await ReadAsync(adapterPath, cancellationToken).ConfigureAwait(false)!)
+        {
+            return document.RootElement.GetRawText();
+        }
     }
 
     public sealed override async Task WriteAsync(string corpusPath, string data)
@@ -49,12 +51,14 @@ internal abstract class StorageAdapter : StorageAdapterBase
 
         var cancellationToken = _cancellationTokenSource.Token;
         var adapterPath = CreateAdapterPath(corpusPath);
-        var content = JsonSerializer.Deserialize<JsonElement>(data);
 
-        await WriteAsync(adapterPath, content, cancellationToken).ConfigureAwait(false);
+        using (var document = JsonDocument.Parse(data))
+        {
+            await WriteAsync(adapterPath, document, cancellationToken).ConfigureAwait(false);
+        }
     }
 
-    public abstract Task<JsonElement> ReadAsync(string adapterPath, CancellationToken cancellationToken);
+    public abstract Task<JsonDocument> ReadAsync(string adapterPath, CancellationToken cancellationToken);
 
-    public abstract Task WriteAsync(string adapterPath, JsonElement document, CancellationToken cancellationToken);
+    public abstract Task WriteAsync(string adapterPath, JsonDocument document, CancellationToken cancellationToken);
 }
