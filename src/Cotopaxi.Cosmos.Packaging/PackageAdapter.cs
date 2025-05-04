@@ -8,7 +8,7 @@ namespace Cotopaxi.Cosmos.Packaging;
 
 internal sealed class PackageAdapter : StorageAdapter
 {
-    public const string Scheme = "opc";
+    public const string SchemeName = "opc";
 
     private readonly Package _package;
     private readonly CompressionOption _compressionOption;

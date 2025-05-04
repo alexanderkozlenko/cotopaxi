@@ -141,6 +141,7 @@ public sealed partial class PackageManager
             package.PackageProperties.Identifier = Guid.CreateVersion7().ToString();
             package.PackageProperties.Version = packageVersion;
             package.PackageProperties.Created = DateTime.UtcNow;
+            package.PackageProperties.Creator = s_applicationName;
         }
         catch
         {

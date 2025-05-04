@@ -15,17 +15,19 @@ public sealed class PackageModel : IDisposable
     private readonly Package _package;
     private readonly CdmCorpusDefinition _corpusDef;
     private readonly CdmManifestDefinition _manifestDef;
+    private readonly CancellationTokenSource _cancellationTokenSource;
 
-    private PackageModel(Package package, CdmCorpusDefinition corpusDef, CdmManifestDefinition manifestDef)
+    private PackageModel(Package package, CdmCorpusDefinition corpusDef, CdmManifestDefinition manifestDef, CancellationTokenSource cancellationTokenSource)
     {
         _package = package;
         _corpusDef = corpusDef;
         _manifestDef = manifestDef;
+        _cancellationTokenSource = cancellationTokenSource;
     }
 
     public void Dispose()
     {
-        _corpusDef.Storage.Unmount(PackageAdapter.Scheme);
+        _cancellationTokenSource.Dispose();
     }
 
     public Uri CreatePartition(PackagePartition partition)
@@ -100,11 +102,12 @@ public sealed class PackageModel : IDisposable
     {
         ArgumentNullException.ThrowIfNull(package);
 
+        var cancellationTokenSource = new CancellationTokenSource();
         var manifestRel = package.FileOpenAccess.HasFlag(FileAccess.Read) ? package.GetRelationshipsByType(s_manifestRelType).SingleOrDefault() : null;
 
         if (manifestRel is null)
         {
-            var corpusDef = CreateCorpusDef(package, compressionOption);
+            var corpusDef = CreateCorpusDef(package, compressionOption, cancellationTokenSource);
             var manifestDef = corpusDef.MakeObject<CdmManifestDefinition>(CdmObjectType.ManifestDef, "cosmosdb");
             var entitiesDef = corpusDef.MakeObject<CdmDocumentDefinition>(CdmObjectType.DocumentDef, "cosmosdb.entities.cdm.json");
             var partitionDef = corpusDef.MakeObject<CdmEntityDefinition>(CdmObjectType.EntityDef, "cosmosdb.document");
@@ -121,7 +124,7 @@ public sealed class PackageModel : IDisposable
             entitiesDef.Imports.Add("cdm:/foundations.cdm.json");
             entitiesDef.Definitions.Add(partitionDef);
 
-            var rootFolderDef = corpusDef.Storage.FetchRootFolder(PackageAdapter.Scheme);
+            var rootFolderDef = corpusDef.Storage.FetchRootFolder(PackageAdapter.SchemeName);
 
             rootFolderDef.Documents.Add(entitiesDef);
             rootFolderDef.Documents.Add(manifestDef);
@@ -130,23 +133,22 @@ public sealed class PackageModel : IDisposable
 
             partitionDec.EntityPath = corpusDef.Storage.AdapterPathToCorpusPath(partitionDec.EntityPath);
 
-            return new(package, corpusDef, manifestDef);
+            return new(package, corpusDef, manifestDef, cancellationTokenSource);
         }
         else
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var corpusDef = CreateCorpusDef(package, compressionOption);
+            var corpusDef = CreateCorpusDef(package, compressionOption, cancellationTokenSource);
             var manifestPath = corpusDef.Storage.AdapterPathToCorpusPath(manifestRel.TargetUri.OriginalString);
             var manifestDef = await corpusDef.FetchObjectAsync<CdmManifestDefinition>(manifestPath).ConfigureAwait(false);
 
-            return new(package, corpusDef, manifestDef);
+            return new(package, corpusDef, manifestDef, cancellationTokenSource);
         }
     }
 
-    private static CdmCorpusDefinition CreateCorpusDef(Package package, CompressionOption compressionOption)
+    private static CdmCorpusDefinition CreateCorpusDef(Package package, CompressionOption compressionOption, CancellationTokenSource cancellationTokenSource)
     {
-        var cancellationTokenSource = new CancellationTokenSource();
         var corpusDef = new CdmCorpusDefinition();
 
         var corpusEventCallback = new EventCallback
@@ -159,8 +161,8 @@ public sealed class PackageModel : IDisposable
         var adapter = new PackageAdapter(package, compressionOption, cancellationTokenSource);
 
         corpusDef.Storage.Unmount("local");
-        corpusDef.Storage.Mount(PackageAdapter.Scheme, adapter);
-        corpusDef.Storage.DefaultNamespace = PackageAdapter.Scheme;
+        corpusDef.Storage.Mount(PackageAdapter.SchemeName, adapter);
+        corpusDef.Storage.DefaultNamespace = PackageAdapter.SchemeName;
 
         return corpusDef;
 

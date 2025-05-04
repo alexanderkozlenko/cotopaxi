@@ -331,6 +331,7 @@ public sealed partial class PackageManager
             rollbackPackage.PackageProperties.Identifier = Guid.CreateVersion7().ToString();
             rollbackPackage.PackageProperties.Subject = cosmosClient.Endpoint.AbsoluteUri;
             rollbackPackage.PackageProperties.Created = DateTime.UtcNow;
+            rollbackPackage.PackageProperties.Creator = s_applicationName;
         }
         catch
         {
