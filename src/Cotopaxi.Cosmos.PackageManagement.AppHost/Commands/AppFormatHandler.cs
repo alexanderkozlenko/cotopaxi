@@ -17,7 +17,7 @@ internal sealed class AppFormatHandler : HostCommandHandler<AppFormatCommand>
     protected override Task<bool> InvokeAsync(AppFormatCommand command, SymbolResult result, CancellationToken cancellationToken)
     {
         var sourcePathPattern = result.GetValueForArgument(command.SourceArgument);
-        var sourcePaths = GlobbingMatcher.GetFiles(Environment.CurrentDirectory, sourcePathPattern);
+        var sourcePaths = PathGlobbing.GetFilePaths(sourcePathPattern, Environment.CurrentDirectory);
 
         return _manager.FormatSourcesAsync(sourcePaths, cancellationToken);
     }

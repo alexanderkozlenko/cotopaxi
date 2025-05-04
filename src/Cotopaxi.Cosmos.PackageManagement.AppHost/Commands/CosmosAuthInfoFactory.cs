@@ -4,7 +4,7 @@ namespace Cotopaxi.Cosmos.PackageManagement.AppHost.Commands;
 
 internal static class CosmosAuthInfoFactory
 {
-    public static CosmosAuthInfo CreateCosmosAuthInfo(Uri? accountEndpoint, string? authKeyOrResourceToken, string? connectionString)
+    public static CosmosAuthInfo CreateAuthInfo(Uri? accountEndpoint, string? authKeyOrResourceToken, string? connectionString)
     {
         var authKeyOrResourceTokenVariable = Environment.GetEnvironmentVariable("AZURE_COSMOS_KEY");
         var connectionStringVariable = Environment.GetEnvironmentVariable("AZURE_COSMOS_CONNECTION_STRING");

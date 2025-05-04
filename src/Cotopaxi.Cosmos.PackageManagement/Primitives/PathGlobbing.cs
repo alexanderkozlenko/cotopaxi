@@ -6,24 +6,24 @@ using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 
 namespace Cotopaxi.Cosmos.PackageManagement.Primitives;
 
-public static class GlobbingMatcher
+public static class PathGlobbing
 {
-    public static string[] GetFiles(string path, string searchPattern)
+    public static string[] GetFilePaths(string searchPattern, string basePath)
     {
-        Debug.Assert(path is not null);
         Debug.Assert(searchPattern is not null);
+        Debug.Assert(basePath is not null);
 
         if (Path.IsPathRooted(searchPattern))
         {
-            path = Path.GetPathRoot(searchPattern)!;
-            searchPattern = Path.GetRelativePath(path, searchPattern);
+            basePath = Path.GetPathRoot(searchPattern)!;
+            searchPattern = Path.GetRelativePath(basePath, searchPattern);
         }
 
         var matcher = new Matcher().AddInclude(searchPattern);
-        var match = matcher.Execute(new DirectoryInfoWrapper(new(path)));
+        var match = matcher.Execute(new DirectoryInfoWrapper(new(basePath)));
 
         return match.Files
-            .Select(x => Path.GetFullPath(Path.Combine(path, x.Path)))
+            .Select(x => Path.GetFullPath(Path.Combine(basePath, x.Path)))
             .Order(StringComparer.OrdinalIgnoreCase)
             .ToArray();
     }

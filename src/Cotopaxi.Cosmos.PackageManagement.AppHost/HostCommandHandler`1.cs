@@ -24,8 +24,8 @@ internal abstract class HostCommandHandler<T> : ICommandHandler
     {
         Debug.Assert(context is not null);
 
-        var result = context.ParseResult.CommandResult;
         var cancellationToken = context.GetCancellationToken();
+        var result = context.ParseResult.CommandResult;
         var logger = context.GetHost().Services.GetRequiredService<ILogger<HostCommandHandler<T>>>();
 
         try

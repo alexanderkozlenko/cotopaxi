@@ -122,19 +122,10 @@ public sealed partial class PackageManager
 
         foreach (var printItem in printItems)
         {
-            var operationName = printItem.OperationType switch
-            {
-                PackageOperationType.Delete => "delete",
-                PackageOperationType.Create => "create",
-                PackageOperationType.Upsert => "upsert",
-                PackageOperationType.Patch => "patch",
-                _ => throw new NotSupportedException(),
-            };
-
             _logger.LogInformation(
                 "{Category} {OperationName} {DatabaseName}\\{ContainerName}\\{DocumentId} {DocumentPartitionKey}",
                 category,
-                operationName.PadRight(6),
+                printItem.OperationType.ToString().ToLowerInvariant().PadRight(6),
                 printItem.DatabaseName,
                 printItem.ContainerName,
                 printItem.DocumentId,

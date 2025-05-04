@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.IO.Hashing;
 using System.Text;
 
-namespace System;
+namespace Cotopaxi.Cosmos.PackageManagement.Primitives;
 
 public static class Uuid
 {

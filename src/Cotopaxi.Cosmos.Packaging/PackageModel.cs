@@ -168,7 +168,14 @@ public sealed class PackageModel : IDisposable
         {
             if (level == CdmStatusLevel.Error)
             {
-                cancellationTokenSource.Cancel();
+                try
+                {
+                    cancellationTokenSource.Cancel();
+                }
+                catch (AggregateException ex)
+                {
+                    throw new InvalidOperationException(message, ex);
+                }
 
                 throw new InvalidOperationException(message);
             }

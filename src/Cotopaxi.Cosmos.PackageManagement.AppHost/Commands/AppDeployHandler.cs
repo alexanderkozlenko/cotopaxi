@@ -19,12 +19,13 @@ internal sealed class AppDeployHandler : HostCommandHandler<AppDeployCommand>
         var cosmosAccountEndpoint = result.GetValueForOption(command.EndpointOption);
         var cosmosAuthKeyOrResourceToken = result.GetValueForOption(command.KeyOption);
         var cosmosConnectionString = result.GetValueForOption(command.ConnectionStringOption);
-        var cosmosAuthInfo = CosmosAuthInfoFactory.CreateCosmosAuthInfo(cosmosAccountEndpoint, cosmosAuthKeyOrResourceToken, cosmosConnectionString);
         var packagePathPattern = result.GetValueForArgument(command.PackageArgument);
-        var packagePaths = GlobbingMatcher.GetFiles(Environment.CurrentDirectory, packagePathPattern);
         var profilePathPattern = result.GetValueForOption(command.ProfileOption);
-        var profilePaths = !string.IsNullOrEmpty(profilePathPattern) ? GlobbingMatcher.GetFiles(Environment.CurrentDirectory, profilePathPattern) : null;
         var dryRun = result.GetValueForOption(command.DryRunOption);
+
+        var packagePaths = PathGlobbing.GetFilePaths(packagePathPattern, Environment.CurrentDirectory);
+        var profilePaths = !string.IsNullOrEmpty(profilePathPattern) ? PathGlobbing.GetFilePaths(profilePathPattern, Environment.CurrentDirectory) : null;
+        var cosmosAuthInfo = CosmosAuthInfoFactory.CreateAuthInfo(cosmosAccountEndpoint, cosmosAuthKeyOrResourceToken, cosmosConnectionString);
 
         return _manager.DeployPackagesAsync(packagePaths, cosmosAuthInfo, profilePaths, dryRun, cancellationToken);
     }

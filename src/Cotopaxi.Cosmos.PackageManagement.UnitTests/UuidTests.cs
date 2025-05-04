@@ -1,4 +1,5 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Cotopaxi.Cosmos.PackageManagement.Primitives;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Cotopaxi.Cosmos.PackageManagement.UnitTests;
 

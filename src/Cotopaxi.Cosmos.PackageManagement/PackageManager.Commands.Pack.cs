@@ -184,7 +184,7 @@ public sealed partial class PackageManager
                                 }
                             }
 
-                            var projectSourcePaths = GlobbingMatcher.GetFiles(projectSearchPath, projectSourcePattern!);
+                            var projectSourcePaths = PathGlobbing.GetFilePaths(projectSourcePattern!, projectSearchPath);
 
                             foreach (var projectSourcePath in projectSourcePaths)
                             {

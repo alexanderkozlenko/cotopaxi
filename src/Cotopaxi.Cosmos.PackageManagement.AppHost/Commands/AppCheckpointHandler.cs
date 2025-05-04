@@ -19,10 +19,11 @@ internal sealed class AppCheckpointHandler : HostCommandHandler<AppCheckpointCom
         var cosmosAccountEndpoint = result.GetValueForOption(command.EndpointOption);
         var cosmosAuthKeyOrResourceToken = result.GetValueForOption(command.KeyOption);
         var cosmosConnectionString = result.GetValueForOption(command.ConnectionStringOption);
-        var cosmosAuthInfo = CosmosAuthInfoFactory.CreateCosmosAuthInfo(cosmosAccountEndpoint, cosmosAuthKeyOrResourceToken, cosmosConnectionString);
         var sourcePackagePathPattern = result.GetValueForArgument(command.PackageArgument);
-        var sourcePackagePaths = GlobbingMatcher.GetFiles(Environment.CurrentDirectory, sourcePackagePathPattern);
-        var rollbackPackagePath = result.GetValueForArgument(command.RollbackPackageArgument);
+        var rollbackPackagePath = Path.GetFullPath(result.GetValueForArgument(command.RollbackPackageArgument), Environment.CurrentDirectory);
+
+        var sourcePackagePaths = PathGlobbing.GetFilePaths(sourcePackagePathPattern, Environment.CurrentDirectory);
+        var cosmosAuthInfo = CosmosAuthInfoFactory.CreateAuthInfo(cosmosAccountEndpoint, cosmosAuthKeyOrResourceToken, cosmosConnectionString);
 
         return _manager.CreateCheckpointPackagesAsync(sourcePackagePaths, rollbackPackagePath, cosmosAuthInfo, cancellationToken);
     }

@@ -26,53 +26,41 @@ public static class Program
             new AppFormatCommand(),
         };
 
-        var builder = new CommandLineBuilder(command)
-            .UseHost(CreateHostBuilder, ConfigureHostBuilder)
+        return new CommandLineBuilder(command)
+            .UseHost(static _ => Host.CreateDefaultBuilder(), ConfigureHostBuilder)
             .CancelOnProcessTermination()
             .UseParseErrorReporting()
             .UseExceptionHandler()
             .UseVersionOption()
-            .UseHelp(["-h", "--help"]);
+            .UseHelp(["-h", "--help"])
+            .Build()
+            .InvokeAsync(args);
 
-        var parser = builder.Build();
+        static void ConfigureHostBuilder(IHostBuilder builder)
+        {
+            builder
+                .ConfigureLogging(ConfigureLogging)
+                .ConfigureServices(ConfigureServices)
+                .UseCommandHandler<AppPackCommand, AppPackHandler>()
+                .UseCommandHandler<AppDeployCommand, AppDeployHandler>()
+                .UseCommandHandler<AppCheckpointCommand, AppCheckpointHandler>()
+                .UseCommandHandler<AppDiffCommand, AppDiffHandler>()
+                .UseCommandHandler<AppShowCommand, AppShowHandler>()
+                .UseCommandHandler<AppFormatCommand, AppFormatHandler>();
+        }
 
-        return parser.InvokeAsync(args);
-    }
+        static void ConfigureServices(IServiceCollection services)
+        {
+            services
+                .AddSingleton<PackageManager>();
+        }
 
-    private static IHostBuilder CreateHostBuilder(string[] args)
-    {
-        return Host.CreateDefaultBuilder();
-    }
-
-    private static void ConfigureHostBuilder(IHostBuilder builder)
-    {
-        builder
-            .ConfigureLogging(ConfigureLogging)
-            .ConfigureServices(ConfigureServices)
-            .UseCommandHandler<AppPackCommand, AppPackHandler>()
-            .UseCommandHandler<AppDeployCommand, AppDeployHandler>()
-            .UseCommandHandler<AppCheckpointCommand, AppCheckpointHandler>()
-            .UseCommandHandler<AppDiffCommand, AppDiffHandler>()
-            .UseCommandHandler<AppShowCommand, AppShowHandler>()
-            .UseCommandHandler<AppFormatCommand, AppFormatHandler>();
-    }
-
-    private static void ConfigureServices(IServiceCollection services)
-    {
-        services
-            .AddSingleton<PackageManager>();
-    }
-
-    private static void ConfigureLogging(ILoggingBuilder builder)
-    {
-        builder
-            .AddConsoleFormatter<HostLoggingFormatter, ConsoleFormatterOptions>()
-            .AddConsole(ConfigureLoggerOptions)
-            .AddFilter("Microsoft", LogLevel.Error);
-    }
-
-    private static void ConfigureLoggerOptions(ConsoleLoggerOptions options)
-    {
-        options.FormatterName = nameof(HostLoggingFormatter);
+        static void ConfigureLogging(ILoggingBuilder builder)
+        {
+            builder
+                .AddConsoleFormatter<HostLoggingFormatter, ConsoleFormatterOptions>()
+                .AddConsole(static x => x.FormatterName = nameof(HostLoggingFormatter))
+                .AddFilter("Microsoft", LogLevel.Error);
+        }
     }
 }
