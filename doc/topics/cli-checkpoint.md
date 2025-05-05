@@ -82,7 +82,7 @@ Prints out a description of how to use the command.
 
 <p />
 
-Create a rollback package with an Azure DevOps pipeline using both environment variables:
+Create a rollback package with an Azure DevOps pipeline using environment variables:
 
 <p />
 

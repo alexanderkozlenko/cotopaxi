@@ -85,20 +85,20 @@ Prints out a description of how to use the command.
 
 <p />
 
-Show changes in a new version of database package:
+Show changes in a new version of database package using environment variables:
 
 <p />
 
 ```txt
-cotopaxi diff example-v2.cdbpkg example-v1.cdbpkg --endpoint https://example.documents.azure.com:443 --key $key$
+cotopaxi diff example-v2.cdbpkg example-v1.cdbpkg
 ```
 
 <p />
 
-Generate a deployment profile based on changes in a new version of database package:
+Generate a deployment profile based on changes in a new version of database package using environment variables:
 
 <p />
 
 ```txt
-cotopaxi diff example-v2.cdbpkg example-v1.cdbpkg --endpoint https://example.documents.azure.com:443 --key $key$ --profile example-v2.cdbdep
+cotopaxi diff example-v2.cdbpkg example-v1.cdbpkg --profile example-v2.cdbdep
 ```
