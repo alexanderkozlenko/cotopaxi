@@ -100,5 +100,5 @@ Generate a deployment profile based on changes in a new version of database pack
 <p />
 
 ```txt
-cotopaxi diff example-v2.cdbpkg example-v1.cdbpkg --profile example-v2.cdbdep
+cotopaxi diff example-v2.cdbpkg example-v1.cdbpkg --profile example-v2.profile.json
 ```

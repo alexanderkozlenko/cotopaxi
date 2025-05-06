@@ -126,12 +126,12 @@ Deploying packages with an Azure DevOps pipeline using both environment variable
 <p />
 
 ```txt
-cotopaxi deploy $(System.ArtifactsDirectory)/**/*.cdbpkg --profile $(System.ArtifactsDirectory)/**/*.cdbdep
+cotopaxi deploy $(System.ArtifactsDirectory)/**/*.cdbpkg --profile $(System.ArtifactsDirectory)/**/*.profile.json
 ```
 
 <p />
 
-The corresponding deployment profile `example.cdbdep`:
+The corresponding deployment profile `example.profile.json`:
 
 <p />
 
