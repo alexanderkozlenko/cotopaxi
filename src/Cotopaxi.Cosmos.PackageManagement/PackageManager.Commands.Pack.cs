@@ -28,8 +28,12 @@ public sealed partial class PackageManager
         };
 
         var projectSources = await ListProjectSourcesAsync(projectPath, projectVariables.ToFrozenDictionary(), cancellationToken).ConfigureAwait(false);
+        var packageDirectory = Path.GetDirectoryName(packagePath);
 
-        Directory.CreateDirectory(Path.GetDirectoryName(packagePath)!);
+        if (packageDirectory is not null)
+        {
+            Directory.CreateDirectory(packageDirectory);
+        }
 
         try
         {

@@ -265,7 +265,12 @@ public sealed partial class PackageManager
             }
         }
 
-        Directory.CreateDirectory(Path.GetDirectoryName(rollbackPackagePath)!);
+        var rollbackPackageDirectory = Path.GetDirectoryName(rollbackPackagePath);
+
+        if (rollbackPackageDirectory is not null)
+        {
+            Directory.CreateDirectory(rollbackPackageDirectory);
+        }
 
         try
         {

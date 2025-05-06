@@ -15,20 +15,20 @@ public static class JsonNodeExtensions
 
         for (var i = 0; i < path.Tokens.Length; i++)
         {
-            if (current is JsonObject jsonObject)
+            if (current is JsonObject currentObject)
             {
-                if (jsonObject.TryGetPropertyValue(path.Tokens[i], out current))
+                if (currentObject.TryGetPropertyValue(path.Tokens[i], out current))
                 {
                     continue;
                 }
             }
-            else if (current is JsonArray jsonArray)
+            else if (current is JsonArray currentArray)
             {
                 if (int.TryParse(path.Tokens[i], NumberStyles.None, CultureInfo.InvariantCulture, out var index))
                 {
-                    if (index < jsonArray.Count)
+                    if (index < currentArray.Count)
                     {
-                        current = jsonArray[index];
+                        current = currentArray[index];
 
                         continue;
                     }

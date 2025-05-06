@@ -19,9 +19,9 @@ public sealed partial class PackageManager
         using var package = Package.Open(packagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
 
         _logger.LogInformation(
-            "cdbpkg {PackageIdentifier} {PackageTimestamp} {PackageSummary}",
+            "cdbpkg {PackageIdentifier} {PackageTimestamp:O} {PackageSummary}",
             package.PackageProperties.Identifier,
-            package.PackageProperties.Created?.ToUniversalTime().ToString("O"),
+            package.PackageProperties.Created?.ToUniversalTime(),
             package.PackageProperties.Version ?? package.PackageProperties.Subject);
 
         var packagePartitions = default(IReadOnlyDictionary<Uri, PackagePartition>);

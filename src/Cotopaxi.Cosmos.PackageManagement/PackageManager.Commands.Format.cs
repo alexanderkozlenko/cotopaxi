@@ -16,6 +16,11 @@ public sealed partial class PackageManager
     {
         Debug.Assert(sourcePaths is not null);
 
+        if (sourcePaths.Count == 0)
+        {
+            return true;
+        }
+
         var jsonSerializerOptions = new JsonSerializerOptions(s_jsonSerializerOptions)
         {
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,

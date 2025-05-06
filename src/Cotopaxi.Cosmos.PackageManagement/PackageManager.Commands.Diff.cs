@@ -27,8 +27,8 @@ public sealed partial class PackageManager
         var cosmosClientOptions = new CosmosClientOptions
         {
             ApplicationName = s_applicationName,
-            UseSystemTextJsonSerializerWithOptions = JsonSerializerOptions.Default,
             EnableContentResponseOnWrite = false,
+            UseSystemTextJsonSerializerWithOptions = JsonSerializerOptions.Default,
         };
 
         using var cosmosClient = cosmosAuthInfo.IsConnectionString ?
