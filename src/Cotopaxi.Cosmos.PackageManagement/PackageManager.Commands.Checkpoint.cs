@@ -338,9 +338,16 @@ public sealed partial class PackageManager
             rollbackPackage.PackageProperties.Created = DateTime.UtcNow;
             rollbackPackage.PackageProperties.Creator = s_applicationName;
         }
-        catch
+        catch (Exception ex)
         {
-            File.Delete(rollbackPackagePath);
+            try
+            {
+                File.Delete(rollbackPackagePath);
+            }
+            catch (Exception exio)
+            {
+                throw new AggregateException(ex, exio);
+            }
 
             throw;
         }

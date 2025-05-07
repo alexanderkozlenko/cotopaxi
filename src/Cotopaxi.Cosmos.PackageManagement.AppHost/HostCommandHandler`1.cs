@@ -34,11 +34,41 @@ internal abstract class HostCommandHandler<T> : ICommandHandler
         }
         catch (Exception ex)
         {
-            logger.LogCritical(ex, "Error: {Message}", ex.Message);
+            var exceptions = new Stack<Exception>();
+
+            UnrollException(ex, exceptions);
+
+            while (exceptions.TryPop(out var exception))
+            {
+                logger.LogError(exception, "Error 0x{HRESULT:X8}: {Message}", exception.HResult, exception.Message);
+            }
 
             return 1;
         }
     }
 
     protected abstract Task<bool> InvokeAsync(T command, SymbolResult result, CancellationToken cancellationToken);
+
+    private static void UnrollException(Exception exception, Stack<Exception> exceptions)
+    {
+        var current = exception;
+
+        while (current is not null)
+        {
+            if (current is AggregateException aggregate)
+            {
+                for (var i = 0; i < aggregate.InnerExceptions.Count; i++)
+                {
+                    UnrollException(aggregate.InnerExceptions[^(i + 1)], exceptions);
+                }
+
+                current = null;
+            }
+            else
+            {
+                exceptions.Push(current);
+                current = current.InnerException;
+            }
+        }
+    }
 }

@@ -147,9 +147,16 @@ public sealed partial class PackageManager
             package.PackageProperties.Created = DateTime.UtcNow;
             package.PackageProperties.Creator = s_applicationName;
         }
-        catch
+        catch (Exception ex)
         {
-            File.Delete(packagePath);
+            try
+            {
+                File.Delete(packagePath);
+            }
+            catch (Exception exio)
+            {
+                throw new AggregateException(ex, exio);
+            }
 
             throw;
         }
