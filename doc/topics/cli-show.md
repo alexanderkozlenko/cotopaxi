@@ -6,7 +6,7 @@
 
 <p />
 
-`cotopaxi show` - Shows information about a database package.
+`cotopaxi show` - Shows information about database packages.
 
 <p />
 
@@ -27,4 +27,13 @@ cotopaxi show -h|--help
 <p />
 
 - `package`  
-The path to the database package to show information about.
+The path to the database package or packages to show information about (globbing patterns are supported).
+
+<p />
+
+## Options
+
+<p />
+
+- `-h|--help`  
+Prints out a description of how to use the command.
