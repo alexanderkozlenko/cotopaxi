@@ -91,37 +91,41 @@ Prints out a description of how to use the command.
 
 <p />
 
-Packing documents locally:
+Packing documents with Azure Pipelines:
 
 <p />
 
-```txt
-cotopaxi pack example.json example.cdbpkg
+```yaml
+- script: >
+    dotnet tool run cotopaxi pack
+    $(Build.SourcesDirectory)/adventureworks.json
+    $(Build.StagingDirectory)/adventureworks-v1.0.0.cdbpkg
 ```
 
 <p />
 
-Packing documents with an Azure DevOps pipeline:
+The corresponding package source `adventureworks/products/bikes.json`:
 
 <p />
 
-```txt
-cotopaxi pack $(Build.SourcesDirectory)/example.json $(Build.StagingDirectory)/example.cdbpkg
+```json
+[
+  {
+    "id": "3202cb6f-42af-4fe6-a3c5-d61927721e75",
+    "category": "bikes",
+    "name": "Mountain-100 Silver, 38"
+  },
+  {
+    "id": "e1894e24-550d-4fe3-9784-47d614600baa",
+    "category": "bikes",
+    "name": "Mountain-500 Black, 40"
+  }
+]
 ```
 
 <p />
 
-Packing documents with an Azure DevOps pipeline with commit ID as package version:
-
-<p />
-
-```txt
-cotopaxi pack $(Build.SourcesDirectory)/example.json $(Build.StagingDirectory)/example.cdbpkg --version $(Build.SourceVersion)
-```
-
-<p />
-
-The corresponding project `example.json`:
+The corresponding package project `adventureworks.json`:
 
 <p />
 
@@ -138,7 +142,7 @@ The corresponding project `example.json`:
               "name": "upsert",
               "documents": [
                 "adventureworks/products/**/*.json",
-                "adventureworks/products/**/*-$(Version).json"
+                "adventureworks/products/**/*-v$(Version).json"
               ]
             }
           ]
@@ -151,16 +155,8 @@ The corresponding project `example.json`:
 
 <p />
 
-The corresponding documents source `adventureworks/products/bikes.json`:
+## References
 
 <p />
 
-```json
-[
-  {
-    "id": "3202cb6f-42af-4fe6-a3c5-d61927721e75",
-    "category": "bikes",
-    "name": "Mountain-100 Silver, 38"
-  }
-]
-```
+- [Microsoft - Azure Cosmos DB service quotas](https://learn.microsoft.com/en-us/azure/cosmos-db/concepts-limits)

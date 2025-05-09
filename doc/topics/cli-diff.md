@@ -85,20 +85,20 @@ Prints out a description of how to use the command.
 
 <p />
 
-Show changes in a new version of database package using environment variables:
+Showing changes in a new version of database package:
 
 <p />
 
 ```txt
-cotopaxi diff example-v2.cdbpkg example-v1.cdbpkg
+cotopaxi diff adventureworks-v1.0.1.cdbpkg adventureworks-v1.0.0.cdbpkg
 ```
 
 <p />
 
-Generate a deployment profile based on changes in a new version of database package using environment variables:
+Showing changes in a new version of database package and generating a deployment profile based on changes:
 
 <p />
 
 ```txt
-cotopaxi diff example-v2.cdbpkg example-v1.cdbpkg --profile example-v2.profile.json
+cotopaxi diff adventureworks-v1.0.1.cdbpkg adventureworks-v1.0.0.cdbpkg --profile adventureworks-v1.0.1.profile.json
 ```

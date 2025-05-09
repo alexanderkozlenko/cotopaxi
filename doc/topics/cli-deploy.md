@@ -73,7 +73,7 @@ The connection string for the Azure Cosmos DB account. Can be specified with `AZ
 <p />
 
 - `--profile`  
-The path to the deployment profile or profiles that specify documents eligible for updates, based on schema [`profile.schema.json`](https://alexanderkozlenko.github.io/cotopaxi/schemas/profile.schema.json).
+The path to the deployment profile or profiles that specify documents eligible for updates, based on schema [`profile.schema.json`](https://alexanderkozlenko.github.io/cotopaxi/schemas/profile.schema.json) (globbing patterns are supported).
 
 <p />
 
@@ -91,47 +91,34 @@ Prints out a description of how to use the command.
 
 <p />
 
-Deploying a package locally:
+Deploying packages with Azure Pipelines:
 
 <p />
 
-```txt
-cotopaxi deploy example.cdbpkg --endpoint https://example.documents.azure.com:443 --key $key$
+```yaml
+- script: >
+    dotnet tool run cotopaxi deploy
+    $(System.ArtifactsDirectory)/**/*.cdbpkg
+    --endpoint $(AZURE_COSMOS_ENDPOINT)
+    --key $(AZURE_COSMOS_KEY)
 ```
 
 <p />
 
-Deploying a package locally using only `AZURE_COSMOS_KEY` environment variable:
+Deploying packages with Azure Pipelines using `AZURE_COSMOS_ENDPOINT` and `AZURE_COSMOS_KEY` environment variables and deployment profiles:
 
 <p />
 
-```txt
-cotopaxi deploy example.cdbpkg --endpoint https://example.documents.azure.com:443
+```yaml
+- script: >
+    dotnet tool run cotopaxi deploy
+    $(System.ArtifactsDirectory)/**/*.cdbpkg
+    --profile $(System.ArtifactsDirectory)/**/*.profile.json
 ```
 
 <p />
 
-Deploying packages with an Azure DevOps pipeline using both environment variables:
-
-<p />
-
-```txt
-cotopaxi deploy $(System.ArtifactsDirectory)/**/*.cdbpkg
-```
-
-<p />
-
-Deploying packages with an Azure DevOps pipeline using both environment variables and deployment profiles:
-
-<p />
-
-```txt
-cotopaxi deploy $(System.ArtifactsDirectory)/**/*.cdbpkg --profile $(System.ArtifactsDirectory)/**/*.profile.json
-```
-
-<p />
-
-The corresponding deployment profile `example.profile.json`:
+The corresponding deployment profile `adventureworks-v1.0.0.profile.json`:
 
 <p />
 
@@ -147,3 +134,11 @@ The corresponding deployment profile `example.profile.json`:
   }
 ]
 ```
+
+<p />
+
+## References
+
+<p />
+
+- [Microsoft - Azure Cosmos DB service quotas](https://learn.microsoft.com/en-us/azure/cosmos-db/concepts-limits)

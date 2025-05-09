@@ -37,3 +37,27 @@ The path to the database package or packages to show information about (globbing
 
 - `-h|--help`  
 Prints out a description of how to use the command.
+
+<p />
+
+## Examples
+
+<p />
+
+Showing information about a database package:
+
+<p />
+
+```txt
+cotopaxi show adventureworks-v1.0.0.cdbpkg
+```
+
+<p />
+
+Showing information about available database packages:
+
+<p />
+
+```txt
+cotopaxi show **/*.cdbpkg
+```

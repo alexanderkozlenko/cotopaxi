@@ -35,7 +35,7 @@ The command formats sources, removes comments and the system properties: `_etag`
 <p />
 
 - `source`  
-The path to a source or sources with deployment entries to format and prune.
+The path to a source or sources with deployment entries to format and prune (globbing patterns are supported).
 
 <p />
 
@@ -52,6 +52,16 @@ Prints out a description of how to use the command.
 
 <p />
 
+Formatting a project file:
+
+<p />
+
+```txt
+cotopaxi format adventureworks/products/bikes.json
+```
+
+<p />
+
 Formatting all project files:
 
 <p />
@@ -59,3 +69,11 @@ Formatting all project files:
 ```txt
 cotopaxi format adventureworks/**/*.json
 ```
+
+<p />
+
+## References
+
+<p />
+
+- [Microsoft - Azure Cosmos DB documents](https://learn.microsoft.com/en-us/rest/api/cosmos-db/documents)

@@ -82,10 +82,21 @@ Prints out a description of how to use the command.
 
 <p />
 
-Create a rollback package with an Azure DevOps pipeline using environment variables:
+Creating a rollback package with Azure Pipelines using `AZURE_COSMOS_ENDPOINT` and `AZURE_COSMOS_KEY` environment variables:
 
 <p />
 
-```txt
-cotopaxi checkpoint $(System.ArtifactsDirectory)/**/*.cdbpkg $(System.ArtifactsDirectory)/example.crbpkg
+```yaml
+- script: >
+    dotnet tool run cotopaxi checkpoint
+    $(System.ArtifactsDirectory)/**/*.cdbpkg
+    $(System.ArtifactsDirectory)/adventureworks-rollback.cdbpkg
 ```
+
+<p />
+
+## References
+
+<p />
+
+- [Microsoft - Azure Cosmos DB service quotas](https://learn.microsoft.com/en-us/azure/cosmos-db/concepts-limits)
