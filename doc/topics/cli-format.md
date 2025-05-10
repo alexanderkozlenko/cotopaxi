@@ -44,7 +44,7 @@ The path to a source or sources with deployment entries to format and prune (glo
 <p />
 
 - `-h|--help`  
-Prints out a description of how to use the command.
+Show help and usage information.
 
 <p />
 

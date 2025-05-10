@@ -4,12 +4,12 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Console;
 
-namespace Cotopaxi.Cosmos.PackageManagement.AppHost;
+namespace Cotopaxi.Cosmos.PackageManagement.AppHost.Invocation;
 
-internal sealed class HostLoggingFormatter : ConsoleFormatter
+internal sealed class LoggingFormatter : ConsoleFormatter
 {
-    public HostLoggingFormatter()
-        : base(nameof(HostLoggingFormatter))
+    public LoggingFormatter()
+        : base(nameof(LoggingFormatter))
     {
     }
 

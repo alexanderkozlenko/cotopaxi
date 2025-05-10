@@ -9,7 +9,13 @@ internal static class CosmosAuthInfoFactory
         var authKeyOrResourceTokenVariable = Environment.GetEnvironmentVariable("AZURE_COSMOS_KEY");
         var connectionStringVariable = Environment.GetEnvironmentVariable("AZURE_COSMOS_CONNECTION_STRING");
 
-        Uri.TryCreate(Environment.GetEnvironmentVariable("AZURE_COSMOS_ENDPOINT"), UriKind.Absolute, out var accountEndpointVariable);
+        if (Uri.TryCreate(Environment.GetEnvironmentVariable("AZURE_COSMOS_ENDPOINT"), UriKind.Absolute, out var accountEndpointVariable))
+        {
+            if (accountEndpointVariable.Scheme != Uri.UriSchemeHttps)
+            {
+                accountEndpointVariable = null;
+            }
+        }
 
         if (accountEndpoint is not null)
         {

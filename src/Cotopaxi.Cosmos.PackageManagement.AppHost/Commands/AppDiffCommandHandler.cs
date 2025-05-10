@@ -1,14 +1,15 @@
 ﻿// (c) Oleksandr Kozlenko. Licensed under the MIT license.
 
 using System.CommandLine.Parsing;
+using Cotopaxi.Cosmos.PackageManagement.AppHost.Invocation;
 
 namespace Cotopaxi.Cosmos.PackageManagement.AppHost.Commands;
 
-internal sealed class AppDiffHandler : HostCommandHandler<AppDiffCommand>
+internal sealed class AppDiffCommandHandler : CommandHandler<AppDiffCommand>
 {
     private readonly PackageManager _manager;
 
-    public AppDiffHandler(PackageManager manager)
+    public AppDiffCommandHandler(PackageManager manager)
     {
         _manager = manager;
     }

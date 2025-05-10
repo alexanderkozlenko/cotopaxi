@@ -83,7 +83,7 @@ Sets the package version information.
 <p />
 
 - `-h|--help`  
-Prints out a description of how to use the command.
+Show help and usage information.
 
 <p />
 

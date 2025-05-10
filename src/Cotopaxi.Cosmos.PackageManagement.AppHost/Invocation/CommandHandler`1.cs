@@ -1,18 +1,13 @@
 ﻿// (c) Oleksandr Kozlenko. Licensed under the MIT license.
 
-#pragma warning disable CA1848
-
 using System.CommandLine;
-using System.CommandLine.Hosting;
 using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
 using System.Diagnostics;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
-namespace Cotopaxi.Cosmos.PackageManagement.AppHost;
+namespace Cotopaxi.Cosmos.PackageManagement.AppHost.Invocation;
 
-internal abstract class HostCommandHandler<T> : ICommandHandler
+internal abstract class CommandHandler<T> : ICommandHandler
     where T : Command
 {
     public int Invoke(InvocationContext context)
@@ -26,7 +21,6 @@ internal abstract class HostCommandHandler<T> : ICommandHandler
 
         var cancellationToken = context.GetCancellationToken();
         var result = context.ParseResult.CommandResult;
-        var logger = context.GetHost().Services.GetRequiredService<ILogger<HostCommandHandler<T>>>();
 
         try
         {
@@ -38,9 +32,24 @@ internal abstract class HostCommandHandler<T> : ICommandHandler
 
             UnrollException(ex, exceptions);
 
-            while (exceptions.TryPop(out var exception))
+            if (!Console.IsOutputRedirected)
             {
-                logger.LogError(exception, "Error 0x{HRESULT:X8}: {Message}", exception.HResult, exception.Message);
+                Console.ForegroundColor = ConsoleColor.Red;
+            }
+
+            try
+            {
+                while (exceptions.TryPop(out var exception))
+                {
+                    Console.Error.WriteLine($"Error 0x{exception.HResult:X8}: {exception.Message}");
+                }
+            }
+            finally
+            {
+                if (!Console.IsOutputRedirected)
+                {
+                    Console.ResetColor();
+                }
             }
 
             return 1;

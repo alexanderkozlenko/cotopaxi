@@ -5,6 +5,7 @@ using System.CommandLine.Builder;
 using System.CommandLine.Hosting;
 using System.CommandLine.Parsing;
 using Cotopaxi.Cosmos.PackageManagement.AppHost.Commands;
+using Cotopaxi.Cosmos.PackageManagement.AppHost.Invocation;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -41,12 +42,12 @@ public static class Program
             builder
                 .ConfigureLogging(ConfigureLogging)
                 .ConfigureServices(ConfigureServices)
-                .UseCommandHandler<AppPackCommand, AppPackHandler>()
-                .UseCommandHandler<AppDeployCommand, AppDeployHandler>()
-                .UseCommandHandler<AppCheckpointCommand, AppCheckpointHandler>()
-                .UseCommandHandler<AppDiffCommand, AppDiffHandler>()
-                .UseCommandHandler<AppShowCommand, AppShowHandler>()
-                .UseCommandHandler<AppFormatCommand, AppFormatHandler>();
+                .UseCommandHandler<AppPackCommand, AppPackCommandHandler>()
+                .UseCommandHandler<AppDeployCommand, AppDeployCommandHandler>()
+                .UseCommandHandler<AppCheckpointCommand, AppCheckpointCommandHandler>()
+                .UseCommandHandler<AppDiffCommand, AppDiffCommandHandler>()
+                .UseCommandHandler<AppShowCommand, AppShowCommandHandler>()
+                .UseCommandHandler<AppFormatCommand, AppFormatCommandHandler>();
         }
 
         static void ConfigureServices(IServiceCollection services)
@@ -58,8 +59,8 @@ public static class Program
         static void ConfigureLogging(ILoggingBuilder builder)
         {
             builder
-                .AddConsoleFormatter<HostLoggingFormatter, ConsoleFormatterOptions>()
-                .AddConsole(static x => x.FormatterName = nameof(HostLoggingFormatter))
+                .AddConsoleFormatter<LoggingFormatter, ConsoleFormatterOptions>()
+                .AddConsole(static x => x.FormatterName = nameof(LoggingFormatter))
                 .AddFilter("Microsoft", LogLevel.Error);
         }
     }

@@ -83,7 +83,7 @@ Show which operations would be executed instead of actually executing them.
 <p />
 
 - `-h|--help`  
-Prints out a description of how to use the command.
+Show help and usage information.
 
 <p />
 

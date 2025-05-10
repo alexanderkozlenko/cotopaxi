@@ -1,15 +1,16 @@
 ﻿// (c) Oleksandr Kozlenko. Licensed under the MIT license.
 
 using System.CommandLine.Parsing;
+using Cotopaxi.Cosmos.PackageManagement.AppHost.Invocation;
 using Cotopaxi.Cosmos.PackageManagement.Primitives;
 
 namespace Cotopaxi.Cosmos.PackageManagement.AppHost.Commands;
 
-internal sealed class AppDeployHandler : HostCommandHandler<AppDeployCommand>
+internal sealed class AppDeployCommandHandler : CommandHandler<AppDeployCommand>
 {
     private readonly PackageManager _manager;
 
-    public AppDeployHandler(PackageManager manager)
+    public AppDeployCommandHandler(PackageManager manager)
     {
         _manager = manager;
     }

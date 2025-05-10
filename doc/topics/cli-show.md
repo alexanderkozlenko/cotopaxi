@@ -36,7 +36,7 @@ The path to the database package or packages to show information about (globbing
 <p />
 
 - `-h|--help`  
-Prints out a description of how to use the command.
+Show help and usage information.
 
 <p />
 

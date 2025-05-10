@@ -1,15 +1,16 @@
 ﻿// (c) Oleksandr Kozlenko. Licensed under the MIT license.
 
 using System.CommandLine.Parsing;
+using Cotopaxi.Cosmos.PackageManagement.AppHost.Invocation;
 using Cotopaxi.Cosmos.PackageManagement.Primitives;
 
 namespace Cotopaxi.Cosmos.PackageManagement.AppHost.Commands;
 
-internal sealed class AppCheckpointHandler : HostCommandHandler<AppCheckpointCommand>
+internal sealed class AppCheckpointCommandHandler : CommandHandler<AppCheckpointCommand>
 {
     private readonly PackageManager _manager;
 
-    public AppCheckpointHandler(PackageManager manager)
+    public AppCheckpointCommandHandler(PackageManager manager)
     {
         _manager = manager;
     }

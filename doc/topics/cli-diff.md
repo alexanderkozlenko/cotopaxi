@@ -77,7 +77,7 @@ Instruct the program to exit with `1` if there were differences and `0` otherwis
 <p />
 
 - `-h|--help`  
-Prints out a description of how to use the command.
+Show help and usage information.
 
 <p />
 

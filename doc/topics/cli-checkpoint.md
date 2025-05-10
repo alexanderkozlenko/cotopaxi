@@ -74,7 +74,7 @@ The connection string for the Azure Cosmos DB account. Can be specified with `AZ
 <p />
 
 - `-h|--help`  
-Prints out a description of how to use the command.
+Show help and usage information.
 
 <p />
 
