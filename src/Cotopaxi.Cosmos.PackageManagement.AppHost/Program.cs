@@ -3,10 +3,9 @@
 using System.CommandLine;
 using System.CommandLine.Builder;
 using System.CommandLine.Hosting;
+using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
-using Cotopaxi.Cosmos.PackageManagement.AppHost.Commands;
 using Cotopaxi.Cosmos.PackageManagement.AppHost.Invocation;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
@@ -17,43 +16,22 @@ public static class Program
 {
     public static Task<int> Main(string[] args)
     {
-        var command = new RootCommand("The package manager for Azure Cosmos DB")
-        {
-            new AppPackCommand(),
-            new AppDeployCommand(),
-            new AppCheckpointCommand(),
-            new AppDiffCommand(),
-            new AppShowCommand(),
-            new AppFormatCommand(),
-        };
-
-        return new CommandLineBuilder(command)
-            .UseHost(static _ => Host.CreateDefaultBuilder(), ConfigureHostBuilder)
+        return new CommandLineBuilder(Startup.CreateCommand())
+            .UseHost(static _ => Host.CreateDefaultBuilder(), ConfigureHost)
             .CancelOnProcessTermination()
             .UseParseErrorReporting()
-            .UseExceptionHandler()
+            .UseExceptionHandler(HandleException)
             .UseVersionOption()
             .UseHelp(["-h", "--help"])
             .Build()
             .InvokeAsync(args);
 
-        static void ConfigureHostBuilder(IHostBuilder builder)
+        static void ConfigureHost(IHostBuilder builder)
         {
             builder
-                .ConfigureLogging(ConfigureLogging)
-                .ConfigureServices(ConfigureServices)
-                .UseCommandHandler<AppPackCommand, AppPackCommandHandler>()
-                .UseCommandHandler<AppDeployCommand, AppDeployCommandHandler>()
-                .UseCommandHandler<AppCheckpointCommand, AppCheckpointCommandHandler>()
-                .UseCommandHandler<AppDiffCommand, AppDiffCommandHandler>()
-                .UseCommandHandler<AppShowCommand, AppShowCommandHandler>()
-                .UseCommandHandler<AppFormatCommand, AppFormatCommandHandler>();
-        }
+                .ConfigureLogging(ConfigureLogging);
 
-        static void ConfigureServices(IServiceCollection services)
-        {
-            services
-                .AddSingleton<PackageManager>();
+            Startup.ConfigureHost(builder);
         }
 
         static void ConfigureLogging(ILoggingBuilder builder)
@@ -62,6 +40,59 @@ public static class Program
                 .AddConsoleFormatter<LoggingFormatter, ConsoleFormatterOptions>()
                 .AddConsole(static x => x.FormatterName = nameof(LoggingFormatter))
                 .AddFilter("Microsoft", LogLevel.Error);
+        }
+    }
+
+    private static void HandleException(Exception exception, InvocationContext context)
+    {
+        context.ExitCode = 0x00000001;
+
+        var exceptions = new Stack<Exception>();
+
+        UnrollException(exception, exceptions);
+
+        if (!Console.IsOutputRedirected)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+        }
+
+        try
+        {
+            while (exceptions.TryPop(out var current))
+            {
+                Console.Error.WriteLine($"Error 0x{current.HResult:X8}: {current.Message}");
+            }
+        }
+        finally
+        {
+            if (!Console.IsOutputRedirected)
+            {
+                Console.ResetColor();
+            }
+        }
+    }
+
+    private static void UnrollException(Exception exception, Stack<Exception> exceptions)
+    {
+        var current = exception;
+
+        while (current is not null)
+        {
+            if (current is not AggregateException aggregate)
+            {
+                exceptions.Push(current);
+                current = current.InnerException;
+            }
+            else
+            {
+                exceptions.EnsureCapacity(exceptions.Count + aggregate.InnerExceptions.Count);
+                current = null;
+
+                for (var i = 0; i < aggregate.InnerExceptions.Count; i++)
+                {
+                    UnrollException(aggregate.InnerExceptions[^(i + 1)], exceptions);
+                }
+            }
         }
     }
 }
