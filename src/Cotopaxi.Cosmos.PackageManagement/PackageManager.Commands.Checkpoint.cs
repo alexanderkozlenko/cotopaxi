@@ -3,10 +3,12 @@
 #pragma warning disable CA1848
 
 using System.Diagnostics;
+using System.Globalization;
 using System.IO.Packaging;
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Cotopaxi.Cosmos.PackageManagement.Primitives;
 using Cotopaxi.Cosmos.Packaging;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
@@ -42,33 +44,33 @@ public sealed partial class PackageManager
 
         _logger.LogInformation("Generating rollback package {TargetPath} for endpoint {CosmosEndpoint}", rollbackPackagePath, cosmosClient.Endpoint);
 
-        foreach (var sourcePackagePath in sourcePackagePaths)
+        foreach (var packagePath in sourcePackagePaths)
         {
-            _logger.LogInformation("Analyzing source package {SourcePath}", sourcePackagePath);
+            _logger.LogInformation("Analyzing source package {SourcePath}", packagePath);
 
-            using var sourcePackage = Package.Open(sourcePackagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            using var package = Package.Open(packagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
 
-            var sourcePackagePartitions = default(IReadOnlyDictionary<Uri, PackagePartition>);
+            var packagePartitions = default(IReadOnlyDictionary<Uri, PackagePartition>);
 
-            using (var sourcePackageModel = await PackageModel.OpenAsync(sourcePackage, default, cancellationToken).ConfigureAwait(false))
+            using (var packageModel = await PackageModel.OpenAsync(package, default, cancellationToken).ConfigureAwait(false))
             {
-                sourcePackagePartitions = sourcePackageModel.GetPartitions();
+                packagePartitions = packageModel.GetPartitions();
             }
 
-            var sourcePackagePartitionGroupsByDatabase = sourcePackagePartitions
+            var packagePartitionGroupsByDatabase = packagePartitions
                 .GroupBy(static x => x.Value.DatabaseName, StringComparer.Ordinal)
                 .OrderBy(static x => x.Key, StringComparer.Ordinal);
 
-            foreach (var sourcePackagePartitionGroupByDatabase in sourcePackagePartitionGroupsByDatabase)
+            foreach (var packagePartitionGroupByDatabase in packagePartitionGroupsByDatabase)
             {
-                var sourcePackagePartitionGroupsByContainer = sourcePackagePartitionGroupByDatabase
+                var packagePartitionGroupsByContainer = packagePartitionGroupByDatabase
                     .GroupBy(static x => x.Value.ContainerName, StringComparer.Ordinal)
                     .OrderBy(static x => x.Key, StringComparer.Ordinal);
 
-                foreach (var sourcePackagePartitionGroupByContainer in sourcePackagePartitionGroupsByContainer)
+                foreach (var packagePartitionGroupByContainer in packagePartitionGroupsByContainer)
                 {
-                    var container = cosmosClient.GetContainer(sourcePackagePartitionGroupByDatabase.Key, sourcePackagePartitionGroupByContainer.Key);
-                    var containerPartitionKeyPathsKey = (sourcePackagePartitionGroupByDatabase.Key, sourcePackagePartitionGroupByContainer.Key);
+                    var container = cosmosClient.GetContainer(packagePartitionGroupByDatabase.Key, packagePartitionGroupByContainer.Key);
+                    var containerPartitionKeyPathsKey = (packagePartitionGroupByDatabase.Key, packagePartitionGroupByContainer.Key);
 
                     if (!partitionKeyPathsCache.TryGetValue(containerPartitionKeyPathsKey, out var containerPartitionKeyPaths))
                     {
@@ -78,31 +80,31 @@ public sealed partial class PackageManager
                         partitionKeyPathsCache.Add(containerPartitionKeyPathsKey, containerPartitionKeyPaths);
                     }
 
-                    var sourcePackagePartitionGroupsByOperation = sourcePackagePartitionGroupByContainer
+                    var packagePartitionGroupsByOperation = packagePartitionGroupByContainer
                         .GroupBy(static x => x.Value.OperationType)
                         .OrderBy(static x => x.Key);
 
-                    foreach (var sourcePackagePartitionGroupByOperation in sourcePackagePartitionGroupsByOperation)
+                    foreach (var packagePartitionGroupByOperation in packagePartitionGroupsByOperation)
                     {
-                        var sourcePackagePartitionsByOperation = sourcePackagePartitionGroupByOperation
+                        var packagePartitionsByOperation = packagePartitionGroupByOperation
                             .OrderBy(static x => x.Key.OriginalString, StringComparer.Ordinal);
 
-                        foreach (var (sourcePackagePartitionUri, sourcePackagePartition) in sourcePackagePartitionsByOperation)
+                        foreach (var (packagePartitionUri, packagePartition) in packagePartitionsByOperation)
                         {
-                            var sourcePackagePartitionOperationName = sourcePackagePartition.OperationType.ToString().ToLowerInvariant();
-                            var sourcePackagePart = sourcePackage.GetPart(sourcePackagePartitionUri);
-                            var sourceDocuments = default(JsonObject?[]);
+                            var packagePartitionOperationName = packagePartition.OperationType.ToString().ToLowerInvariant();
+                            var packagePart = package.GetPart(packagePartitionUri);
+                            var documents = default(JsonObject?[]);
 
-                            using (var sourcePackagePartStream = sourcePackagePart.GetStream(FileMode.Open, FileAccess.Read))
+                            using (var packagePartStream = packagePart.GetStream(FileMode.Open, FileAccess.Read))
                             {
-                                sourceDocuments = await JsonSerializer.DeserializeAsync<JsonObject?[]>(sourcePackagePartStream, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false) ?? [];
+                                documents = await JsonSerializer.DeserializeAsync<JsonObject?[]>(packagePartStream, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false) ?? [];
                             }
 
-                            deployOperations.EnsureCapacity(deployOperations.Count + sourceDocuments.Length);
+                            deployOperations.EnsureCapacity(deployOperations.Count + documents.Length);
 
-                            for (var i = 0; i < sourceDocuments.Length; i++)
+                            for (var i = 0; i < documents.Length; i++)
                             {
-                                var sourceDocument = sourceDocuments[i];
+                                var sourceDocument = documents[i];
 
                                 if (sourceDocument is null)
                                 {
@@ -111,33 +113,33 @@ public sealed partial class PackageManager
 
                                 _logger.LogInformation(
                                     "Analyzing cdbpkg:{PartitionKey}:$[{DocumentIndex}] for {OperationName} in {DatabaseName}\\{ContainerName}",
-                                    sourcePackagePartition.PartitionKey,
+                                    packagePartition.PartitionKey,
                                     i,
-                                    sourcePackagePartitionOperationName,
-                                    sourcePackagePartition.DatabaseName,
-                                    sourcePackagePartition.ContainerName);
+                                    packagePartitionOperationName,
+                                    packagePartition.DatabaseName,
+                                    packagePartition.ContainerName);
 
                                 CosmosDocument.Prune(sourceDocument);
 
                                 if (!CosmosDocument.TryGetId(sourceDocument, out var documentId))
                                 {
-                                    throw new InvalidOperationException($"Failed to extract document identifier from cdbpkg:{sourcePackagePartitionUri}:$[{i}]");
+                                    throw new InvalidOperationException($"Failed to extract document identifier from cdbpkg:{packagePartitionUri}:$[{i}]");
                                 }
 
                                 if (!CosmosDocument.TryGetPartitionKey(sourceDocument, containerPartitionKeyPaths!, out var documentPartitionKey))
                                 {
-                                    throw new InvalidOperationException($"Failed to extract document partition key from cdbpkg:{sourcePackagePartitionUri}:$[{i}]");
+                                    throw new InvalidOperationException($"Failed to extract document partition key from cdbpkg:{packagePartitionUri}:$[{i}]");
                                 }
 
                                 var documentKey = new PackageDocumentKey(
-                                    sourcePackagePartition.DatabaseName,
-                                    sourcePackagePartition.ContainerName,
+                                    packagePartition.DatabaseName,
+                                    packagePartition.ContainerName,
                                     documentId,
                                     documentPartitionKey);
 
-                                if (!deployOperations.Add((documentKey, sourcePackagePartition.OperationType)))
+                                if (!deployOperations.Add((documentKey, packagePartition.OperationType)))
                                 {
-                                    throw new InvalidOperationException($"A duplicate document+operation entry cdbpkg:{sourcePackagePartitionUri}:$[{i}]");
+                                    throw new InvalidOperationException($"A duplicate document+operation entry cdbpkg:{packagePartitionUri}:$[{i}]");
                                 }
 
                                 if (!deployDocumentStates.TryGetValue(documentKey, out var deployDocumentState))
@@ -150,10 +152,10 @@ public sealed partial class PackageManager
 
                                         _logger.LogInformation(
                                             "Requesting document for cdbpkg:{PartitionKey}:$[{DocumentIndex}] from {DatabaseName}\\{ContainerName} - HTTP {StatusCode}",
-                                            sourcePackagePartition.PartitionKey,
+                                            packagePartition.PartitionKey,
                                             i,
-                                            sourcePackagePartition.DatabaseName,
-                                            sourcePackagePartition.ContainerName,
+                                            packagePartition.DatabaseName,
+                                            packagePartition.ContainerName,
                                             (int)operationResponse.StatusCode);
 
                                         targetDocument = operationResponse.Resource;
@@ -164,10 +166,10 @@ public sealed partial class PackageManager
                                         {
                                             _logger.LogInformation(
                                                 "Requesting document for cdbpkg:{PartitionKey}:$[{DocumentIndex}] from {DatabaseName}\\{ContainerName} - HTTP {StatusCode}",
-                                                sourcePackagePartition.PartitionKey,
+                                                packagePartition.PartitionKey,
                                                 i,
-                                                sourcePackagePartition.DatabaseName,
-                                                sourcePackagePartition.ContainerName,
+                                                packagePartition.DatabaseName,
+                                                packagePartition.ContainerName,
                                                 (int)ex.StatusCode);
                                         }
                                         else
@@ -185,7 +187,7 @@ public sealed partial class PackageManager
                                     deployDocumentStates.Add(documentKey, deployDocumentState);
                                 }
 
-                                deployDocumentState.Sources.Add(sourcePackagePartition.OperationType, sourceDocument);
+                                deployDocumentState.Sources.Add(packagePartition.OperationType, sourceDocument);
                             }
                         }
                     }
@@ -274,69 +276,76 @@ public sealed partial class PackageManager
 
         try
         {
-            using var rollbackPackage = Package.Open(rollbackPackagePath, FileMode.Create, FileAccess.Write, FileShare.None);
-            using var rollbackPackageModel = await PackageModel.OpenAsync(rollbackPackage, default, cancellationToken).ConfigureAwait(false);
+            using var package = Package.Open(rollbackPackagePath, FileMode.Create, FileAccess.Write, FileShare.None);
+            using var packageModel = await PackageModel.OpenAsync(package, default, cancellationToken).ConfigureAwait(false);
 
-            var rollbackOperationGroupsByDatabase = rollbackOperations
+            var operationGroupsByDatabase = rollbackOperations
                 .GroupBy(static x => x.DatabaseName, StringComparer.Ordinal)
                 .OrderBy(static x => x.Key, StringComparer.Ordinal);
 
-            foreach (var rollbackOperationGroupByDatabase in rollbackOperationGroupsByDatabase)
+            foreach (var operationGroupByDatabase in operationGroupsByDatabase)
             {
-                var rollbackOperationGroupsByContainer = rollbackOperationGroupByDatabase
+                var operationGroupsByContainer = operationGroupByDatabase
                     .GroupBy(static x => x.ContainerName, StringComparer.Ordinal)
                     .OrderBy(static x => x.Key, StringComparer.Ordinal);
 
-                foreach (var rollbackOperationGroupByContainer in rollbackOperationGroupsByContainer)
+                foreach (var operationGroupByContainer in operationGroupsByContainer)
                 {
-                    var rollbackOperationGroupsByOperation = rollbackOperationGroupByContainer
+                    var operationGroupsByOperation = operationGroupByContainer
                         .GroupBy(static x => x.OperationType)
                         .OrderBy(static x => x.Key);
 
-                    foreach (var rollbackOperationGroupByOperation in rollbackOperationGroupsByOperation)
+                    foreach (var operationGroupByOperation in operationGroupsByOperation)
                     {
-                        var packagePartitionKey = Guid.CreateVersion7();
+                        var packagePartitionKeySource = string.Format(
+                            CultureInfo.InvariantCulture,
+                            "{0}:{1}:{2}",
+                            operationGroupByDatabase.Key,
+                            operationGroupByContainer.Key,
+                            operationGroupByOperation.Key);
 
-                        var rollbackPackagePartition = new PackagePartition(
+                        var packagePartitionKey = Uuid.CreateVersion8(packagePartitionKeySource);
+
+                        var packagePartition = new PackagePartition(
                             packagePartitionKey,
-                            rollbackOperationGroupByDatabase.Key,
-                            rollbackOperationGroupByContainer.Key,
-                            rollbackOperationGroupByOperation.Key);
+                            operationGroupByDatabase.Key,
+                            operationGroupByContainer.Key,
+                            operationGroupByOperation.Key);
 
-                        var packagePartitionOperationName = rollbackPackagePartition.OperationType.ToString().ToLowerInvariant();
-                        var rollbackPackagePartitionUri = rollbackPackageModel.CreatePartition(rollbackPackagePartition);
+                        var packagePartitionOperationName = packagePartition.OperationType.ToString().ToLowerInvariant();
+                        var packagePartitionUri = packageModel.CreatePartition(packagePartition);
 
-                        var rollbackEntries = rollbackOperationGroupByOperation
+                        var documents = operationGroupByOperation
                             .Select(static x => x.Document)
                             .ToArray();
 
-                        for (var i = 0; i < rollbackEntries.Length; i++)
+                        for (var i = 0; i < documents.Length; i++)
                         {
                             _logger.LogInformation(
                                 "Packing cdbpkg:{PartitionKey}:$[{DocumentIndex}] for {OperationName} in {DatabaseName}\\{ContainerName}",
                                 packagePartitionKey,
                                 i,
                                 packagePartitionOperationName,
-                                rollbackPackagePartition.DatabaseName,
-                                rollbackPackagePartition.ContainerName);
+                                packagePartition.DatabaseName,
+                                packagePartition.ContainerName);
                         }
 
-                        var rollbackPackagePart = rollbackPackage.CreatePart(rollbackPackagePartitionUri, "application/json", default);
+                        var packagePart = package.CreatePart(packagePartitionUri, "application/json", default);
 
-                        using (var rollbackPackagePartStream = rollbackPackagePart.GetStream(FileMode.Create, FileAccess.Write))
+                        using (var packagePartStream = packagePart.GetStream(FileMode.Create, FileAccess.Write))
                         {
-                            await JsonSerializer.SerializeAsync(rollbackPackagePartStream, rollbackEntries, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+                            await JsonSerializer.SerializeAsync(packagePartStream, documents, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
                         }
                     }
                 }
             }
 
-            await rollbackPackageModel.SaveAsync(cancellationToken).ConfigureAwait(false);
+            await packageModel.SaveAsync(cancellationToken).ConfigureAwait(false);
 
-            rollbackPackage.PackageProperties.Identifier = Guid.CreateVersion7().ToString();
-            rollbackPackage.PackageProperties.Subject = cosmosClient.Endpoint.AbsoluteUri;
-            rollbackPackage.PackageProperties.Created = DateTime.UtcNow;
-            rollbackPackage.PackageProperties.Creator = s_applicationName;
+            package.PackageProperties.Identifier = Guid.CreateVersion7().ToString();
+            package.PackageProperties.Subject = cosmosClient.Endpoint.AbsoluteUri;
+            package.PackageProperties.Created = DateTime.UtcNow;
+            package.PackageProperties.Creator = s_applicationName;
         }
         catch (Exception ex)
         {

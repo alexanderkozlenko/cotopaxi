@@ -15,13 +15,13 @@ public sealed class UuidTests
     [DataRow("A", "A", true)]
     [DataRow("A", "b", false)]
     [DataRow("A", "B", false)]
-    public void CreateVersion8(string source1, string source2, bool expected)
+    public void CreateVersion8(string source1, string source2, bool equals)
     {
         var uuid1 = Uuid.CreateVersion8(source1);
         var uuid2 = Uuid.CreateVersion8(source2);
 
-        var actual = uuid1 == uuid2;
-
-        Assert.AreEqual(expected, actual);
+        Assert.AreEqual(8, uuid1.Version);
+        Assert.AreEqual(8, uuid2.Version);
+        Assert.AreEqual(equals, uuid1 == uuid2);
     }
 }

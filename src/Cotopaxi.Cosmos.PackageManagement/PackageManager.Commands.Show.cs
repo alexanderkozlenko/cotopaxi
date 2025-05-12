@@ -24,12 +24,12 @@ public sealed partial class PackageManager
 
         foreach (var packagePath in packagePaths)
         {
-            _logger.LogInformation("cdbpkg: {PackagePath}", packagePath);
+            _logger.LogInformation("cdbpkg {PackagePath}", packagePath);
 
             using var package = Package.Open(packagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
 
             _logger.LogInformation(
-                "cdbpkg: {PackageIdentifier} {PackageTimestamp} {PackageSummary}",
+                "cdbpkg {PackageIdentifier} {PackageTimestamp} {PackageSummary}",
                 package.PackageProperties.Identifier ?? string.Empty,
                 package.PackageProperties.Created?.ToUniversalTime().ToString("O") ?? string.Empty,
                 package.PackageProperties.Version ?? package.PackageProperties.Subject ?? string.Empty);

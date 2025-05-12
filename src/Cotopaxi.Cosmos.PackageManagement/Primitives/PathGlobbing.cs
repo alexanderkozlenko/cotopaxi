@@ -19,7 +19,7 @@ public static class PathGlobbing
             searchPattern = Path.GetRelativePath(basePath, searchPattern);
         }
 
-        var matcher = new Matcher().AddInclude(searchPattern);
+        var matcher = new Matcher(StringComparison.OrdinalIgnoreCase).AddInclude(searchPattern);
         var match = matcher.Execute(new DirectoryInfoWrapper(new(basePath)));
 
         return match.Files
