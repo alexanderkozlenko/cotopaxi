@@ -140,7 +140,7 @@ The connection string for the Azure Cosmos DB account. Can be specified with <co
 <p></p>
 <ul>
 <li><code>--profile</code><br>
-The path to the deployment profile or profiles that specify documents eligible for updates (schema: <a href="https://alexanderkozlenko.github.io/cotopaxi/schemas/profile.schema.json"><code>profile.schema.json</code></a>).</li>
+The path to the deployment profile or profiles that specify documents eligible for updates, based on schema <a href="https://alexanderkozlenko.github.io/cotopaxi/schemas/profile.schema.json"><code>profile.schema.json</code></a> (globbing patterns are supported).</li>
 </ul>
 <p></p>
 <ul>
@@ -150,32 +150,29 @@ Show which operations would be executed instead of actually executing them.</li>
 <p></p>
 <ul>
 <li><code>-h|--help</code><br>
-Prints out a description of how to use the command.</li>
+Show help and usage information.</li>
 </ul>
 <p></p>
 <h2 id="examples">Examples</h2>
 <p></p>
-<p>Deploying a package locally:</p>
+<p>Deploying packages with Azure Pipelines:</p>
 <p></p>
-<pre><code class="lang-txt">cotopaxi deploy example.cdbpkg --endpoint https://example.documents.azure.com:443 --key $key$
+<pre><code class="lang-yaml">- script: &gt;
+    dotnet tool run cotopaxi deploy
+    $(System.ArtifactsDirectory)/**/*.cdbpkg
+    --endpoint $(AZURE_COSMOS_ENDPOINT)
+    --key $(AZURE_COSMOS_KEY)
 </code></pre>
 <p></p>
-<p>Deploying a package locally using only <code>AZURE_COSMOS_KEY</code> environment variable:</p>
+<p>Deploying packages with Azure Pipelines using <code>AZURE_COSMOS_ENDPOINT</code> and <code>AZURE_COSMOS_KEY</code> environment variables and deployment profiles:</p>
 <p></p>
-<pre><code class="lang-txt">cotopaxi deploy example.cdbpkg --endpoint https://example.documents.azure.com:443
+<pre><code class="lang-yaml">- script: &gt;
+    dotnet tool run cotopaxi deploy
+    $(System.ArtifactsDirectory)/**/*.cdbpkg
+    --profile $(System.ArtifactsDirectory)/**/*.profile.json
 </code></pre>
 <p></p>
-<p>Deploying packages with an Azure DevOps pipeline using both environment variables:</p>
-<p></p>
-<pre><code class="lang-txt">cotopaxi deploy $(System.ArtifactsDirectory)/**/*.cdbpkg
-</code></pre>
-<p></p>
-<p>Deploying packages with an Azure DevOps pipeline using both environment variables and deployment profiles:</p>
-<p></p>
-<pre><code class="lang-txt">cotopaxi deploy $(System.ArtifactsDirectory)/**/*.cdbpkg --profile $(System.ArtifactsDirectory)/**/*.cdbdep
-</code></pre>
-<p></p>
-<p>The corresponding deployment profile <code>example.cdbdep</code>:</p>
+<p>The corresponding deployment profile <code>adventureworks-v1.0.0.profile.json</code>:</p>
 <p></p>
 <pre><code class="lang-json">[
   {
@@ -188,6 +185,12 @@ Prints out a description of how to use the command.</li>
   }
 ]
 </code></pre>
+<p></p>
+<h2 id="references">References</h2>
+<p></p>
+<ul>
+<li><a href="https://learn.microsoft.com/en-us/azure/cosmos-db/concepts-limits">Microsoft - Azure Cosmos DB service quotas</a></li>
+</ul>
 
 </article>
 

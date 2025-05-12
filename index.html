@@ -2,9 +2,9 @@
 <html>
   <head>
     <meta charset="utf-8">
-      <title>Cotopaxi - Overview </title>
+      <title>cotopaxi </title>
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <meta name="title" content="Cotopaxi - Overview ">
+      <meta name="title" content="cotopaxi ">
       
       
       <link rel="icon" href="images/app-32.png">
@@ -84,62 +84,43 @@
         </div>
 
         <article data-uid="">
-<h1 id="cotopaxi---overview">Cotopaxi - Overview</h1>
+<h1 id="cotopaxi">cotopaxi</h1>
 
 <p></p>
 <h2 id="about">About</h2>
 <p></p>
-<p>A toolset for deploying data to Azure Cosmos DB as part of a cloud-native application, designed for straightforward integration with CI/CD pipelines. The package format is based on the Common Data Model (CDM) and the Open Packaging Conventions (OPC) standards.</p>
+<p>A toolset for deploying data to Azure Cosmos DB as part of a cloud-native application, designed for straightforward integration with CI/CD pipelines. The package format is based on Microsoft Common Data Model (CDM) and ECMA-376 (Open Packaging Conventions).</p>
 <p></p>
-<h2 id="how-to-use">How to Use</h2>
-<p></p>
-<p>Creating a package project:</p>
-<p></p>
-<pre><code class="lang-json">{
-  &quot;databases&quot;: [
-    {
-      &quot;name&quot;: &quot;adventureworks&quot;,
-      &quot;containers&quot;: [
-        {
-          &quot;name&quot;: &quot;products&quot;,
-          &quot;operations&quot;: [
-            {
-              &quot;name&quot;: &quot;upsert&quot;,
-              &quot;documents&quot;: [
-                &quot;adventureworks/products/**/*.json&quot;
-              ]
-            }
-          ]
-        }
-      ]
-    }
-  ]
-}
+<pre><code class="lang-mermaid">flowchart LR
+    s1[/&quot;JSON&lt;br /&gt;documents&quot;/]
+    s2[[&quot;cotopaxi&lt;br /&gt;pack&quot;]]
+    s3[/&quot;CDM&lt;br /&gt;&amp;nbsp;&amp;nbsp;package&amp;nbsp;&amp;nbsp;&quot;/]
+    s4[[&quot;cotopaxi&lt;br /&gt;deploy&quot;]]
+    s5[(&quot;Azure&lt;br /&gt;Cosmos DB&quot;)]
+    s1--&gt;s2--&gt;s3--&gt;s4--&gt;s5
+    classDef default stroke-width: 3px, font-family: system-ui
 </code></pre>
 <p></p>
-<p>Packing the database documents for deployment in Azure DevOps:</p>
+<p>Packing the database documents specified in a database package project (an example with Azure Pipelines):</p>
 <p></p>
-<pre><code class="lang-txt">cotopaxi pack $(Build.SourcesDirectory)/adventureworks.json $(Build.StagingDirectory)/adventureworks.cdbpkg
-
+<pre><code class="lang-txt">$ dotnet tool run cotopaxi pack $(Build.SourcesDirectory)/adventureworks.json $(Build.StagingDirectory)/adventureworks-v1.0.0.cdbpkg
 Packing /home/vsts/work/1/s/adventureworks/products/bikes.json:$[0] for upsert in adventureworks\products
 Packing /home/vsts/work/1/s/adventureworks/products/bikes.json:$[1] for upsert in adventureworks\products
 </code></pre>
 <p></p>
-<p>Deploying the package to an Azure Cosmos DB account in Azure DevOps:</p>
+<p>Deploying the created database package to a configured Azure Cosmos DB account (an example with Azure Pipelines):</p>
 <p></p>
-<pre><code class="lang-txt">cotopaxi deploy $(System.ArtifactsDirectory)/**/*.cdbpkg
-
-Deploying package /home/vsts/work/r1/a/adventureworks.cdbpkg to endpoint https://cosmos-adventureworks.documents.azure.com:443
+<pre><code class="lang-txt">$ dotnet tool run cotopaxi deploy $(System.ArtifactsDirectory)/**/*.cdbpkg
+Deploying package /home/vsts/work/r1/a/adventureworks-v1.0.0.cdbpkg to endpoint https://adventureworks.documents.azure.com:443
 Executing upsert cdbpkg:dfcf04cb-886e-ae82-9172-fa4a1acb5d8b:$[0] in adventureworks\products - HTTP 200
 Executing upsert cdbpkg:dfcf04cb-886e-ae82-9172-fa4a1acb5d8b:$[1] in adventureworks\products - HTTP 200
 </code></pre>
 <p></p>
-<h2 id="documentation">Documentation</h2>
+<h2 id="references">References</h2>
 <p></p>
 <ul>
-<li><a href="https://learn.microsoft.com/en-us/azure/cosmos-db/concepts-limits">Microsoft - Azure Cosmos DB service quotas</a></li>
 <li><a href="https://learn.microsoft.com/en-us/common-data-model">Microsoft - Common Data Model</a></li>
-<li><a href="https://ecma-international.org/publications-and-standards/standards/ecma-376">ECMA - Open Packaging Conventions</a></li>
+<li><a href="https://ecma-international.org/publications-and-standards/standards/ecma-376">ECMA International - ECMA-376</a></li>
 </ul>
 
 </article>

@@ -2,9 +2,9 @@
 <html>
   <head>
     <meta charset="utf-8">
-      <title>cotopaxi pack </title>
+      <title>cotopaxi show </title>
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <meta name="title" content="cotopaxi pack ">
+      <meta name="title" content="cotopaxi show ">
       
       
       <link rel="icon" href="../images/app-32.png">
@@ -16,7 +16,7 @@
       <meta name="docfx:rel" content="../">
       
       <meta name="docfx:disabletocfilter" content="true">
-      <meta name="docfx:docurl" content="https://github.com/alexanderkozlenko/cotopaxi/blob/gh-pages/topics/cli-pack.md/#L1">
+      <meta name="docfx:docurl" content="https://github.com/alexanderkozlenko/cotopaxi/blob/gh-pages/topics/cli-show.md/#L1">
       <meta name="loc:inThisArticle" content="In this article">
       <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
       <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
@@ -84,74 +84,28 @@
         </div>
 
         <article data-uid="">
-<h1 id="cotopaxi-pack">cotopaxi pack</h1>
+<h1 id="cotopaxi-show">cotopaxi show</h1>
 
 <p></p>
 <h2 id="name">Name</h2>
 <p></p>
-<p><code>cotopaxi pack</code> - Packs the deployment entries into a database package.</p>
+<p><code>cotopaxi show</code> - Shows information about database packages.</p>
 <p></p>
 <h2 id="synopsis">Synopsis</h2>
 <p></p>
-<pre><code class="lang-txt">cotopaxi pack &lt;project&gt; &lt;package&gt; [--version &lt;version&gt;]
+<pre><code class="lang-txt">cotopaxi show &lt;package&gt;
 
-cotopaxi pack -h|--help
+cotopaxi show -h|--help
 </code></pre>
-<p></p>
-<h2 id="description">Description</h2>
-<p></p>
-<p>The package format supports the following deployment operations:</p>
-<p></p>
-<ul>
-<li><code>create</code><br>
-Given a unique identifier and partition key values, creates a document if it does not exist.</li>
-<li><code>upsert</code><br>
-Given a unique identifier and partition key values, creates a document if it does not exist, or update if it exists.</li>
-<li><code>patch</code><br>
-Given a unique identifier and partition key values, performs partial document update if it exists.</li>
-<li><code>delete</code><br>
-Given a unique identifier and partition key values, deletes a document if it exists.</li>
-</ul>
-<p></p>
-<p>Partial document update performs Azure Cosmos DB <code>set</code> operation on specified root-level document properties.</p>
-<p></p>
-<p>The project format supports relative globbing patterns and the following variables in document paths:</p>
-<p></p>
-<table>
-<thead>
-<tr>
-<th style="text-align: left;">Name</th>
-<th style="text-align: left;">Value</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align: left;"><code>Version</code></td>
-<td style="text-align: left;">The value specified with the <code>--version &lt;version&gt;</code> option</td>
-</tr>
-</tbody>
-</table>
-<p></p>
-<p>A documents file must be a JSON array of objects, where each object has the <code>id</code> property and partition key properties specified.</p>
 <p></p>
 <h2 id="arguments">Arguments</h2>
 <p></p>
 <ul>
-<li><code>project</code><br>
-The path to the project that specifies deployment entries to include, based on schema <a href="https://alexanderkozlenko.github.io/cotopaxi/schemas/project.schema.json"><code>project.schema.json</code></a>.</li>
-</ul>
-<p></p>
-<ul>
 <li><code>package</code><br>
-The path to a resulting database package.</li>
+The path to the database package or packages to show information about (globbing patterns are supported).</li>
 </ul>
 <p></p>
 <h2 id="options">Options</h2>
-<p></p>
-<ul>
-<li><code>--version &lt;version&gt;</code><br>
-Sets the package version information.</li>
-</ul>
 <p></p>
 <ul>
 <li><code>-h|--help</code><br>
@@ -160,60 +114,15 @@ Show help and usage information.</li>
 <p></p>
 <h2 id="examples">Examples</h2>
 <p></p>
-<p>Packing documents with Azure Pipelines:</p>
+<p>Showing information about a database package:</p>
 <p></p>
-<pre><code class="lang-yaml">- script: &gt;
-    dotnet tool run cotopaxi pack
-    $(Build.SourcesDirectory)/adventureworks.json
-    $(Build.StagingDirectory)/adventureworks-v1.0.0.cdbpkg
+<pre><code class="lang-txt">cotopaxi show adventureworks-v1.0.0.cdbpkg
 </code></pre>
 <p></p>
-<p>The corresponding package source <code>adventureworks/products/bikes.json</code>:</p>
+<p>Showing information about available database packages:</p>
 <p></p>
-<pre><code class="lang-json">[
-  {
-    &quot;id&quot;: &quot;3202cb6f-42af-4fe6-a3c5-d61927721e75&quot;,
-    &quot;category&quot;: &quot;bikes&quot;,
-    &quot;name&quot;: &quot;Mountain-100 Silver, 38&quot;
-  },
-  {
-    &quot;id&quot;: &quot;e1894e24-550d-4fe3-9784-47d614600baa&quot;,
-    &quot;category&quot;: &quot;bikes&quot;,
-    &quot;name&quot;: &quot;Mountain-500 Black, 40&quot;
-  }
-]
+<pre><code class="lang-txt">cotopaxi show **/*.cdbpkg
 </code></pre>
-<p></p>
-<p>The corresponding package project <code>adventureworks.json</code>:</p>
-<p></p>
-<pre><code class="lang-json">{
-  &quot;databases&quot;: [
-    {
-      &quot;name&quot;: &quot;adventureworks&quot;,
-      &quot;containers&quot;: [
-        {
-          &quot;name&quot;: &quot;products&quot;,
-          &quot;operations&quot;: [
-            {
-              &quot;name&quot;: &quot;upsert&quot;,
-              &quot;documents&quot;: [
-                &quot;adventureworks/products/**/*.json&quot;,
-                &quot;adventureworks/products/**/*-v$(Version).json&quot;
-              ]
-            }
-          ]
-        }
-      ]
-    }
-  ]
-}
-</code></pre>
-<p></p>
-<h2 id="references">References</h2>
-<p></p>
-<ul>
-<li><a href="https://learn.microsoft.com/en-us/azure/cosmos-db/concepts-limits">Microsoft - Azure Cosmos DB service quotas</a></li>
-</ul>
 
 </article>
 

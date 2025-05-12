@@ -109,12 +109,12 @@ cotopaxi diff -h|--help
 <p></p>
 <ul>
 <li><code>package1</code><br>
-The database package to compare.</li>
+The path to the database package to compare.</li>
 </ul>
 <p></p>
 <ul>
 <li><code>package2</code><br>
-The database package to compare with.</li>
+The path to the database package to compare with.</li>
 </ul>
 <p></p>
 <h2 id="options">Options</h2>
@@ -146,19 +146,19 @@ Instruct the program to exit with <code>1</code> if there were differences and <
 <p></p>
 <ul>
 <li><code>-h|--help</code><br>
-Prints out a description of how to use the command.</li>
+Show help and usage information.</li>
 </ul>
 <p></p>
 <h2 id="examples">Examples</h2>
 <p></p>
-<p>Show changes in a new version of database package:</p>
+<p>Showing changes in a new version of database package:</p>
 <p></p>
-<pre><code class="lang-txt">cotopaxi diff example-v2.cdbpkg example-v1.cdbpkg --endpoint https://example.documents.azure.com:443 --key $key$
+<pre><code class="lang-txt">cotopaxi diff adventureworks-v1.0.1.cdbpkg adventureworks-v1.0.0.cdbpkg
 </code></pre>
 <p></p>
-<p>Generate a deployment profile based on changes in a new version of database package:</p>
+<p>Showing changes in a new version of database package and generating a deployment profile based on changes:</p>
 <p></p>
-<pre><code class="lang-txt">cotopaxi diff example-v2.cdbpkg example-v1.cdbpkg --endpoint https://example.documents.azure.com:443 --key $key$ --profile example-v2.cdbdep
+<pre><code class="lang-txt">cotopaxi diff adventureworks-v1.0.1.cdbpkg adventureworks-v1.0.0.cdbpkg --profile adventureworks-v1.0.1.profile.json
 </code></pre>
 
 </article>
