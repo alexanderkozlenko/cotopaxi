@@ -94,7 +94,7 @@
 <pre><code class="lang-mermaid">flowchart LR
     s1[/&quot;JSON&lt;br /&gt;documents&quot;/]
     s2[[&quot;cotopaxi&lt;br /&gt;pack&quot;]]
-    s3[/&quot;CDM&lt;br /&gt;&amp;nbsp;&amp;nbsp;package&amp;nbsp;&amp;nbsp;&quot;/]
+    s3[/&quot;CDM&lt;br /&gt;package&quot;/]
     s4[[&quot;cotopaxi&lt;br /&gt;deploy&quot;]]
     s5[(&quot;Azure&lt;br /&gt;Cosmos DB&quot;)]
     s1--&gt;s2--&gt;s3--&gt;s4--&gt;s5
@@ -104,16 +104,16 @@
 <p>Packing the database documents specified in a database package project (an example with Azure Pipelines):</p>
 <p></p>
 <pre><code class="lang-txt">$ dotnet tool run cotopaxi pack $(Build.SourcesDirectory)/adventureworks.json $(Build.StagingDirectory)/adventureworks-v1.0.0.cdbpkg
-Packing /home/vsts/work/1/s/adventureworks/products/bikes.json:$[0] for upsert in adventureworks\products
-Packing /home/vsts/work/1/s/adventureworks/products/bikes.json:$[1] for upsert in adventureworks\products
+/home/vsts/work/1/s/adventureworks/products/bikes.json:$[0]: upsert adventureworks\products\3202cb6f-42af-4fe6-a3c5-d61927721e75 (3)
+/home/vsts/work/1/s/adventureworks/products/bikes.json:$[1]: upsert adventureworks\products\e1894e24-550d-4fe3-9784-47d614600baa (3)
 </code></pre>
 <p></p>
 <p>Deploying the created database package to a configured Azure Cosmos DB account (an example with Azure Pipelines):</p>
 <p></p>
 <pre><code class="lang-txt">$ dotnet tool run cotopaxi deploy $(System.ArtifactsDirectory)/**/*.cdbpkg
-Deploying package /home/vsts/work/r1/a/adventureworks-v1.0.0.cdbpkg to endpoint https://adventureworks.documents.azure.com:443
-Executing upsert cdbpkg:dfcf04cb-886e-ae82-9172-fa4a1acb5d8b:$[0] in adventureworks\products - HTTP 200
-Executing upsert cdbpkg:dfcf04cb-886e-ae82-9172-fa4a1acb5d8b:$[1] in adventureworks\products - HTTP 200
+/home/vsts/work/r1/a/adventureworks-v1.0.0.cdbpkg &gt;&gt;&gt; https://adventureworks.documents.azure.com:443
+upsert adventureworks\products\3202cb6f-42af-4fe6-a3c5-d61927721e75 [&quot;bikes&quot;]: HTTP 200 (5.67 RU)
+upsert adventureworks\products\e1894e24-550d-4fe3-9784-47d614600baa [&quot;bikes&quot;]: HTTP 200 (5.67 RU)
 </code></pre>
 <p></p>
 <h2 id="references">References</h2>
