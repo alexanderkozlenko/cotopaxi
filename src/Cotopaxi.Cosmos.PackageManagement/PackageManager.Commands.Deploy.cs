@@ -5,7 +5,6 @@
 using System.Collections.Frozen;
 using System.Diagnostics;
 using System.IO.Packaging;
-using System.Net;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Cotopaxi.Cosmos.PackageManagement.Contracts;
@@ -46,11 +45,11 @@ public sealed partial class PackageManager
         {
             if (!dryRun)
             {
-                _logger.LogInformation("Deploying package {PackagePath} to endpoint {CosmosEndpoint}", packagePath, cosmosClient.Endpoint);
+                _logger.LogInformation("{PackagePath} >>> {CosmosEndpoint}", packagePath, cosmosClient.Endpoint);
             }
             else
             {
-                _logger.LogInformation("[dry-run] Deploying package {PackagePath} to endpoint {CosmosEndpoint}", packagePath, cosmosClient.Endpoint);
+                _logger.LogInformation("[dry-run] {PackagePath} >>> {CosmosEndpoint}", packagePath, cosmosClient.Endpoint);
             }
 
             using var package = Package.Open(packagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -120,12 +119,12 @@ public sealed partial class PackageManager
 
                                 if (!CosmosDocument.TryGetId(document, out var documentId))
                                 {
-                                    throw new InvalidOperationException($"Failed to extract document identifier from cdbpkg:{packagePartitionUri}:$[{i}]");
+                                    throw new InvalidOperationException($"Failed to extract document identifier from {packagePartitionUri}:$[{i}]");
                                 }
 
                                 if (!CosmosDocument.TryGetPartitionKey(document, containerPartitionKeyPaths, out var documentPartitionKey))
                                 {
-                                    throw new InvalidOperationException($"Failed to extract document partition key from cdbpkg:{packagePartitionUri}:$[{i}]");
+                                    throw new InvalidOperationException($"Failed to extract document partition key from {packagePartitionUri}:$[{i}]");
                                 }
 
                                 var documentKey = new PackageDocumentKey(
@@ -136,7 +135,7 @@ public sealed partial class PackageManager
 
                                 if (!deployOperations.Add((documentKey, packagePartition.OperationType)))
                                 {
-                                    throw new InvalidOperationException($"A duplicate document+operation entry cdbpkg:{packagePartitionUri}:$[{i}]");
+                                    throw new InvalidOperationException($"A duplicate document+operation entry {packagePartitionUri}:$[{i}]");
                                 }
 
                                 if (!dryRun)
@@ -181,29 +180,31 @@ public sealed partial class PackageManager
                                             }
 
                                             _logger.LogInformation(
-                                                "Executing {OperationName} cdbpkg:{PartitionKey}:$[{DocumentIndex}] in {DatabaseName}\\{ContainerName} - HTTP {StatusCode}",
+                                                "{OperationName} {DatabaseName}\\{ContainerName}\\{DocumentId} {DocumentPartitionKey}: HTTP {StatusCode} ({RU:F2} RU)",
                                                 packagePartitionOperationName,
-                                                packagePartition.PartitionKey,
-                                                i,
                                                 packagePartition.DatabaseName,
                                                 packagePartition.ContainerName,
-                                                (int)operationResponse.StatusCode);
+                                                documentId,
+                                                documentPartitionKey,
+                                                (int)operationResponse.StatusCode,
+                                                Math.Round(operationResponse.RequestCharge, 2));
 
                                         }
                                         catch (CosmosException ex)
                                         {
-                                            if (((packagePartition.OperationType == PackageOperationType.Create) && (ex.StatusCode == HttpStatusCode.Conflict)) ||
-                                                ((packagePartition.OperationType == PackageOperationType.Patch) && (ex.StatusCode == HttpStatusCode.NotFound)) ||
-                                                ((packagePartition.OperationType == PackageOperationType.Delete) && (ex.StatusCode == HttpStatusCode.NotFound)))
+                                            if ((((int)ex.StatusCode == 404) && (packagePartition.OperationType == PackageOperationType.Delete)) ||
+                                                (((int)ex.StatusCode == 409) && (packagePartition.OperationType == PackageOperationType.Create)) ||
+                                                (((int)ex.StatusCode == 404) && (packagePartition.OperationType == PackageOperationType.Patch)))
                                             {
                                                 _logger.LogWarning(
-                                                    "Executing {OperationName} cdbpkg:{PartitionKey}:$[{DocumentIndex}] in {DatabaseName}\\{ContainerName} - HTTP {StatusCode}",
+                                                    "{OperationName} {DatabaseName}\\{ContainerName}\\{DocumentId} {DocumentPartitionKey}: HTTP {StatusCode} ({RU:F2} RU)",
                                                     packagePartitionOperationName,
-                                                    packagePartition.PartitionKey,
-                                                    i,
                                                     packagePartition.DatabaseName,
                                                     packagePartition.ContainerName,
-                                                    (int)ex.StatusCode);
+                                                    documentId,
+                                                    documentPartitionKey,
+                                                    (int)ex.StatusCode,
+                                                    Math.Round(ex.RequestCharge, 2));
                                             }
                                             else
                                             {
@@ -211,38 +212,18 @@ public sealed partial class PackageManager
                                             }
                                         }
                                     }
-                                    else
-                                    {
-                                        _logger.LogInformation(
-                                            "Executing {OperationName} cdbpkg:{PartitionKey}:$[{DocumentIndex}] in {DatabaseName}\\{ContainerName} - SKIPPED",
-                                            packagePartitionOperationName,
-                                            packagePartition.PartitionKey,
-                                            i,
-                                            packagePartition.DatabaseName,
-                                            packagePartition.ContainerName);
-                                    }
                                 }
                                 else
                                 {
                                     if ((eligibleDocumentKeys is null) || eligibleDocumentKeys.Contains(documentKey))
                                     {
                                         _logger.LogInformation(
-                                            "[dry-run] Executing {OperationName} cdbpkg:{PartitionKey}:$[{DocumentIndex}] in {DatabaseName}\\{ContainerName} - HTTP ???",
+                                            "[dry-run] {OperationName} {DatabaseName}\\{ContainerName}\\{DocumentId} {DocumentPartitionKey}: HTTP ??? (?.?? RU)",
                                             packagePartitionOperationName,
-                                            packagePartition.PartitionKey,
-                                            i,
                                             packagePartition.DatabaseName,
-                                            packagePartition.ContainerName);
-                                    }
-                                    else
-                                    {
-                                        _logger.LogInformation(
-                                            "[dry-run] Executing {OperationName} cdbpkg:{PartitionKey}:$[{DocumentIndex}] in {DatabaseName}\\{ContainerName} - SKIPPED",
-                                            packagePartitionOperationName,
-                                            packagePartition.PartitionKey,
-                                            i,
-                                            packagePartition.DatabaseName,
-                                            packagePartition.ContainerName);
+                                            packagePartition.ContainerName,
+                                            documentId,
+                                            documentPartitionKey);
                                     }
                                 }
                             }

@@ -5,6 +5,7 @@
 using System.Diagnostics;
 using System.IO.Packaging;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Cotopaxi.Cosmos.Packaging;
 using Microsoft.Extensions.Logging;
 
@@ -12,58 +13,70 @@ namespace Cotopaxi.Cosmos.PackageManagement;
 
 public sealed partial class PackageManager
 {
-    public async Task<bool> ShowPackageInfoAsync(IReadOnlyCollection<string> packagePaths, CancellationToken cancellationToken)
+    public async Task<bool> ShowPackageInfoAsync(string packagePath, CancellationToken cancellationToken)
     {
-        Debug.Assert(packagePaths is not null);
+        Debug.Assert(packagePath is not null);
 
-        var jsonDocumentOptions = new JsonDocumentOptions
+        using var package = Package.Open(packagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+
+        var packageSummary = package.PackageProperties.Version ?? package.PackageProperties.Subject;
+
+        if (!string.IsNullOrEmpty(packageSummary))
         {
-            AllowTrailingCommas = true,
-            CommentHandling = JsonCommentHandling.Skip,
-        };
-
-        foreach (var packagePath in packagePaths)
-        {
-            _logger.LogInformation("cdbpkg {PackagePath}", packagePath);
-
-            using var package = Package.Open(packagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-
             _logger.LogInformation(
-                "cdbpkg {PackageIdentifier} {PackageTimestamp} {PackageSummary}",
-                package.PackageProperties.Identifier ?? string.Empty,
-                package.PackageProperties.Created?.ToUniversalTime().ToString("O") ?? string.Empty,
-                package.PackageProperties.Version ?? package.PackageProperties.Subject ?? string.Empty);
+                "{PackagePath}: {PackageIdentifier} {PackageTimestamp} ({PackageSummary})",
+                packagePath,
+                package.PackageProperties.Identifier ?? "?",
+                package.PackageProperties.Created?.ToUniversalTime().ToString("O") ?? "?",
+                packageSummary);
+        }
+        else
+        {
+            _logger.LogInformation(
+                "{PackagePath}: {PackageIdentifier} {PackageTimestamp}",
+                packagePath,
+                package.PackageProperties.Identifier ?? "?",
+                package.PackageProperties.Created?.ToUniversalTime().ToString("O") ?? "?");
+        }
 
-            var packagePartitions = default(IReadOnlyDictionary<Uri, PackagePartition>);
+        var packagePartitions = default(IReadOnlyDictionary<Uri, PackagePartition>);
 
-            using (var packageModel = await PackageModel.OpenAsync(package, default, cancellationToken).ConfigureAwait(false))
+        using (var packageModel = await PackageModel.OpenAsync(package, default, cancellationToken).ConfigureAwait(false))
+        {
+            packagePartitions = packageModel.GetPartitions();
+        }
+
+        foreach (var (packagePartitionUri, packagePartition) in packagePartitions)
+        {
+            var packagePart = package.GetPart(packagePartitionUri);
+            var documents = default(JsonObject?[]);
+
+            using (var packagePartStream = packagePart.GetStream(FileMode.Open, FileAccess.Read))
             {
-                packagePartitions = packageModel.GetPartitions();
+                documents = await JsonSerializer.DeserializeAsync<JsonObject?[]>(packagePartStream, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false) ?? [];
             }
 
-            foreach (var (packagePartitionUri, packagePartition) in packagePartitions)
+            for (var i = 0; i < documents.Length; i++)
             {
-                var packagePartitionSize = 0;
-                var packagePart = package.GetPart(packagePartitionUri);
+                var document = documents[i];
 
-                using (var packagePartStream = packagePart.GetStream(FileMode.Open, FileAccess.Read))
+                if (document is null)
                 {
-                    using (var packagePartDocument = await JsonDocument.ParseAsync(packagePartStream, jsonDocumentOptions, cancellationToken).ConfigureAwait(false))
-                    {
-                        packagePartitionSize = packagePartDocument.RootElement.GetArrayLength();
-                    }
+                    continue;
                 }
 
+                CosmosDocument.TryGetId(document, out var documentId);
+
                 _logger.LogInformation(
-                    "cdbpkg:{PartitionKey}: {DatabaseName}\\{ContainerName} {OperationName} [{PartitionSize}]",
-                    packagePartition.PartitionKey,
+                    "cdbpkg:{PartitionUri}:$[{DocumentIndex}]: {OperationName} {DatabaseName}\\{ContainerName}\\{DocumentId} ({PropertyCount})",
+                    packagePartitionUri,
+                    i,
+                    packagePartition.OperationType.ToString().ToLowerInvariant(),
                     packagePartition.DatabaseName,
                     packagePartition.ContainerName,
-                    packagePartition.OperationType.ToString().ToLowerInvariant(),
-                    packagePartitionSize);
+                    documentId ?? "?",
+                    document.Count);
             }
-
-            _logger.LogInformation("");
         }
 
         return true;

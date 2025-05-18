@@ -2,7 +2,6 @@
 
 using System.CommandLine.Parsing;
 using Cotopaxi.Cosmos.PackageManagement.AppHost.Invocation;
-using Cotopaxi.Cosmos.PackageManagement.Primitives;
 
 namespace Cotopaxi.Cosmos.PackageManagement.AppHost.Commands;
 
@@ -17,9 +16,8 @@ internal sealed class AppShowCommandHandler : CommandHandler<AppShowCommand>
 
     protected override Task<bool> InvokeAsync(AppShowCommand command, SymbolResult result, CancellationToken cancellationToken)
     {
-        var packagePathPattern = result.GetValueForArgument(command.PackageArgument);
-        var packagePaths = PathGlobbing.GetFilePaths(packagePathPattern, Environment.CurrentDirectory);
+        var packagePath = Path.GetFullPath(result.GetValueForArgument(command.PackageArgument), Environment.CurrentDirectory);
 
-        return _manager.ShowPackageInfoAsync(packagePaths, cancellationToken);
+        return _manager.ShowPackageInfoAsync(packagePath, cancellationToken);
     }
 }

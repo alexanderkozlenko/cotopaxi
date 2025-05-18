@@ -43,16 +43,18 @@ public sealed partial class PackageManager
                 continue;
             }
 
-            _logger.LogInformation("Formatting {SourcePath}", sourcePath);
-
-            foreach (var document in documents)
+            for (var i = 0; i < documents.Length; i++)
             {
+                var document = documents[i];
+
                 if (document is null)
                 {
                     continue;
                 }
 
                 CosmosDocument.Format(document);
+
+                _logger.LogInformation("{SourcePath}:$[{DocumentIndex}]: OK", sourcePath, i);
             }
 
             using (var sourceStream = new FileStream(sourcePath, FileMode.Create, FileAccess.Write, FileShare.None))

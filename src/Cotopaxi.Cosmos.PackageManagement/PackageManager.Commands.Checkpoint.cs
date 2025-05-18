@@ -5,7 +5,6 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.IO.Packaging;
-using System.Net;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Cotopaxi.Cosmos.PackageManagement.Primitives;
@@ -42,11 +41,9 @@ public sealed partial class PackageManager
         var deployOperations = new HashSet<(PackageDocumentKey, PackageOperationType)>();
         var deployDocumentStates = new Dictionary<PackageDocumentKey, (Dictionary<PackageOperationType, JsonObject> Sources, JsonObject? Target)>();
 
-        _logger.LogInformation("Generating rollback package {TargetPath} for endpoint {CosmosEndpoint}", rollbackPackagePath, cosmosClient.Endpoint);
-
         foreach (var packagePath in sourcePackagePaths)
         {
-            _logger.LogInformation("Analyzing source package {SourcePath}", packagePath);
+            _logger.LogInformation("{SourcePath} + {CosmosEndpoint} >>> {TargetPath}", packagePath, cosmosClient.Endpoint, rollbackPackagePath);
 
             using var package = Package.Open(packagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
 
@@ -91,7 +88,6 @@ public sealed partial class PackageManager
 
                         foreach (var (packagePartitionUri, packagePartition) in packagePartitionsByOperation)
                         {
-                            var packagePartitionOperationName = packagePartition.OperationType.ToString().ToLowerInvariant();
                             var packagePart = package.GetPart(packagePartitionUri);
                             var documents = default(JsonObject?[]);
 
@@ -111,24 +107,16 @@ public sealed partial class PackageManager
                                     continue;
                                 }
 
-                                _logger.LogInformation(
-                                    "Analyzing cdbpkg:{PartitionKey}:$[{DocumentIndex}] for {OperationName} in {DatabaseName}\\{ContainerName}",
-                                    packagePartition.PartitionKey,
-                                    i,
-                                    packagePartitionOperationName,
-                                    packagePartition.DatabaseName,
-                                    packagePartition.ContainerName);
-
                                 CosmosDocument.Prune(sourceDocument);
 
                                 if (!CosmosDocument.TryGetId(sourceDocument, out var documentId))
                                 {
-                                    throw new InvalidOperationException($"Failed to extract document identifier from cdbpkg:{packagePartitionUri}:$[{i}]");
+                                    throw new InvalidOperationException($"Failed to extract document identifier from {packagePartitionUri}:$[{i}]");
                                 }
 
                                 if (!CosmosDocument.TryGetPartitionKey(sourceDocument, containerPartitionKeyPaths!, out var documentPartitionKey))
                                 {
-                                    throw new InvalidOperationException($"Failed to extract document partition key from cdbpkg:{packagePartitionUri}:$[{i}]");
+                                    throw new InvalidOperationException($"Failed to extract document partition key from {packagePartitionUri}:$[{i}]");
                                 }
 
                                 var documentKey = new PackageDocumentKey(
@@ -139,7 +127,7 @@ public sealed partial class PackageManager
 
                                 if (!deployOperations.Add((documentKey, packagePartition.OperationType)))
                                 {
-                                    throw new InvalidOperationException($"A duplicate document+operation entry cdbpkg:{packagePartitionUri}:$[{i}]");
+                                    throw new InvalidOperationException($"A duplicate document+operation entry {packagePartitionUri}:$[{i}]");
                                 }
 
                                 if (!deployDocumentStates.TryGetValue(documentKey, out var deployDocumentState))
@@ -151,26 +139,28 @@ public sealed partial class PackageManager
                                         var operationResponse = await container.ReadItemAsync<JsonObject?>(documentId, documentPartitionKey, default, cancellationToken).ConfigureAwait(false);
 
                                         _logger.LogInformation(
-                                            "Requesting document for cdbpkg:{PartitionKey}:$[{DocumentIndex}] from {DatabaseName}\\{ContainerName} - HTTP {StatusCode}",
-                                            packagePartition.PartitionKey,
-                                            i,
+                                            "read {DatabaseName}\\{ContainerName}\\{DocumentId} {DocumentPartitionKey}: HTTP {StatusCode} ({RU:F2} RU)",
                                             packagePartition.DatabaseName,
                                             packagePartition.ContainerName,
-                                            (int)operationResponse.StatusCode);
+                                            documentId,
+                                            documentPartitionKey,
+                                            (int)operationResponse.StatusCode,
+                                            Math.Round(operationResponse.RequestCharge, 2));
 
                                         targetDocument = operationResponse.Resource;
                                     }
                                     catch (CosmosException ex)
                                     {
-                                        if (ex.StatusCode == HttpStatusCode.NotFound)
+                                        if ((int)ex.StatusCode == 404)
                                         {
                                             _logger.LogInformation(
-                                                "Requesting document for cdbpkg:{PartitionKey}:$[{DocumentIndex}] from {DatabaseName}\\{ContainerName} - HTTP {StatusCode}",
-                                                packagePartition.PartitionKey,
-                                                i,
+                                                "read {DatabaseName}\\{ContainerName}\\{DocumentId} {DocumentPartitionKey}: HTTP {StatusCode} ({RU:F2} RU)",
                                                 packagePartition.DatabaseName,
                                                 packagePartition.ContainerName,
-                                                (int)ex.StatusCode);
+                                                documentId,
+                                                documentPartitionKey,
+                                                (int)ex.StatusCode,
+                                                Math.Round(ex.RequestCharge, 2));
                                         }
                                         else
                                         {
@@ -291,6 +281,9 @@ public sealed partial class PackageManager
 
                 foreach (var operationGroupByContainer in operationGroupsByContainer)
                 {
+                    var containerPartitionKeyPathsKey = (operationGroupByDatabase.Key, operationGroupByContainer.Key);
+                    var containerPartitionKeyPaths = partitionKeyPathsCache[containerPartitionKeyPathsKey];
+
                     var operationGroupsByOperation = operationGroupByContainer
                         .GroupBy(static x => x.OperationType)
                         .OrderBy(static x => x.Key);
@@ -321,13 +314,19 @@ public sealed partial class PackageManager
 
                         for (var i = 0; i < documents.Length; i++)
                         {
+                            var document = documents[i];
+
+                            CosmosDocument.TryGetId(document, out var documentId);
+                            CosmosDocument.TryGetPartitionKey(document, containerPartitionKeyPaths!, out var documentPartitionKey);
+
                             _logger.LogInformation(
-                                "Packing cdbpkg:{PartitionKey}:$[{DocumentIndex}] for {OperationName} in {DatabaseName}\\{ContainerName}",
-                                packagePartitionKey,
-                                i,
+                                "+++ {OperationName} {DatabaseName}\\{ContainerName}\\{DocumentId} {DocumentPartitionKey} ({PropertyCount})",
                                 packagePartitionOperationName,
                                 packagePartition.DatabaseName,
-                                packagePartition.ContainerName);
+                                packagePartition.ContainerName,
+                                documentId,
+                                documentPartitionKey,
+                                document.Count);
                         }
 
                         var packagePart = package.CreatePart(packagePartitionUri, "application/json", default);

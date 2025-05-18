@@ -6,7 +6,7 @@
 
 <p />
 
-`cotopaxi diff` - Shows changes between database packages.
+`cotopaxi diff` - Shows differences between database packages.
 
 <p />
 

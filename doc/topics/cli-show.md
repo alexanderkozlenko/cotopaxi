@@ -6,7 +6,7 @@
 
 <p />
 
-`cotopaxi show` - Shows information about database packages.
+`cotopaxi show` - Shows information about a database package.
 
 <p />
 
@@ -27,7 +27,7 @@ cotopaxi show -h|--help
 <p />
 
 - `package`  
-The path to the database package or packages to show information about (globbing patterns are supported).
+The path to the database package to show information about.
 
 <p />
 
@@ -50,14 +50,4 @@ Showing information about a database package:
 
 ```txt
 cotopaxi show adventureworks-v1.0.0.cdbpkg
-```
-
-<p />
-
-Showing information about available database packages:
-
-<p />
-
-```txt
-cotopaxi show **/*.cdbpkg
 ```

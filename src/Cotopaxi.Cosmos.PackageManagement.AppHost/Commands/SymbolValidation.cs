@@ -34,7 +34,7 @@ internal static class SymbolValidation
     public static void AddValidationAsHttpsUri(this Option<Uri> option)
     {
         option.AddValidator(
-            static x => x is { IsAbsoluteUri: true } && x.Scheme == Uri.UriSchemeHttps,
+            static x => (x is { IsAbsoluteUri: true }) && (x.Scheme == Uri.UriSchemeHttps),
             static x => $"The value '{x}' is not an HTTPS URI");
     }
 }

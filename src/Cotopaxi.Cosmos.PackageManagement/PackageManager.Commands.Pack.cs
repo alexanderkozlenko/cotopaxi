@@ -101,14 +101,6 @@ public sealed partial class PackageManager
                                     continue;
                                 }
 
-                                _logger.LogInformation(
-                                    "Packing {SourcePath}:$[{DocumentIndex}] for {OperationName} in {DatabaseName}\\{ContainerName}",
-                                    projectSource.FilePath,
-                                    i,
-                                    packagePartitionOperationName,
-                                    packagePartition.DatabaseName,
-                                    packagePartition.ContainerName);
-
                                 CosmosDocument.Prune(document);
 
                                 if (!CosmosDocument.TryGetId(document, out var documentId))
@@ -127,6 +119,16 @@ public sealed partial class PackageManager
                                 }
 
                                 documentsByOperation.Add(document);
+
+                                _logger.LogInformation(
+                                    "{SourcePath}:$[{DocumentIndex}]: {OperationName} {DatabaseName}\\{ContainerName}\\{DocumentId} ({PropertyCount})",
+                                    projectSource.FilePath,
+                                    i,
+                                    packagePartitionOperationName,
+                                    packagePartition.DatabaseName,
+                                    packagePartition.ContainerName,
+                                    documentId,
+                                    document.Count);
                             }
                         }
 

@@ -22,7 +22,7 @@ internal sealed class AppDiffCommand : Command
         new("--exit-code", "Instruct the program to exit with 1 if there were differences and 0 otherwise");
 
     public AppDiffCommand()
-        : base("diff", "Shows changes between database packages")
+        : base("diff", "Shows differences between database packages")
     {
         Package1Argument.AddValidationAsInputFile();
         Package2Argument.AddValidationAsInputFile();
