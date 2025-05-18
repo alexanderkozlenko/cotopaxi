@@ -107,9 +107,9 @@ public sealed partial class PackageManager
         return true;
     }
 
-    private void PrintDiffSection(string category, IReadOnlyCollection<(PackageDocumentKey DocumentKey, PackageOperationType OperationType, (int Created, int Updated, int Deleted) Statistics)> source)
+    private void PrintDiffSection(string category, (PackageDocumentKey DocumentKey, PackageOperationType OperationType, (int Created, int Updated, int Deleted) Statistics)[] source)
     {
-        if (source.Count == 0)
+        if (source.Length == 0)
         {
             return;
         }
