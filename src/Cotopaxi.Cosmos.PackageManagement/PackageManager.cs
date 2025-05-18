@@ -16,12 +16,15 @@ public sealed partial class PackageManager
         ReadCommentHandling = JsonCommentHandling.Skip,
     };
 
+    private readonly TimeProvider _timeProvider;
     private readonly ILogger _logger;
 
-    public PackageManager(ILogger<PackageManager> logger)
+    public PackageManager(TimeProvider timeProvider, ILogger<PackageManager> logger)
     {
+        Debug.Assert(timeProvider is not null);
         Debug.Assert(logger is not null);
 
+        _timeProvider = timeProvider;
         _logger = logger;
     }
 }

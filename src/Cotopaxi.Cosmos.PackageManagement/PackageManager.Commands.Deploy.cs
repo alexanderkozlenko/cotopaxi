@@ -196,7 +196,7 @@ public sealed partial class PackageManager
                                                 (((int)ex.StatusCode == 409) && (packagePartition.OperationType == PackageOperationType.Create)) ||
                                                 (((int)ex.StatusCode == 404) && (packagePartition.OperationType == PackageOperationType.Patch)))
                                             {
-                                                _logger.LogWarning(
+                                                _logger.LogInformation(
                                                     "{OperationName} {DatabaseName}\\{ContainerName}\\{DocumentId} {DocumentPartitionKey}: HTTP {StatusCode} ({RU:F2} RU)",
                                                     packagePartitionOperationName,
                                                     packagePartition.DatabaseName,

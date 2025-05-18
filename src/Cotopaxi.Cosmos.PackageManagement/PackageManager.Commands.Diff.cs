@@ -107,7 +107,7 @@ public sealed partial class PackageManager
         return true;
     }
 
-    private void PrintDiffSection(string category, (PackageDocumentKey DocumentKey, PackageOperationType OperationType, (int Created, int Updated, int Deleted) Statistics)[] source)
+    private void PrintDiffSection(string category, (PackageDocumentKey DocumentKey, PackageOperationType OperationType, ComparisonStatistics Statistics)[] source)
     {
         if (source.Length == 0)
         {
@@ -165,16 +165,16 @@ public sealed partial class PackageManager
         }
     }
 
-    private static (int Created, int Updated, int Deleted) CreateDiffStatistics(JsonObject? document1, JsonObject? document2)
+    private static ComparisonStatistics CreateDiffStatistics(JsonObject? document1, JsonObject? document2)
     {
         if ((document1 is not null) && (document2 is null))
         {
-            return (document1.Count, 0, 0);
+            return new(document1.Count, 0, 0);
         }
 
         if ((document1 is null) && (document2 is not null))
         {
-            return (0, 0, document2.Count);
+            return new(0, 0, document2.Count);
         }
 
         if ((document1 is not null) && (document2 is not null))
@@ -183,10 +183,10 @@ public sealed partial class PackageManager
             var countUpdated = document1.Count(x => document2.TryGetPropertyValue(x.Key, out var value) && !JsonNode.DeepEquals(x.Value, value));
             var countDeleted = document2.Count(x => !document1.ContainsKey(x.Key));
 
-            return (countCreated, countUpdated, countDeleted);
+            return new(countCreated, countUpdated, countDeleted);
         }
 
-        return (0, 0, 0);
+        return new(0, 0, 0);
     }
 
     private static async Task<FrozenDictionary<(PackageDocumentKey DocumentKey, PackageOperationType OperationType), JsonObject>> GetPackageDocumentsAsync(string packagePath, CosmosClient cosmosClient, Dictionary<(string, string), JsonPointer[]> partitionKeyPathsCache, CancellationToken cancellationToken)

@@ -6,6 +6,7 @@ using System.CommandLine.Hosting;
 using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
 using Cotopaxi.Cosmos.PackageManagement.AppHost.Invocation;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
@@ -29,6 +30,7 @@ public static class Program
         static void ConfigureHost(IHostBuilder builder)
         {
             builder
+                .ConfigureServices(static x => x.AddSingleton<TimeProvider>(TimeProvider.System))
                 .ConfigureLogging(ConfigureLogging);
 
             Startup.ConfigureHost(builder);
