@@ -15,7 +15,7 @@ public readonly struct CosmosDocumentId
     {
         if (!IsWellFormed(value))
         {
-            throw new ArgumentException("The value is not a well-formed document identifier", nameof(value));
+            throw new ArgumentException($"The value '{value}' is not a well-formed document identifier", nameof(value));
         }
 
         _value = value;

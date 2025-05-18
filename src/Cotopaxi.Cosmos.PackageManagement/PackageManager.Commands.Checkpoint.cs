@@ -3,11 +3,9 @@
 #pragma warning disable CA1848
 
 using System.Diagnostics;
-using System.Globalization;
 using System.IO.Packaging;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Cotopaxi.Cosmos.PackageManagement.Primitives;
 using Cotopaxi.Cosmos.Packaging;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
@@ -290,17 +288,7 @@ public sealed partial class PackageManager
 
                     foreach (var operationGroupByOperation in operationGroupsByOperation)
                     {
-                        var packagePartitionKeySource = string.Format(
-                            CultureInfo.InvariantCulture,
-                            "{0}:{1}:{2}",
-                            operationGroupByDatabase.Key,
-                            operationGroupByContainer.Key,
-                            operationGroupByOperation.Key);
-
-                        var packagePartitionKey = Uuid.CreateVersion8(packagePartitionKeySource);
-
                         var packagePartition = new PackagePartition(
-                            packagePartitionKey,
                             operationGroupByDatabase.Key,
                             operationGroupByContainer.Key,
                             operationGroupByOperation.Key);

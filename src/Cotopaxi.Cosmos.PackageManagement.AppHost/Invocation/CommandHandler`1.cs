@@ -11,7 +11,7 @@ internal abstract class CommandHandler<T> : ICommandHandler
 {
     public int Invoke(InvocationContext context)
     {
-        throw new NotSupportedException();
+        throw new InvalidOperationException();
     }
 
     public async Task<int> InvokeAsync(InvocationContext context)

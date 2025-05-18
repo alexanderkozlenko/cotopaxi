@@ -132,36 +132,39 @@ public sealed partial class PackageManager
             .ThenByDescending(static x => x.Statistics.Deleted)
             .ToArray();
 
-        var statisticsBuilder = new StringBuilder();
+        var printItemStatisticsBuilder = new StringBuilder();
 
         foreach (var printItem in printItems)
         {
-            statisticsBuilder.Clear();
+            printItemStatisticsBuilder.Clear();
 
             if (printItem.Statistics.Created > 0)
             {
-                statisticsBuilder.AppendFormat(CultureInfo.InvariantCulture, "+{0} ", printItem.Statistics.Created);
+                printItemStatisticsBuilder.AppendFormat(CultureInfo.InvariantCulture, "+{0} ", printItem.Statistics.Created);
             }
 
             if (printItem.Statistics.Updated > 0)
             {
-                statisticsBuilder.AppendFormat(CultureInfo.InvariantCulture, "*{0} ", printItem.Statistics.Updated);
+                printItemStatisticsBuilder.AppendFormat(CultureInfo.InvariantCulture, "*{0} ", printItem.Statistics.Updated);
             }
 
             if (printItem.Statistics.Deleted > 0)
             {
-                statisticsBuilder.AppendFormat(CultureInfo.InvariantCulture, "-{0} ", printItem.Statistics.Deleted);
+                printItemStatisticsBuilder.AppendFormat(CultureInfo.InvariantCulture, "-{0} ", printItem.Statistics.Deleted);
             }
+
+            var printItemOperationName = printItem.OperationType.ToString().ToLowerInvariant();
+            var printItemStatistics = printItemStatisticsBuilder.ToString().TrimEnd();
 
             _logger.LogInformation(
                 "{Category} {OperationName} {DatabaseName}\\{ContainerName}\\{DocumentId} {DocumentPartitionKey} ({DocumentStatistics})",
                 category,
-                printItem.OperationType.ToString().ToLowerInvariant().PadRight(6),
+                printItemOperationName,
                 printItem.DatabaseName,
                 printItem.ContainerName,
                 printItem.DocumentId,
                 printItem.DocumentPartitionKey,
-                statisticsBuilder.ToString().TrimEnd());
+                printItemStatistics);
         }
     }
 

@@ -30,7 +30,7 @@ public static class Program
         static void ConfigureHost(IHostBuilder builder)
         {
             builder
-                .ConfigureServices(static x => x.AddSingleton<TimeProvider>(TimeProvider.System))
+                .ConfigureServices(static x => x.AddSingleton(TimeProvider.System))
                 .ConfigureLogging(ConfigureLogging);
 
             Startup.ConfigureHost(builder);

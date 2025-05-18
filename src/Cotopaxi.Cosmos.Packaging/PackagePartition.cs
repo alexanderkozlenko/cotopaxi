@@ -4,24 +4,14 @@ namespace Cotopaxi.Cosmos.Packaging;
 
 public sealed class PackagePartition
 {
-    public PackagePartition(
-        Guid partitionKey,
-        string databaseName,
-        string containerName,
-        PackageOperationType operationType)
+    public PackagePartition(string databaseName, string containerName, PackageOperationType operationType)
     {
         ArgumentException.ThrowIfNullOrEmpty(databaseName);
         ArgumentException.ThrowIfNullOrEmpty(containerName);
 
-        PartitionKey = partitionKey;
         DatabaseName = databaseName;
         ContainerName = containerName;
         OperationType = operationType;
-    }
-
-    public Guid PartitionKey
-    {
-        get;
     }
 
     public string DatabaseName

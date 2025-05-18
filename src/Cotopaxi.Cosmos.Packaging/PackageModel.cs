@@ -34,7 +34,8 @@ public sealed class PackageModel : IDisposable
     {
         ArgumentNullException.ThrowIfNull(partition);
 
-        var partitionPath = $"/cosmosdb.document/{partition.PartitionKey:D}.json";
+        var partitionKey = Guid.CreateVersion7();
+        var partitionPath = $"/cosmosdb.document/{partitionKey:D}.json";
         var partitionUri = new Uri(partitionPath, UriKind.Relative);
         var partitionDec = _manifestDef.Entities.Single(static x => x.EntityName == "cosmosdb.document");
         var partitionDef = _corpusDef.MakeObject<CdmDataPartitionDefinition>(CdmObjectType.DataPartitionDef);
@@ -64,17 +65,11 @@ public sealed class PackageModel : IDisposable
         {
             var partitionPath = _corpusDef.Storage.CorpusPathToAdapterPath(partitionDef.Location);
             var partitionUri = new Uri(partitionPath, UriKind.Relative);
-            var partitionKey = Guid.ParseExact(Path.GetFileNameWithoutExtension(partitionPath), "D");
             var partitionDatabaseName = partitionDef.Arguments["database"].Single();
             var partitionContainerName = partitionDef.Arguments["container"].Single();
             var partitionOperationName = partitionDef.Arguments["operation"].Single();
             var partitionOperationType = PackageOperation.Parse(partitionOperationName);
-
-            var partition = new PackagePartition(
-                partitionKey,
-                partitionDatabaseName,
-                partitionContainerName,
-                partitionOperationType);
+            var partition = new PackagePartition(partitionDatabaseName, partitionContainerName, partitionOperationType);
 
             partitions.Add(partitionUri, partition);
         }

@@ -4,7 +4,6 @@
 
 using System.Collections.Frozen;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO.Packaging;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -58,17 +57,7 @@ public sealed partial class PackageManager
 
                     foreach (var projectSourceGroupByOperations in projectSourceGroupsByOperations)
                     {
-                        var packagePartitionKeySource = string.Format(
-                            CultureInfo.InvariantCulture,
-                            "{0}:{1}:{2}",
-                            projectSourceGroupByDatabase.Key,
-                            projectSourceGroupByContainer.Key,
-                            projectSourceGroupByOperations.Key);
-
-                        var packagePartitionKey = Uuid.CreateVersion8(packagePartitionKeySource);
-
                         var packagePartition = new PackagePartition(
-                            packagePartitionKey,
                             projectSourceGroupByDatabase.Key,
                             projectSourceGroupByContainer.Key,
                             projectSourceGroupByOperations.Key);

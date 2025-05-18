@@ -9,7 +9,6 @@
     <PackageReference Include="Microsoft.Azure.Cosmos" />
     <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
-    <PackageReference Include="System.IO.Hashing" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Cotopaxi.Cosmos.Packaging\Cotopaxi.Cosmos.Packaging.csproj" />

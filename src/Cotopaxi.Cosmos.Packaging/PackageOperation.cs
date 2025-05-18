@@ -12,7 +12,7 @@ internal static class PackageOperation
             "create" => PackageOperationType.Create,
             "upsert" => PackageOperationType.Upsert,
             "patch" => PackageOperationType.Patch,
-            _ => throw new NotSupportedException(),
+            _ => throw new NotSupportedException($"The package operation '{value}' is not supported"),
         };
     }
 
@@ -24,7 +24,7 @@ internal static class PackageOperation
             PackageOperationType.Create => "create",
             PackageOperationType.Upsert => "upsert",
             PackageOperationType.Patch => "patch",
-            _ => throw new NotSupportedException(),
+            _ => throw new InvalidOperationException(),
         };
     }
 }

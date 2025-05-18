@@ -4,6 +4,7 @@
 
 using System.Diagnostics;
 using System.IO.Packaging;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Cotopaxi.Cosmos.Packaging;
@@ -19,9 +20,14 @@ public sealed partial class PackageManager
 
         using var package = Package.Open(packagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
 
-        var packageSummary = package.PackageProperties.Version ?? package.PackageProperties.Subject;
+        var packageSummary = new StringBuilder()
+            .Append(package.PackageProperties.Version)
+            .Append(' ')
+            .Append(package.PackageProperties.Subject)
+            .ToString()
+            .Trim();
 
-        if (!string.IsNullOrEmpty(packageSummary))
+        if (packageSummary.Length > 0)
         {
             _logger.LogInformation(
                 "{PackagePath}: {PackageIdentifier} {PackageTimestamp} ({PackageSummary})",

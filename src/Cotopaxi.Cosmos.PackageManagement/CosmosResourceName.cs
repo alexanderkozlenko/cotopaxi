@@ -12,7 +12,7 @@ public readonly struct CosmosResourceName
     {
         if (!IsWellFormed(value))
         {
-            throw new ArgumentException("The value is not a well-formed resource name", nameof(value));
+            throw new ArgumentException($"The value '{value}' is not a well-formed resource name", nameof(value));
         }
 
         _value = value;
