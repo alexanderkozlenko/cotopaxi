@@ -91,7 +91,7 @@ Show help and usage information.
 
 <p />
 
-Deploying packages with Azure Pipelines:
+#### Deploying with Azure Pipelines:
 
 <p />
 
@@ -105,7 +105,15 @@ Deploying packages with Azure Pipelines:
 
 <p />
 
-Deploying packages with Azure Pipelines using `AZURE_COSMOS_ENDPOINT` and `AZURE_COSMOS_KEY` environment variables and deployment profiles:
+```txt
+/home/vsts/work/r1/a/adventureworks-v1.0.0.cdbpkg >>> https://adventureworks.documents.azure.com:443
+upsert adventureworks\products\3202cb6f-42af-4fe6-a3c5-d61927721e75 ["bikes"]: HTTP 200 (6.67 RU)
+upsert adventureworks\products\e1894e24-550d-4fe3-9784-47d614600baa ["bikes"]: HTTP 200 (6.67 RU)
+```
+
+<p />
+
+#### Deploying with Azure Pipelines using a deployment profile:
 
 <p />
 
@@ -113,7 +121,16 @@ Deploying packages with Azure Pipelines using `AZURE_COSMOS_ENDPOINT` and `AZURE
 - script: >
     dotnet tool run cotopaxi deploy
     $(System.ArtifactsDirectory)/**/*.cdbpkg
+    --endpoint $(AZURE_COSMOS_ENDPOINT)
+    --key $(AZURE_COSMOS_KEY)
     --profile $(System.ArtifactsDirectory)/**/*.profile.json
+```
+
+<p />
+
+```txt
+/home/vsts/work/r1/a/adventureworks-v1.0.0.cdbpkg >>> https://adventureworks.documents.azure.com:443
+upsert adventureworks\products\3202cb6f-42af-4fe6-a3c5-d61927721e75 ["bikes"]: HTTP 200 (6.67 RU)
 ```
 
 <p />
@@ -133,6 +150,29 @@ The corresponding deployment profile `adventureworks-v1.0.0.profile.json`:
     ]
   }
 ]
+```
+
+<p />
+
+#### Deploying with Azure Pipelines in dry run mode using a read-only account key:
+
+<p />
+
+```yaml
+- script: >
+    dotnet tool run cotopaxi deploy
+    $(System.ArtifactsDirectory)/**/*.cdbpkg
+    --endpoint $(AZURE_COSMOS_ENDPOINT)
+    --key $(AZURE_COSMOS_KEY_READ_ONLY)
+    --dry-run
+```
+
+<p />
+
+```txt
+[dry-run] /home/vsts/work/r1/a/adventureworks-v1.0.0.cdbpkg >>> https://adventureworks.documents.azure.com:443
+[dry-run] upsert adventureworks\products\3202cb6f-42af-4fe6-a3c5-d61927721e75 ["bikes"]: HTTP ??? (?.?? RU)
+[dry-run] upsert adventureworks\products\e1894e24-550d-4fe3-9784-47d614600baa ["bikes"]: HTTP ??? (?.?? RU)
 ```
 
 <p />

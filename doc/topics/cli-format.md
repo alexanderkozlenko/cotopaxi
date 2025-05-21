@@ -52,22 +52,36 @@ Show help and usage information.
 
 <p />
 
-Formatting a project file:
+#### Formatting a source file:
 
 <p />
 
 ```txt
-cotopaxi format adventureworks/products/bikes.json
+dotnet tool run cotopaxi format adventureworks/products/bikes.json
 ```
 
 <p />
 
-Formatting all project files:
+```txt
+/home/vsts/work/1/s/adventureworks/products/bikes.json:$[0]: OK
+/home/vsts/work/1/s/adventureworks/products/bikes.json:$[1]: OK
+```
+
+<p />
+
+#### Formatting all source files:
 
 <p />
 
 ```txt
-cotopaxi format adventureworks/**/*.json
+dotnet tool run cotopaxi format adventureworks/**/*.json
+```
+
+<p />
+
+```txt
+/home/vsts/work/1/s/adventureworks/products/bikes.json:$[0]: OK
+/home/vsts/work/1/s/adventureworks/products/bikes.json:$[1]: OK
 ```
 
 <p />

@@ -85,20 +85,34 @@ Show help and usage information.
 
 <p />
 
-Showing changes in a new version of database package:
+#### Showing changes in a new version:
 
 <p />
 
 ```txt
-cotopaxi diff adventureworks-v1.0.1.cdbpkg adventureworks-v1.0.0.cdbpkg
+dotnet tool run cotopaxi diff adventureworks-v1.0.1.cdbpkg adventureworks-v1.0.0.cdbpkg
 ```
 
 <p />
 
-Showing changes in a new version of database package and generating a deployment profile based on changes:
+```txt
++++ upsert adventureworks\products\7f1b7c5a-c339-41e3-bc00-bc753b1d66bc ["bikes"] (+4)
+*** upsert adventureworks\products\3202cb6f-42af-4fe6-a3c5-d61927721e75 ["bikes"] (*1)
+```
+
+<p />
+
+#### Showing changes in a new version and generating a deployment profile based on changes:
 
 <p />
 
 ```txt
-cotopaxi diff adventureworks-v1.0.1.cdbpkg adventureworks-v1.0.0.cdbpkg --profile adventureworks-v1.0.1.profile.json
+dotnet tool run cotopaxi diff adventureworks-v1.0.1.cdbpkg adventureworks-v1.0.0.cdbpkg --profile adventureworks-v1.0.1.profile.json
+```
+
+<p />
+
+```txt
++++ upsert adventureworks\products\7f1b7c5a-c339-41e3-bc00-bc753b1d66bc ["bikes"] (+4)
+*** upsert adventureworks\products\3202cb6f-42af-4fe6-a3c5-d61927721e75 ["bikes"] (*1)
 ```
