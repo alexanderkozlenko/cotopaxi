@@ -118,14 +118,22 @@ Show help and usage information.</li>
 <p></p>
 <h2 id="examples">Examples</h2>
 <p></p>
-<p>Formatting a project file:</p>
+<h4 id="formatting-a-source-file">Formatting a source file:</h4>
 <p></p>
-<pre><code class="lang-txt">cotopaxi format adventureworks/products/bikes.json
+<pre><code class="lang-txt">dotnet tool run cotopaxi format adventureworks/products/bikes.json
 </code></pre>
 <p></p>
-<p>Formatting all project files:</p>
+<pre><code class="lang-txt">/home/vsts/work/1/s/adventureworks/products/bikes.json:$[0]: OK
+/home/vsts/work/1/s/adventureworks/products/bikes.json:$[1]: OK
+</code></pre>
 <p></p>
-<pre><code class="lang-txt">cotopaxi format adventureworks/**/*.json
+<h4 id="formatting-all-source-files">Formatting all source files:</h4>
+<p></p>
+<pre><code class="lang-txt">dotnet tool run cotopaxi format adventureworks/**/*.json
+</code></pre>
+<p></p>
+<pre><code class="lang-txt">/home/vsts/work/1/s/adventureworks/products/bikes.json:$[0]: OK
+/home/vsts/work/1/s/adventureworks/products/bikes.json:$[1]: OK
 </code></pre>
 <p></p>
 <h2 id="references">References</h2>

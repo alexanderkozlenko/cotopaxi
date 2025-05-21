@@ -103,17 +103,17 @@
 <p></p>
 <p>Packing the database documents specified in a database package project (an example with Azure Pipelines):</p>
 <p></p>
-<pre><code class="lang-txt">$ dotnet tool run cotopaxi pack $(Build.SourcesDirectory)/adventureworks.json $(Build.StagingDirectory)/adventureworks-v1.0.0.cdbpkg
-/home/vsts/work/1/s/adventureworks/products/bikes.json:$[0]: upsert adventureworks\products\3202cb6f-42af-4fe6-a3c5-d61927721e75 (3)
-/home/vsts/work/1/s/adventureworks/products/bikes.json:$[1]: upsert adventureworks\products\e1894e24-550d-4fe3-9784-47d614600baa (3)
+<pre><code class="lang-txt">$ dotnet tool run cotopaxi pack $(Build.SourcesDirectory)/adventureworks.json $(Build.StagingDirectory)/adventureworks.cdbpkg
+/home/vsts/work/1/s/adventureworks/products/bikes.json:$[0]: upsert adventureworks\products\3202cb6f-42af-4fe6-a3c5-d61927721e75 (4)
+/home/vsts/work/1/s/adventureworks/products/bikes.json:$[1]: upsert adventureworks\products\e1894e24-550d-4fe3-9784-47d614600baa (4)
 </code></pre>
 <p></p>
 <p>Deploying the created database package to a configured Azure Cosmos DB account (an example with Azure Pipelines):</p>
 <p></p>
 <pre><code class="lang-txt">$ dotnet tool run cotopaxi deploy $(System.ArtifactsDirectory)/**/*.cdbpkg
-/home/vsts/work/r1/a/adventureworks-v1.0.0.cdbpkg &gt;&gt;&gt; https://adventureworks.documents.azure.com:443
-upsert adventureworks\products\3202cb6f-42af-4fe6-a3c5-d61927721e75 [&quot;bikes&quot;]: HTTP 200 (5.67 RU)
-upsert adventureworks\products\e1894e24-550d-4fe3-9784-47d614600baa [&quot;bikes&quot;]: HTTP 200 (5.67 RU)
+/home/vsts/work/r1/a/adventureworks.cdbpkg &gt;&gt;&gt; https://adventureworks.documents.azure.com:443
+upsert adventureworks\products\3202cb6f-42af-4fe6-a3c5-d61927721e75 [&quot;bikes&quot;]: HTTP 200 (6.67 RU)
+upsert adventureworks\products\e1894e24-550d-4fe3-9784-47d614600baa [&quot;bikes&quot;]: HTTP 200 (6.67 RU)
 </code></pre>
 <p></p>
 <h2 id="references">References</h2>
