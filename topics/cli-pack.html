@@ -113,7 +113,7 @@ Given a unique identifier and partition key values, performs partial document up
 Given a unique identifier and partition key values, deletes a document if it exists.</li>
 </ul>
 <p></p>
-<p>Partial document update performs Azure Cosmos DB <code>set</code> operation on specified root-level document properties.</p>
+<p>Partial document update performs Azure Cosmos DB <code>Set</code> operation on specified root-level document properties.</p>
 <p></p>
 <p>The project format supports relative globbing patterns and the following variables in document paths:</p>
 <p></p>
@@ -179,12 +179,14 @@ Show help and usage information.</li>
   {
     &quot;id&quot;: &quot;3202cb6f-42af-4fe6-a3c5-d61927721e75&quot;,
     &quot;category&quot;: &quot;bikes&quot;,
-    &quot;name&quot;: &quot;Mountain-100 Silver, 38&quot;
+    &quot;name&quot;: &quot;Mountain-100 Silver, 38&quot;,
+    &quot;price&quot;: 4000.0
   },
   {
     &quot;id&quot;: &quot;e1894e24-550d-4fe3-9784-47d614600baa&quot;,
     &quot;category&quot;: &quot;bikes&quot;,
-    &quot;name&quot;: &quot;Mountain-500 Black, 40&quot;
+    &quot;name&quot;: &quot;Mountain-500 Black, 40&quot;,
+    &quot;price&quot;: 4100.0
   }
 ]
 </code></pre>
@@ -217,6 +219,7 @@ Show help and usage information.</li>
 <h2 id="references">References</h2>
 <p></p>
 <ul>
+<li><a href="https://learn.microsoft.com/en-us/azure/cosmos-db/partial-document-update">Microsoft - Partial document update in Azure Cosmos DB</a></li>
 <li><a href="https://learn.microsoft.com/en-us/azure/cosmos-db/concepts-limits">Microsoft - Azure Cosmos DB service quotas</a></li>
 </ul>
 
