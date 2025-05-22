@@ -41,7 +41,7 @@ Given a unique identifier and partition key values, deletes a document if it exi
 
 <p />
 
-Partial document update performs Azure Cosmos DB `set` operation on specified root-level document properties.
+Partial document update performs Azure Cosmos DB `Set` operation on specified root-level document properties.
 
 <p />
 
@@ -121,12 +121,14 @@ The corresponding package source `adventureworks/products/bikes.json`:
   {
     "id": "3202cb6f-42af-4fe6-a3c5-d61927721e75",
     "category": "bikes",
-    "name": "Mountain-100 Silver, 38"
+    "name": "Mountain-100 Silver, 38",
+    "price": 4000.0
   },
   {
     "id": "e1894e24-550d-4fe3-9784-47d614600baa",
     "category": "bikes",
-    "name": "Mountain-500 Black, 40"
+    "name": "Mountain-500 Black, 40",
+    "price": 4100.0
   }
 ]
 ```
@@ -167,4 +169,5 @@ The corresponding package project `adventureworks.json`:
 
 <p />
 
+- [Microsoft - Partial document update in Azure Cosmos DB](https://learn.microsoft.com/en-us/azure/cosmos-db/partial-document-update)
 - [Microsoft - Azure Cosmos DB service quotas](https://learn.microsoft.com/en-us/azure/cosmos-db/concepts-limits)
