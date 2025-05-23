@@ -26,6 +26,6 @@ internal sealed class AppCheckpointCommandHandler : CommandHandler<AppCheckpoint
         var sourcePackagePaths = PathGlobbing.GetFilePaths(sourcePackagePathPattern, Environment.CurrentDirectory);
         var cosmosAuthInfo = CosmosAuthInfoFactory.CreateAuthInfo(cosmosAccountEndpoint, cosmosAuthKeyOrResourceToken, cosmosConnectionString);
 
-        return _manager.CreateCheckpointPackagesAsync(sourcePackagePaths, rollbackPackagePath, cosmosAuthInfo, cancellationToken);
+        return _manager.CreateRollbackPackageAsync(sourcePackagePaths, rollbackPackagePath, cosmosAuthInfo, cancellationToken);
     }
 }

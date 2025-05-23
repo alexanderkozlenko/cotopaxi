@@ -14,7 +14,7 @@ namespace Cotopaxi.Cosmos.PackageManagement;
 
 public sealed partial class PackageManager
 {
-    public async Task<bool> CreateCheckpointPackagesAsync(IReadOnlyCollection<string> sourcePackagePaths, string rollbackPackagePath, CosmosAuthInfo cosmosAuthInfo, CancellationToken cancellationToken)
+    public async Task<bool> CreateRollbackPackageAsync(IReadOnlyCollection<string> sourcePackagePaths, string rollbackPackagePath, CosmosAuthInfo cosmosAuthInfo, CancellationToken cancellationToken)
     {
         Debug.Assert(sourcePackagePaths is not null);
         Debug.Assert(rollbackPackagePath is not null);
