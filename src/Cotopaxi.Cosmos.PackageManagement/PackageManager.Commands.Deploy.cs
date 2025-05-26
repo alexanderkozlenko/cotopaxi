@@ -2,12 +2,10 @@
 
 #pragma warning disable CA1848
 
-using System.Collections.Frozen;
 using System.Diagnostics;
 using System.IO.Packaging;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Cotopaxi.Cosmos.PackageManagement.Contracts;
 using Cotopaxi.Cosmos.Packaging;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
@@ -26,20 +24,11 @@ public sealed partial class PackageManager
             return true;
         }
 
-        var cosmosClientOptions = new CosmosClientOptions
-        {
-            ApplicationName = s_applicationName,
-            EnableContentResponseOnWrite = false,
-            UseSystemTextJsonSerializerWithOptions = JsonSerializerOptions.Default,
-        };
-
-        using var cosmosClient = cosmosAuthInfo.IsConnectionString ?
-            new CosmosClient(cosmosAuthInfo.ConnectionString, cosmosClientOptions) :
-            new CosmosClient(cosmosAuthInfo.AccountEndpoint.AbsoluteUri, cosmosAuthInfo.AuthKeyOrResourceToken, cosmosClientOptions);
+        using var cosmosClient = CreateCosmosClient(cosmosAuthInfo, static x => x.EnableContentResponseOnWrite = false);
 
         var partitionKeyPathsCache = new Dictionary<(string, string), JsonPointer[]>();
         var deployOperations = new HashSet<(PackageDocumentKey, PackageOperationType)>();
-        var eligibleDocumentKeys = profilePaths is not null ? await GetEligibleDocumentKeysAsync(profilePaths, cancellationToken).ConfigureAwait(false) : null;
+        var profileDocumentKeys = profilePaths is not null ? await GetProfileDocumentKeysAsync(profilePaths, cancellationToken).ConfigureAwait(false) : null;
 
         foreach (var packagePath in packagePaths)
         {
@@ -140,7 +129,7 @@ public sealed partial class PackageManager
 
                                 if (!dryRun)
                                 {
-                                    if ((eligibleDocumentKeys is null) || eligibleDocumentKeys.Contains(documentKey))
+                                    if ((profileDocumentKeys is null) || profileDocumentKeys.Contains(documentKey))
                                     {
                                         try
                                         {
@@ -180,7 +169,7 @@ public sealed partial class PackageManager
                                             }
 
                                             _logger.LogInformation(
-                                                "{OperationName} {DatabaseName}\\{ContainerName}\\{DocumentId} {DocumentPartitionKey}: HTTP {StatusCode} ({RU:F2} RU)",
+                                                "{OperationName} /{DatabaseName}/{ContainerName}/{DocumentId}:{DocumentPartitionKey}: HTTP {StatusCode} ({RU:F2} RU)",
                                                 packagePartitionOperationName,
                                                 packagePartition.DatabaseName,
                                                 packagePartition.ContainerName,
@@ -197,7 +186,7 @@ public sealed partial class PackageManager
                                                 (((int)ex.StatusCode == 404) && (packagePartition.OperationType == PackageOperationType.Patch)))
                                             {
                                                 _logger.LogInformation(
-                                                    "{OperationName} {DatabaseName}\\{ContainerName}\\{DocumentId} {DocumentPartitionKey}: HTTP {StatusCode} ({RU:F2} RU)",
+                                                    "{OperationName} /{DatabaseName}/{ContainerName}/{DocumentId}:{DocumentPartitionKey}: HTTP {StatusCode} ({RU:F2} RU)",
                                                     packagePartitionOperationName,
                                                     packagePartition.DatabaseName,
                                                     packagePartition.ContainerName,
@@ -215,10 +204,10 @@ public sealed partial class PackageManager
                                 }
                                 else
                                 {
-                                    if ((eligibleDocumentKeys is null) || eligibleDocumentKeys.Contains(documentKey))
+                                    if ((profileDocumentKeys is null) || profileDocumentKeys.Contains(documentKey))
                                     {
                                         _logger.LogInformation(
-                                            "[dry-run] {OperationName} {DatabaseName}\\{ContainerName}\\{DocumentId} {DocumentPartitionKey}: HTTP ??? (?.?? RU)",
+                                            "[dry-run] {OperationName} /{DatabaseName}/{ContainerName}/{DocumentId}:{DocumentPartitionKey}: HTTP ??? (?.?? RU)",
                                             packagePartitionOperationName,
                                             packagePartition.DatabaseName,
                                             packagePartition.ContainerName,
@@ -234,33 +223,5 @@ public sealed partial class PackageManager
         }
 
         return true;
-    }
-
-    private static async Task<FrozenSet<PackageDocumentKey>> GetEligibleDocumentKeysAsync(IReadOnlyCollection<string> profilePaths, CancellationToken cancellationToken)
-    {
-        var documentKeys = new HashSet<PackageDocumentKey>();
-
-        foreach (var profilePath in profilePaths)
-        {
-            var documentKeyNodes = default(PackageDocumentKeyNode?[]);
-
-            using (var profileStream = new FileStream(profilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
-            {
-                documentKeyNodes = await JsonSerializer.DeserializeAsync<PackageDocumentKeyNode?[]>(profileStream, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false) ?? [];
-            }
-
-            foreach (var documentKeyNode in documentKeyNodes.Where(static x => x is not null))
-            {
-                var documentKey = new PackageDocumentKey(
-                    documentKeyNode!.DatabaseName.Value,
-                    documentKeyNode!.ContainerName.Value,
-                    documentKeyNode!.DocumentId.Value,
-                    documentKeyNode!.DocumentPartitionKey);
-
-                documentKeys.Add(documentKey);
-            }
-        }
-
-        return documentKeys.ToFrozenSet();
     }
 }

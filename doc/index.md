@@ -29,8 +29,8 @@ Packing the database documents specified in a database package project (an examp
 
 ```txt
 $ dotnet tool run cotopaxi pack $(Build.SourcesDirectory)/adventureworks.json $(Build.StagingDirectory)/adventureworks.cdbpkg
-/home/vsts/work/1/s/adventureworks/products/bikes.json:$[0]: upsert adventureworks\products\3202cb6f-42af-4fe6-a3c5-d61927721e75 (4)
-/home/vsts/work/1/s/adventureworks/products/bikes.json:$[1]: upsert adventureworks\products\e1894e24-550d-4fe3-9784-47d614600baa (4)
+/home/vsts/work/1/s/adventureworks/products/bikes.json:$[0]: upsert /adventureworks/products/3202cb6f-42af-4fe6-a3c5-d61927721e75 (4)
+/home/vsts/work/1/s/adventureworks/products/bikes.json:$[1]: upsert /adventureworks/products/e1894e24-550d-4fe3-9784-47d614600baa (4)
 ```
 
 <p />
@@ -42,8 +42,8 @@ Deploying the created database package to a configured Azure Cosmos DB account (
 ```txt
 $ dotnet tool run cotopaxi deploy $(System.ArtifactsDirectory)/**/*.cdbpkg
 /home/vsts/work/r1/a/adventureworks.cdbpkg >>> https://adventureworks.documents.azure.com:443
-upsert adventureworks\products\3202cb6f-42af-4fe6-a3c5-d61927721e75 ["bikes"]: HTTP 200 (6.67 RU)
-upsert adventureworks\products\e1894e24-550d-4fe3-9784-47d614600baa ["bikes"]: HTTP 200 (6.67 RU)
+upsert /adventureworks/products/3202cb6f-42af-4fe6-a3c5-d61927721e75:["bikes"]: HTTP 200 (6.67 RU)
+upsert /adventureworks/products/e1894e24-550d-4fe3-9784-47d614600baa:["bikes"]: HTTP 200 (6.67 RU)
 ```
 
 <p />

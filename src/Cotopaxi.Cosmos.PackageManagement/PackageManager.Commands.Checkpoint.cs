@@ -25,15 +25,8 @@ public sealed partial class PackageManager
             return true;
         }
 
-        var cosmosClientOptions = new CosmosClientOptions
-        {
-            ApplicationName = s_applicationName,
-            UseSystemTextJsonSerializerWithOptions = JsonSerializerOptions.Default,
-        };
-
-        using var cosmosClient = cosmosAuthInfo.IsConnectionString ?
-            new CosmosClient(cosmosAuthInfo.ConnectionString, cosmosClientOptions) :
-            new CosmosClient(cosmosAuthInfo.AccountEndpoint.AbsoluteUri, cosmosAuthInfo.AuthKeyOrResourceToken, cosmosClientOptions);
+        using var packageVersion = new VersionBuilder();
+        using var cosmosClient = CreateCosmosClient(cosmosAuthInfo);
 
         var partitionKeyPathsCache = new Dictionary<(string, string), JsonPointer[]>();
         var deployOperations = new HashSet<(PackageDocumentKey, PackageOperationType)>();
@@ -44,6 +37,8 @@ public sealed partial class PackageManager
             _logger.LogInformation("{SourcePath} + {CosmosEndpoint} >>> {TargetPath}", packagePath, cosmosClient.Endpoint, rollbackPackagePath);
 
             using var package = Package.Open(packagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+
+            packageVersion.Append(package.PackageProperties.Identifier);
 
             var packagePartitions = default(IReadOnlyDictionary<Uri, PackagePartition>);
 
@@ -137,7 +132,7 @@ public sealed partial class PackageManager
                                         var operationResponse = await container.ReadItemAsync<JsonObject?>(documentId, documentPartitionKey, default, cancellationToken).ConfigureAwait(false);
 
                                         _logger.LogInformation(
-                                            "read {DatabaseName}\\{ContainerName}\\{DocumentId} {DocumentPartitionKey}: HTTP {StatusCode} ({RU:F2} RU)",
+                                            "read /{DatabaseName}/{ContainerName}/{DocumentId}:{DocumentPartitionKey}: HTTP {StatusCode} ({RU:F2} RU)",
                                             packagePartition.DatabaseName,
                                             packagePartition.ContainerName,
                                             documentId,
@@ -146,13 +141,14 @@ public sealed partial class PackageManager
                                             Math.Round(operationResponse.RequestCharge, 2));
 
                                         targetDocument = operationResponse.Resource;
+                                        packageVersion.Append(operationResponse.ETag);
                                     }
                                     catch (CosmosException ex)
                                     {
                                         if ((int)ex.StatusCode == 404)
                                         {
                                             _logger.LogInformation(
-                                                "read {DatabaseName}\\{ContainerName}\\{DocumentId} {DocumentPartitionKey}: HTTP {StatusCode} ({RU:F2} RU)",
+                                                "read /{DatabaseName}/{ContainerName}/{DocumentId}:{DocumentPartitionKey}: HTTP {StatusCode} ({RU:F2} RU)",
                                                 packagePartition.DatabaseName,
                                                 packagePartition.ContainerName,
                                                 documentId,
@@ -308,7 +304,7 @@ public sealed partial class PackageManager
                             CosmosDocument.TryGetPartitionKey(document, containerPartitionKeyPaths!, out var documentPartitionKey);
 
                             _logger.LogInformation(
-                                "+++ {OperationName} {DatabaseName}\\{ContainerName}\\{DocumentId} {DocumentPartitionKey} ({PropertyCount})",
+                                "+++ {OperationName} /{DatabaseName}/{ContainerName}/{DocumentId}:{DocumentPartitionKey} ({PropertyCount})",
                                 packagePartitionOperationName,
                                 packagePartition.DatabaseName,
                                 packagePartition.ContainerName,
@@ -330,6 +326,7 @@ public sealed partial class PackageManager
             await packageModel.SaveAsync(cancellationToken).ConfigureAwait(false);
 
             package.PackageProperties.Identifier = Guid.CreateVersion7().ToString();
+            package.PackageProperties.Version = packageVersion.ToVersion();
             package.PackageProperties.Subject = cosmosClient.Endpoint.AbsoluteUri;
             package.PackageProperties.Created = _timeProvider.GetUtcNow().UtcDateTime;
             package.PackageProperties.Creator = s_applicationName;

@@ -6,26 +6,26 @@ using Cotopaxi.Cosmos.PackageManagement.Primitives;
 
 namespace Cotopaxi.Cosmos.PackageManagement.AppHost.Commands;
 
-internal sealed class AppCheckpointCommandHandler : CommandHandler<AppCheckpointCommand>
+internal sealed class AppSnapshotCommandHandler : CommandHandler<AppSnapshotCommand>
 {
     private readonly PackageManager _manager;
 
-    public AppCheckpointCommandHandler(PackageManager manager)
+    public AppSnapshotCommandHandler(PackageManager manager)
     {
         _manager = manager;
     }
 
-    protected override Task<bool> InvokeAsync(AppCheckpointCommand command, SymbolResult result, CancellationToken cancellationToken)
+    protected override Task<bool> InvokeAsync(AppSnapshotCommand command, SymbolResult result, CancellationToken cancellationToken)
     {
-        var sourcePackagePathPattern = result.GetValueForArgument(command.PackageArgument);
-        var rollbackPackagePath = Path.GetFullPath(result.GetValueForArgument(command.RollbackPackageArgument), Environment.CurrentDirectory);
+        var profilePathPattern = result.GetValueForArgument(command.ProfileArgument);
+        var packagePath = Path.GetFullPath(result.GetValueForArgument(command.PackageArgument), Environment.CurrentDirectory);
         var cosmosAccountEndpoint = result.GetValueForOption(command.EndpointOption);
         var cosmosAuthKeyOrResourceToken = result.GetValueForOption(command.KeyOption);
         var cosmosConnectionString = result.GetValueForOption(command.ConnectionStringOption);
 
-        var sourcePackagePaths = PathGlobbing.GetFilePaths(sourcePackagePathPattern, Environment.CurrentDirectory);
+        var profilePaths = PathGlobbing.GetFilePaths(profilePathPattern, Environment.CurrentDirectory);
         var cosmosAuthInfo = CosmosAuthInfoFactory.CreateAuthInfo(cosmosAccountEndpoint, cosmosAuthKeyOrResourceToken, cosmosConnectionString);
 
-        return _manager.CreateRollbackPackageAsync(sourcePackagePaths, rollbackPackagePath, cosmosAuthInfo, cancellationToken);
+        return _manager.CreateSnapshotPackageAsync(profilePaths, packagePath, cosmosAuthInfo, cancellationToken);
     }
 }

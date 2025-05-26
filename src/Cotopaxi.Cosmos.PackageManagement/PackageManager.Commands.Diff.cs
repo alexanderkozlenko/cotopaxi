@@ -26,16 +26,7 @@ public sealed partial class PackageManager
         Debug.Assert(package2Path is not null);
         Debug.Assert(cosmosAuthInfo is not null);
 
-        var cosmosClientOptions = new CosmosClientOptions
-        {
-            ApplicationName = s_applicationName,
-            EnableContentResponseOnWrite = false,
-            UseSystemTextJsonSerializerWithOptions = JsonSerializerOptions.Default,
-        };
-
-        using var cosmosClient = cosmosAuthInfo.IsConnectionString ?
-            new CosmosClient(cosmosAuthInfo.ConnectionString, cosmosClientOptions) :
-            new CosmosClient(cosmosAuthInfo.AccountEndpoint.AbsoluteUri, cosmosAuthInfo.AuthKeyOrResourceToken, cosmosClientOptions);
+        using var cosmosClient = CreateCosmosClient(cosmosAuthInfo);
 
         var partitionKeyPathsCache = new Dictionary<(string, string), JsonPointer[]>();
         var package1Documents = await GetPackageDocumentsAsync(package1Path, cosmosClient, partitionKeyPathsCache, cancellationToken).ConfigureAwait(false);
@@ -157,7 +148,7 @@ public sealed partial class PackageManager
             var printItemStatistics = printItemStatisticsBuilder.ToString().TrimEnd();
 
             _logger.LogInformation(
-                "{Category} {OperationName} {DatabaseName}\\{ContainerName}\\{DocumentId} {DocumentPartitionKey} ({DocumentStatistics})",
+                "{Category} {OperationName} /{DatabaseName}/{ContainerName}/{DocumentId}:{DocumentPartitionKey} ({DocumentStatistics})",
                 category,
                 printItemOperationName,
                 printItem.DatabaseName,

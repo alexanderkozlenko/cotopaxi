@@ -4,7 +4,6 @@
 
 using System.Diagnostics;
 using System.IO.Packaging;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Cotopaxi.Cosmos.Packaging;
@@ -20,30 +19,17 @@ public sealed partial class PackageManager
 
         using var package = Package.Open(packagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
 
-        var packageSummary = new StringBuilder()
-            .Append(package.PackageProperties.Version)
-            .Append(' ')
-            .Append(package.PackageProperties.Subject)
-            .ToString()
-            .Trim();
+        _logger.LogInformation("cdbpkg:properties:uuid: {PackageUUID}",
+            package.PackageProperties.Identifier ?? string.Empty);
 
-        if (packageSummary.Length > 0)
-        {
-            _logger.LogInformation(
-                "{PackagePath}: {PackageIdentifier} {PackageTimestamp} ({PackageSummary})",
-                packagePath,
-                package.PackageProperties.Identifier ?? "?",
-                package.PackageProperties.Created?.ToUniversalTime().ToString("O") ?? "?",
-                packageSummary);
-        }
-        else
-        {
-            _logger.LogInformation(
-                "{PackagePath}: {PackageIdentifier} {PackageTimestamp}",
-                packagePath,
-                package.PackageProperties.Identifier ?? "?",
-                package.PackageProperties.Created?.ToUniversalTime().ToString("O") ?? "?");
-        }
+        _logger.LogInformation("cdbpkg:properties:created: {PackageCreated}",
+            package.PackageProperties.Created?.ToUniversalTime().ToString("O") ?? string.Empty);
+
+        _logger.LogInformation("cdbpkg:properties:version: {PackageVersion}",
+            package.PackageProperties.Version ?? string.Empty);
+
+        _logger.LogInformation("cdbpkg:properties:subject: {PackageSubject}",
+            package.PackageProperties.Subject ?? string.Empty);
 
         var packagePartitions = default(IReadOnlyDictionary<Uri, PackagePartition>);
 
@@ -74,7 +60,7 @@ public sealed partial class PackageManager
                 CosmosDocument.TryGetId(document, out var documentId);
 
                 _logger.LogInformation(
-                    "cdbpkg:{PartitionUri}:$[{DocumentIndex}]: {OperationName} {DatabaseName}\\{ContainerName}\\{DocumentId} ({PropertyCount})",
+                    "cdbpkg:{PartitionUri}:$[{DocumentIndex}]: {OperationName} /{DatabaseName}/{ContainerName}/{DocumentId} ({PropertyCount})",
                     packagePartitionUri,
                     i,
                     packagePartition.OperationType.ToString().ToLowerInvariant(),

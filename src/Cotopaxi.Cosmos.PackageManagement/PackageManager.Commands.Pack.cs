@@ -110,7 +110,7 @@ public sealed partial class PackageManager
                                 documentsByOperation.Add(document);
 
                                 _logger.LogInformation(
-                                    "{SourcePath}:$[{DocumentIndex}]: {OperationName} {DatabaseName}\\{ContainerName}\\{DocumentId} ({PropertyCount})",
+                                    "{SourcePath}:$[{DocumentIndex}]: {OperationName} /{DatabaseName}/{ContainerName}/{DocumentId} ({PropertyCount})",
                                     projectSource.FilePath,
                                     i,
                                     packagePartitionOperationName,

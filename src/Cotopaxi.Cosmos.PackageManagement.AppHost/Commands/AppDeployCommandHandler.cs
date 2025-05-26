@@ -17,12 +17,12 @@ internal sealed class AppDeployCommandHandler : CommandHandler<AppDeployCommand>
 
     protected override Task<bool> InvokeAsync(AppDeployCommand command, SymbolResult result, CancellationToken cancellationToken)
     {
-        var cosmosAccountEndpoint = result.GetValueForOption(command.EndpointOption);
-        var cosmosAuthKeyOrResourceToken = result.GetValueForOption(command.KeyOption);
-        var cosmosConnectionString = result.GetValueForOption(command.ConnectionStringOption);
         var packagePathPattern = result.GetValueForArgument(command.PackageArgument);
         var profilePathPattern = result.GetValueForOption(command.ProfileOption);
         var dryRun = result.GetValueForOption(command.DryRunOption);
+        var cosmosAccountEndpoint = result.GetValueForOption(command.EndpointOption);
+        var cosmosAuthKeyOrResourceToken = result.GetValueForOption(command.KeyOption);
+        var cosmosConnectionString = result.GetValueForOption(command.ConnectionStringOption);
 
         var packagePaths = PathGlobbing.GetFilePaths(packagePathPattern, Environment.CurrentDirectory);
         var profilePaths = !string.IsNullOrEmpty(profilePathPattern) ? PathGlobbing.GetFilePaths(profilePathPattern, Environment.CurrentDirectory) : null;

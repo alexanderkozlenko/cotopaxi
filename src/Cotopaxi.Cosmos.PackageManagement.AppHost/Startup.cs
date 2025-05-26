@@ -17,6 +17,7 @@ internal static class Startup
             new AppPackCommand(),
             new AppDeployCommand(),
             new AppCheckpointCommand(),
+            new AppSnapshotCommand(),
             new AppDiffCommand(),
             new AppShowCommand(),
             new AppFormatCommand(),
@@ -32,6 +33,7 @@ internal static class Startup
             .UseCommandHandler<AppPackCommand, AppPackCommandHandler>()
             .UseCommandHandler<AppDeployCommand, AppDeployCommandHandler>()
             .UseCommandHandler<AppCheckpointCommand, AppCheckpointCommandHandler>()
+            .UseCommandHandler<AppSnapshotCommand, AppSnapshotCommandHandler>()
             .UseCommandHandler<AppDiffCommand, AppDiffCommandHandler>()
             .UseCommandHandler<AppShowCommand, AppShowCommandHandler>()
             .UseCommandHandler<AppFormatCommand, AppFormatCommandHandler>();
