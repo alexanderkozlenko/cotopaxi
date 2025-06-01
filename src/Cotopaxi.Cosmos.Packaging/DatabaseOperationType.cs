@@ -2,7 +2,7 @@
 
 namespace Cotopaxi.Cosmos.Packaging;
 
-public enum PackageOperationType
+public enum DatabaseOperationType
 {
     Delete = 0,
     Create = 1,

@@ -325,7 +325,7 @@ public sealed class CosmosDocumentTests
         var document = new JsonObject
         {
             ["id"] = "5f3edc36-17c0-4e11-a6da-a81440214abe",
-            ["pk"] = "pk",
+            ["pk"] = "59fcfd99-4016-4eba-a9cd-4d44cae02282",
             ["_attachments"] = "_attachments",
             ["_etag"] = "_etag",
             ["_rid"] = "_rid",
@@ -336,8 +336,8 @@ public sealed class CosmosDocumentTests
         CosmosDocument.Prune(document);
 
         Assert.AreEqual(2, document.Count);
-        Assert.IsTrue(document.ContainsKey("id"));
-        Assert.IsTrue(document.ContainsKey("pk"));
+        Assert.IsTrue(document.ContainsKey("id") && JsonNode.DeepEquals(document["id"], "5f3edc36-17c0-4e11-a6da-a81440214abe"));
+        Assert.IsTrue(document.ContainsKey("pk") && JsonNode.DeepEquals(document["pk"], "59fcfd99-4016-4eba-a9cd-4d44cae02282"));
     }
 
     [TestMethod]
@@ -345,7 +345,7 @@ public sealed class CosmosDocumentTests
     {
         var document = new JsonObject
         {
-            ["pk"] = "pk",
+            ["pk"] = "59fcfd99-4016-4eba-a9cd-4d44cae02282",
             ["id"] = "5f3edc36-17c0-4e11-a6da-a81440214abe",
             ["_attachments"] = "_attachments",
             ["_etag"] = "_etag",
@@ -357,8 +357,8 @@ public sealed class CosmosDocumentTests
         CosmosDocument.Format(document);
 
         Assert.AreEqual(2, document.Count);
-        Assert.IsTrue(document.ContainsKey("id"));
-        Assert.IsTrue(document.ContainsKey("pk"));
-        Assert.AreEqual("id", document.GetAt(0).Key);
+        Assert.IsTrue(document.ContainsKey("id") && JsonNode.DeepEquals(document["id"], "5f3edc36-17c0-4e11-a6da-a81440214abe"));
+        Assert.IsTrue(document.ContainsKey("pk") && JsonNode.DeepEquals(document["pk"], "59fcfd99-4016-4eba-a9cd-4d44cae02282"));
+        Assert.AreEqual("id", document.First().Key);
     }
 }

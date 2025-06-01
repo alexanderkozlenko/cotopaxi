@@ -8,24 +8,24 @@ public sealed class ProjectSourceComparerTests
 {
     [DataTestMethod]
     [DataRow(
-        "adventureworks/products/bikes.json", "adventureworks", "products", PackageOperationType.Upsert,
-        "adventureworks/products/bikes.json", "adventureworks", "products", PackageOperationType.Upsert,
+        "adventureworks/products/bikes.json", "adventureworks", "products", DatabaseOperationType.Upsert,
+        "adventureworks/products/bikes.json", "adventureworks", "products", DatabaseOperationType.Upsert,
         true)]
     [DataRow(
-        "adventureworks/products/bikes.json", "adventureworks", "products", PackageOperationType.Upsert,
-        "AdventureWorks/Products/Bikes.json", "adventureworks", "products", PackageOperationType.Upsert,
+        "adventureworks/products/bikes.json", "adventureworks", "products", DatabaseOperationType.Upsert,
+        "AdventureWorks/Products/Bikes.json", "adventureworks", "products", DatabaseOperationType.Upsert,
         true)]
     [DataRow(
-        "adventureworks/products/bikes.json", "adventureworks", "products", PackageOperationType.Upsert,
-        "adventureworks/products/bikes.json", "AdventureWorks", "products", PackageOperationType.Upsert,
+        "adventureworks/products/bikes.json", "adventureworks", "products", DatabaseOperationType.Upsert,
+        "adventureworks/products/bikes.json", "AdventureWorks", "products", DatabaseOperationType.Upsert,
         false)]
     [DataRow(
-        "adventureworks/products/bikes.json", "adventureworks", "products", PackageOperationType.Upsert,
-        "adventureworks/products/bikes.json", "adventureworks", "Products", PackageOperationType.Upsert,
+        "adventureworks/products/bikes.json", "adventureworks", "products", DatabaseOperationType.Upsert,
+        "adventureworks/products/bikes.json", "adventureworks", "Products", DatabaseOperationType.Upsert,
         false)]
     public void Equals(
-        string filePath1, string database1, string container1, PackageOperationType operation1Type,
-        string filePath2, string database2, string container2, PackageOperationType operation2Type,
+        string filePath1, string database1, string container1, DatabaseOperationType operation1Type,
+        string filePath2, string database2, string container2, DatabaseOperationType operation2Type,
         bool expected)
     {
         var projectSource1 = new ProjectSource(filePath1, database1, container1, operation1Type);

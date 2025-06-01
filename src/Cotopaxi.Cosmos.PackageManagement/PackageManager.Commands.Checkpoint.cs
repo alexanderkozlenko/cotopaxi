@@ -3,7 +3,6 @@
 #pragma warning disable CA1848
 
 using System.Diagnostics;
-using System.IO.Packaging;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Cotopaxi.Cosmos.Packaging;
@@ -29,32 +28,26 @@ public sealed partial class PackageManager
         using var cosmosClient = CreateCosmosClient(cosmosAuthInfo);
 
         var partitionKeyPathsCache = new Dictionary<(string, string), JsonPointer[]>();
-        var deployOperations = new HashSet<(PackageDocumentKey, PackageOperationType)>();
-        var deployDocumentStates = new Dictionary<PackageDocumentKey, (Dictionary<PackageOperationType, JsonObject> Sources, JsonObject? Target)>();
+        var deployOperations = new HashSet<(PackageDocumentKey, DatabaseOperationType)>();
+        var deployDocumentStates = new Dictionary<PackageDocumentKey, (Dictionary<DatabaseOperationType, JsonObject> Sources, JsonObject? Target)>();
 
         foreach (var packagePath in sourcePackagePaths)
         {
             _logger.LogInformation("{SourcePath} + {CosmosEndpoint} >>> {TargetPath}", packagePath, cosmosClient.Endpoint, rollbackPackagePath);
 
-            using var package = Package.Open(packagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            await using var packageStream = new FileStream(packagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            await using var package = await DatabasePackage.OpenAsync(packageStream, FileMode.Open, FileAccess.Read, cancellationToken).ConfigureAwait(false);
 
-            packageVersion.Append(package.PackageProperties.Identifier);
-
-            var packagePartitions = default(IReadOnlyDictionary<Uri, PackagePartition>);
-
-            using (var packageModel = await PackageModel.OpenAsync(package, default, cancellationToken).ConfigureAwait(false))
-            {
-                packagePartitions = packageModel.GetPartitions();
-            }
+            var packagePartitions = package.GetPartitions();
 
             var packagePartitionGroupsByDatabase = packagePartitions
-                .GroupBy(static x => x.Value.DatabaseName, StringComparer.Ordinal)
+                .GroupBy(static x => x.DatabaseName, StringComparer.Ordinal)
                 .OrderBy(static x => x.Key, StringComparer.Ordinal);
 
             foreach (var packagePartitionGroupByDatabase in packagePartitionGroupsByDatabase)
             {
                 var packagePartitionGroupsByContainer = packagePartitionGroupByDatabase
-                    .GroupBy(static x => x.Value.ContainerName, StringComparer.Ordinal)
+                    .GroupBy(static x => x.ContainerName, StringComparer.Ordinal)
                     .OrderBy(static x => x.Key, StringComparer.Ordinal);
 
                 foreach (var packagePartitionGroupByContainer in packagePartitionGroupsByContainer)
@@ -71,22 +64,21 @@ public sealed partial class PackageManager
                     }
 
                     var packagePartitionGroupsByOperation = packagePartitionGroupByContainer
-                        .GroupBy(static x => x.Value.OperationType)
+                        .GroupBy(static x => x.OperationType)
                         .OrderBy(static x => x.Key);
 
                     foreach (var packagePartitionGroupByOperation in packagePartitionGroupsByOperation)
                     {
                         var packagePartitionsByOperation = packagePartitionGroupByOperation
-                            .OrderBy(static x => x.Key.OriginalString, StringComparer.Ordinal);
+                            .OrderBy(static x => x.Uri.OriginalString, StringComparer.Ordinal);
 
-                        foreach (var (packagePartitionUri, packagePartition) in packagePartitionsByOperation)
+                        foreach (var packagePartition in packagePartitionsByOperation)
                         {
-                            var packagePart = package.GetPart(packagePartitionUri);
                             var documents = default(JsonObject?[]);
 
-                            using (var packagePartStream = packagePart.GetStream(FileMode.Open, FileAccess.Read))
+                            using (var packagePartitionStream = packagePartition.GetStream(FileMode.Open, FileAccess.Read))
                             {
-                                documents = await JsonSerializer.DeserializeAsync<JsonObject?[]>(packagePartStream, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false) ?? [];
+                                documents = await JsonSerializer.DeserializeAsync<JsonObject?[]>(packagePartitionStream, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false) ?? [];
                             }
 
                             deployOperations.EnsureCapacity(deployOperations.Count + documents.Length);
@@ -104,12 +96,12 @@ public sealed partial class PackageManager
 
                                 if (!CosmosDocument.TryGetId(sourceDocument, out var documentId))
                                 {
-                                    throw new InvalidOperationException($"Failed to extract document identifier from {packagePartitionUri}:$[{i}]");
+                                    throw new InvalidOperationException($"Failed to extract document identifier from {packagePartition.Uri}:$[{i}]");
                                 }
 
                                 if (!CosmosDocument.TryGetPartitionKey(sourceDocument, containerPartitionKeyPaths!, out var documentPartitionKey))
                                 {
-                                    throw new InvalidOperationException($"Failed to extract document partition key from {packagePartitionUri}:$[{i}]");
+                                    throw new InvalidOperationException($"Failed to extract document partition key from {packagePartition.Uri}:$[{i}]");
                                 }
 
                                 var documentKey = new PackageDocumentKey(
@@ -120,7 +112,7 @@ public sealed partial class PackageManager
 
                                 if (!deployOperations.Add((documentKey, packagePartition.OperationType)))
                                 {
-                                    throw new InvalidOperationException($"A duplicate document+operation entry {packagePartitionUri}:$[{i}]");
+                                    throw new InvalidOperationException($"A duplicate document+operation entry {packagePartition.Uri}:$[{i}]");
                                 }
 
                                 if (!deployDocumentStates.TryGetValue(documentKey, out var deployDocumentState))
@@ -179,7 +171,7 @@ public sealed partial class PackageManager
             }
         }
 
-        var rollbackOperations = new List<(string DatabaseName, string ContainerName, JsonObject Document, PackageOperationType OperationType)>();
+        var rollbackOperations = new List<(string DatabaseName, string ContainerName, JsonObject Document, DatabaseOperationType OperationType)>();
 
         foreach (var (documentKey, documentState) in deployDocumentStates)
         {
@@ -188,36 +180,36 @@ public sealed partial class PackageManager
 
             if (targetDocument is null)
             {
-                if (documentState.Sources.TryGetValue(PackageOperationType.Create, out sourceDocument) ||
-                    documentState.Sources.TryGetValue(PackageOperationType.Upsert, out sourceDocument))
+                if (documentState.Sources.TryGetValue(DatabaseOperationType.Create, out sourceDocument) ||
+                    documentState.Sources.TryGetValue(DatabaseOperationType.Upsert, out sourceDocument))
                 {
                     var rollbackOperation = (
                         documentKey.DatabaseName,
                         documentKey.ContainerName,
                         sourceDocument,
-                        PackageOperationType.Delete);
+                        DatabaseOperationType.Delete);
 
                     rollbackOperations.Add(rollbackOperation);
                 }
             }
             else
             {
-                if (documentState.Sources.ContainsKey(PackageOperationType.Delete))
+                if (documentState.Sources.ContainsKey(DatabaseOperationType.Delete))
                 {
                     var rollbackOperation = (
                         documentKey.DatabaseName,
                         documentKey.ContainerName,
                         targetDocument,
-                        PackageOperationType.Upsert);
+                        DatabaseOperationType.Upsert);
 
                     rollbackOperations.Add(rollbackOperation);
 
                     continue;
                 }
 
-                if (documentState.Sources.TryGetValue(PackageOperationType.Upsert, out sourceDocument))
+                if (documentState.Sources.TryGetValue(DatabaseOperationType.Upsert, out sourceDocument))
                 {
-                    var rollbackRequired = documentState.Sources.ContainsKey(PackageOperationType.Patch) || !JsonNode.DeepEquals(sourceDocument, targetDocument);
+                    var rollbackRequired = documentState.Sources.ContainsKey(DatabaseOperationType.Patch) || !JsonNode.DeepEquals(sourceDocument, targetDocument);
 
                     if (rollbackRequired)
                     {
@@ -225,7 +217,7 @@ public sealed partial class PackageManager
                             documentKey.DatabaseName,
                             documentKey.ContainerName,
                             targetDocument,
-                            PackageOperationType.Upsert);
+                            DatabaseOperationType.Upsert);
 
                         rollbackOperations.Add(rollbackOperation);
                     }
@@ -233,7 +225,7 @@ public sealed partial class PackageManager
                     continue;
                 }
 
-                if (documentState.Sources.TryGetValue(PackageOperationType.Patch, out sourceDocument))
+                if (documentState.Sources.TryGetValue(DatabaseOperationType.Patch, out sourceDocument))
                 {
                     var rollbackRequired = sourceDocument.Any(x => !targetDocument.TryGetPropertyValue(x.Key, out var v) || !JsonNode.DeepEquals(x.Value, v));
 
@@ -243,7 +235,7 @@ public sealed partial class PackageManager
                             documentKey.DatabaseName,
                             documentKey.ContainerName,
                             targetDocument,
-                            PackageOperationType.Upsert);
+                            DatabaseOperationType.Upsert);
 
                         rollbackOperations.Add(rollbackOperation);
                     }
@@ -260,8 +252,8 @@ public sealed partial class PackageManager
 
         try
         {
-            using var package = Package.Open(rollbackPackagePath, FileMode.Create, FileAccess.Write, FileShare.None);
-            using var packageModel = await PackageModel.OpenAsync(package, default, cancellationToken).ConfigureAwait(false);
+            await using var packageStream = new FileStream(rollbackPackagePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None);
+            await using var package = await DatabasePackage.OpenAsync(packageStream, FileMode.Create, FileAccess.ReadWrite, cancellationToken).ConfigureAwait(false);
 
             var operationGroupsByDatabase = rollbackOperations
                 .GroupBy(static x => x.DatabaseName, StringComparer.Ordinal)
@@ -284,13 +276,12 @@ public sealed partial class PackageManager
 
                     foreach (var operationGroupByOperation in operationGroupsByOperation)
                     {
-                        var packagePartition = new PackagePartition(
+                        var packagePartition = package.CreatePartition(
                             operationGroupByDatabase.Key,
                             operationGroupByContainer.Key,
                             operationGroupByOperation.Key);
 
                         var packagePartitionOperationName = packagePartition.OperationType.ToString().ToLowerInvariant();
-                        var packagePartitionUri = packageModel.CreatePartition(packagePartition);
 
                         var documents = operationGroupByOperation
                             .Select(static x => x.Document)
@@ -313,17 +304,13 @@ public sealed partial class PackageManager
                                 document.Count);
                         }
 
-                        var packagePart = package.CreatePart(packagePartitionUri, "application/json", default);
-
-                        using (var packagePartStream = packagePart.GetStream(FileMode.Create, FileAccess.Write))
+                        using (var packagePartitionStream = packagePartition.GetStream(FileMode.Create, FileAccess.Write))
                         {
-                            await JsonSerializer.SerializeAsync(packagePartStream, documents, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+                            await JsonSerializer.SerializeAsync(packagePartitionStream, documents, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
                         }
                     }
                 }
             }
-
-            await packageModel.SaveAsync(cancellationToken).ConfigureAwait(false);
 
             package.PackageProperties.Identifier = Guid.CreateVersion7().ToString();
             package.PackageProperties.Version = packageVersion.ToVersion();

@@ -3,7 +3,6 @@
 #pragma warning disable CA1848
 
 using System.Diagnostics;
-using System.IO.Packaging;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Cotopaxi.Cosmos.Packaging;
@@ -36,8 +35,8 @@ public sealed partial class PackageManager
 
         try
         {
-            using var package = Package.Open(packagePath, FileMode.Create, FileAccess.Write, FileShare.None);
-            using var packageModel = await PackageModel.OpenAsync(package, default, cancellationToken).ConfigureAwait(false);
+            await using var packageStream = new FileStream(packagePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None);
+            await using var package = await DatabasePackage.OpenAsync(packageStream, FileMode.Create, FileAccess.ReadWrite, cancellationToken).ConfigureAwait(false);
 
             var documentKeyGroupsByDatabase = profileDocumentKeys
                 .GroupBy(static x => x.DatabaseName, StringComparer.Ordinal)
@@ -114,12 +113,10 @@ public sealed partial class PackageManager
                         continue;
                     }
 
-                    var packagePartition = new PackagePartition(
+                    var packagePartition = package.CreatePartition(
                         documentKeyGroupByDatabase.Key,
                         documentKeyGroupByContainer.Key,
-                        PackageOperationType.Upsert);
-
-                    var packagePartitionUri = packageModel.CreatePartition(packagePartition);
+                        DatabaseOperationType.Upsert);
 
                     var documents = snapshots
                         .OrderBy(static x => x.Key.DocumentId, StringComparer.Ordinal)
@@ -139,16 +136,12 @@ public sealed partial class PackageManager
                             document.Count);
                     }
 
-                    var packagePart = package.CreatePart(packagePartitionUri, "application/json", default);
-
-                    using (var packagePartStream = packagePart.GetStream(FileMode.Create, FileAccess.Write))
+                    using (var packagePartitionStream = packagePartition.GetStream(FileMode.Create, FileAccess.Write))
                     {
-                        await JsonSerializer.SerializeAsync(packagePartStream, documents.Select(static x => x.Value), s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+                        await JsonSerializer.SerializeAsync(packagePartitionStream, documents.Select(static x => x.Value), s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
                     }
                 }
             }
-
-            await packageModel.SaveAsync(cancellationToken).ConfigureAwait(false);
 
             package.PackageProperties.Identifier = Guid.CreateVersion7().ToString();
             package.PackageProperties.Version = packageVersion.ToVersion();

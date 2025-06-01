@@ -3,7 +3,6 @@
 #pragma warning disable CA1848
 
 using System.Diagnostics;
-using System.IO.Packaging;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Cotopaxi.Cosmos.Packaging;
@@ -17,7 +16,8 @@ public sealed partial class PackageManager
     {
         Debug.Assert(packagePath is not null);
 
-        using var package = Package.Open(packagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        await using var packageStream = new FileStream(packagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        await using var package = await DatabasePackage.OpenAsync(packageStream, FileMode.Open, FileAccess.Read, cancellationToken).ConfigureAwait(false);
 
         _logger.LogInformation("cdbpkg:properties:uuid: {PackageUUID}",
             package.PackageProperties.Identifier ?? string.Empty);
@@ -31,21 +31,15 @@ public sealed partial class PackageManager
         _logger.LogInformation("cdbpkg:properties:subject: {PackageSubject}",
             package.PackageProperties.Subject ?? string.Empty);
 
-        var packagePartitions = default(IReadOnlyDictionary<Uri, PackagePartition>);
+        var packagePartitions = package.GetPartitions();
 
-        using (var packageModel = await PackageModel.OpenAsync(package, default, cancellationToken).ConfigureAwait(false))
+        foreach (var packagePartition in packagePartitions)
         {
-            packagePartitions = packageModel.GetPartitions();
-        }
-
-        foreach (var (packagePartitionUri, packagePartition) in packagePartitions)
-        {
-            var packagePart = package.GetPart(packagePartitionUri);
             var documents = default(JsonObject?[]);
 
-            using (var packagePartStream = packagePart.GetStream(FileMode.Open, FileAccess.Read))
+            using (var packagePartitionStream = packagePartition.GetStream(FileMode.Open, FileAccess.Read))
             {
-                documents = await JsonSerializer.DeserializeAsync<JsonObject?[]>(packagePartStream, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false) ?? [];
+                documents = await JsonSerializer.DeserializeAsync<JsonObject?[]>(packagePartitionStream, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false) ?? [];
             }
 
             for (var i = 0; i < documents.Length; i++)
@@ -61,7 +55,7 @@ public sealed partial class PackageManager
 
                 _logger.LogInformation(
                     "cdbpkg:{PartitionUri}:$[{DocumentIndex}]: {OperationName} /{DatabaseName}/{ContainerName}/{DocumentId} ({PropertyCount})",
-                    packagePartitionUri,
+                    packagePartition.Uri,
                     i,
                     packagePartition.OperationType.ToString().ToLowerInvariant(),
                     packagePartition.DatabaseName,

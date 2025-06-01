@@ -6,14 +6,14 @@ using System.Text.Json;
 
 namespace Cotopaxi.Cosmos.Packaging;
 
-internal sealed class PackageAdapter : StorageAdapter
+internal sealed class DatabasePackageAdapter : DatabasePackageStorageAdapter
 {
     public const string SchemeName = "opc";
 
     private readonly Package _package;
     private readonly CompressionOption _compressionOption;
 
-    public PackageAdapter(Package package, CompressionOption compressionOption, CancellationTokenSource cancellationTokenSource)
+    public DatabasePackageAdapter(Package package, CompressionOption compressionOption, CancellationTokenSource cancellationTokenSource)
         : base(cancellationTokenSource)
     {
         Debug.Assert(package is not null);
@@ -36,7 +36,8 @@ internal sealed class PackageAdapter : StorageAdapter
     {
         Debug.Assert(adapterPath is not null);
 
-        var packagePart = _package.GetPart(new(adapterPath, UriKind.Relative));
+        var packagePartUri = new Uri(adapterPath, UriKind.Relative);
+        var packagePart = _package.GetPart(packagePartUri);
 
         using (var packagePartStream = packagePart.GetStream(FileMode.Open, FileAccess.Read))
         {
@@ -49,7 +50,11 @@ internal sealed class PackageAdapter : StorageAdapter
         Debug.Assert(adapterPath is not null);
         Debug.Assert(document is not null);
 
-        var packagePart = _package.CreatePart(new(adapterPath, UriKind.Relative), "application/json", _compressionOption);
+        var packagePartUri = new Uri(adapterPath, UriKind.Relative);
+
+        var packagePart = _package.PartExists(packagePartUri) ?
+            _package.GetPart(packagePartUri) :
+            _package.CreatePart(packagePartUri, "application/json", _compressionOption);
 
         using (var packagePartStream = packagePart.GetStream(FileMode.Create, FileAccess.Write))
         {

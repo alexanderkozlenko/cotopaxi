@@ -1,12 +1,10 @@
 ﻿// (c) Oleksandr Kozlenko. Licensed under the MIT license.
 
-using Cotopaxi.Cosmos.Packaging;
+namespace Cotopaxi.Cosmos.Packaging;
 
-namespace Cotopaxi.Cosmos.PackageManagement;
-
-public sealed record class ProjectSource
+internal sealed record class DatabasePackageEntry
 (
-    string FilePath,
+    Uri PartitionUri,
     string DatabaseName,
     string ContainerName,
     DatabaseOperationType OperationType

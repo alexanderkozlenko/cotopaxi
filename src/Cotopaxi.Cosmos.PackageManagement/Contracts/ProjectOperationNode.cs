@@ -7,10 +7,10 @@ namespace Cotopaxi.Cosmos.PackageManagement.Contracts;
 
 internal sealed class ProjectOperationNode
 {
-    [JsonConverter(typeof(PackageOperationTypeConverter))]
+    [JsonConverter(typeof(DatabaseOperationTypeConverter))]
     [JsonRequired]
     [JsonPropertyName("name")]
-    public required PackageOperationType OperationType
+    public required DatabaseOperationType OperationType
     {
         get;
         set;

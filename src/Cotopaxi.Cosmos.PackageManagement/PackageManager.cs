@@ -39,7 +39,7 @@ public sealed partial class PackageManager
         {
             var documentKeyNodes = default(PackageDocumentKeyNode?[]);
 
-            using (var profileStream = new FileStream(profilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            await using (var profileStream = new FileStream(profilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
                 documentKeyNodes = await JsonSerializer.DeserializeAsync<PackageDocumentKeyNode?[]>(profileStream, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false) ?? [];
             }

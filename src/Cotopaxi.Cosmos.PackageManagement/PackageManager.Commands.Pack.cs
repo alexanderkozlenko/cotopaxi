@@ -4,7 +4,6 @@
 
 using System.Collections.Frozen;
 using System.Diagnostics;
-using System.IO.Packaging;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Cotopaxi.Cosmos.PackageManagement.Contracts;
@@ -36,8 +35,8 @@ public sealed partial class PackageManager
 
         try
         {
-            using var package = Package.Open(packagePath, FileMode.Create, FileAccess.Write, FileShare.None);
-            using var packageModel = await PackageModel.OpenAsync(package, default, cancellationToken).ConfigureAwait(false);
+            await using var packageStream = new FileStream(packagePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None);
+            await using var package = await DatabasePackage.OpenAsync(packageStream, FileMode.Create, FileAccess.ReadWrite, cancellationToken).ConfigureAwait(false);
 
             var projectSourceGroupsByDatabase = projectSources
                 .GroupBy(static x => x.DatabaseName, StringComparer.Ordinal)
@@ -51,21 +50,20 @@ public sealed partial class PackageManager
 
                 foreach (var projectSourceGroupByContainer in projectSourceGroupsByContainer)
                 {
-                    var projectSourceGroupsByOperations = projectSourceGroupByContainer
+                    var projectSourceGroupsByOperation = projectSourceGroupByContainer
                         .GroupBy(static x => x.OperationType)
                         .OrderBy(static x => x.Key);
 
-                    foreach (var projectSourceGroupByOperations in projectSourceGroupsByOperations)
+                    foreach (var projectSourceGroupByOperation in projectSourceGroupsByOperation)
                     {
-                        var packagePartition = new PackagePartition(
+                        var packagePartition = package.CreatePartition(
                             projectSourceGroupByDatabase.Key,
                             projectSourceGroupByContainer.Key,
-                            projectSourceGroupByOperations.Key);
+                            projectSourceGroupByOperation.Key);
 
                         var packagePartitionOperationName = packagePartition.OperationType.ToString().ToLowerInvariant();
-                        var packagePartitionUri = packageModel.CreatePartition(packagePartition);
 
-                        var projectSourcesByOperation = projectSourceGroupByOperations
+                        var projectSourcesByOperation = projectSourceGroupByOperation
                             .OrderBy(static x => x.FilePath, StringComparer.OrdinalIgnoreCase);
 
                         var documentsByOperation = new List<JsonObject>();
@@ -74,7 +72,7 @@ public sealed partial class PackageManager
                         {
                             var documentsBySource = default(JsonObject?[]);
 
-                            using (var projectSourceStream = new FileStream(projectSource.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                            await using (var projectSourceStream = new FileStream(projectSource.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
                             {
                                 documentsBySource = await JsonSerializer.DeserializeAsync<JsonObject?[]>(projectSourceStream, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false) ?? [];
                             }
@@ -121,17 +119,13 @@ public sealed partial class PackageManager
                             }
                         }
 
-                        var packagePart = package.CreatePart(packagePartitionUri, "application/json", default);
-
-                        using (var packagePartStream = packagePart.GetStream(FileMode.Create, FileAccess.Write))
+                        using (var packagePartitionStream = packagePartition.GetStream(FileMode.Create, FileAccess.Write))
                         {
-                            await JsonSerializer.SerializeAsync(packagePartStream, documentsByOperation, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+                            await JsonSerializer.SerializeAsync(packagePartitionStream, documentsByOperation, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
                         }
                     }
                 }
             }
-
-            await packageModel.SaveAsync(cancellationToken).ConfigureAwait(false);
 
             package.PackageProperties.Identifier = Guid.CreateVersion7().ToString();
             package.PackageProperties.Version = packageVersion;
@@ -160,7 +154,7 @@ public sealed partial class PackageManager
         var projectSources = new HashSet<ProjectSource>(ProjectSourceComparer.Instance);
         var projectNode = default(ProjectNode);
 
-        using (var projectStream = new FileStream(projectPath, FileMode.Open, FileAccess.Read, FileShare.Read))
+        await using (var projectStream = new FileStream(projectPath, FileMode.Open, FileAccess.Read, FileShare.Read))
         {
             projectNode = await JsonSerializer.DeserializeAsync<ProjectNode>(projectStream, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
         }

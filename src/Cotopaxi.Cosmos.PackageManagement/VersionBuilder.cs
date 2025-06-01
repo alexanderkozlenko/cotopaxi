@@ -8,7 +8,7 @@ namespace Cotopaxi.Cosmos.PackageManagement;
 
 internal sealed class VersionBuilder : IDisposable
 {
-    private readonly IncrementalHash _hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+    private readonly IncrementalHash _hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA1);
 
     public void Dispose()
     {
@@ -36,7 +36,7 @@ internal sealed class VersionBuilder : IDisposable
 
     public string ToVersion()
     {
-        var bytes = (stackalloc byte[32]);
+        var bytes = (stackalloc byte[SHA1.HashSizeInBytes]);
 
         _hash.GetCurrentHash(bytes);
 

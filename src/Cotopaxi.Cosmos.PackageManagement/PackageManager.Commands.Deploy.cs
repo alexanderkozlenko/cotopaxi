@@ -3,7 +3,6 @@
 #pragma warning disable CA1848
 
 using System.Diagnostics;
-using System.IO.Packaging;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Cotopaxi.Cosmos.Packaging;
@@ -27,7 +26,7 @@ public sealed partial class PackageManager
         using var cosmosClient = CreateCosmosClient(cosmosAuthInfo, static x => x.EnableContentResponseOnWrite = false);
 
         var partitionKeyPathsCache = new Dictionary<(string, string), JsonPointer[]>();
-        var deployOperations = new HashSet<(PackageDocumentKey, PackageOperationType)>();
+        var deployOperations = new HashSet<(PackageDocumentKey, DatabaseOperationType)>();
         var profileDocumentKeys = profilePaths is not null ? await GetProfileDocumentKeysAsync(profilePaths, cancellationToken).ConfigureAwait(false) : null;
 
         foreach (var packagePath in packagePaths)
@@ -41,23 +40,19 @@ public sealed partial class PackageManager
                 _logger.LogInformation("[dry-run] {PackagePath} >>> {CosmosEndpoint}", packagePath, cosmosClient.Endpoint);
             }
 
-            using var package = Package.Open(packagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            await using var packageStream = new FileStream(packagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            await using var package = await DatabasePackage.OpenAsync(packageStream, FileMode.Open, FileAccess.Read, cancellationToken).ConfigureAwait(false);
 
-            var packagePartitions = default(IReadOnlyDictionary<Uri, PackagePartition>);
-
-            using (var packageModel = await PackageModel.OpenAsync(package, default, cancellationToken).ConfigureAwait(false))
-            {
-                packagePartitions = packageModel.GetPartitions();
-            }
+            var packagePartitions = package.GetPartitions();
 
             var packagePartitionGroupsByDatabase = packagePartitions
-                .GroupBy(static x => x.Value.DatabaseName, StringComparer.Ordinal)
+                .GroupBy(static x => x.DatabaseName, StringComparer.Ordinal)
                 .OrderBy(static x => x.Key, StringComparer.Ordinal);
 
             foreach (var packagePartitionGroupByDatabase in packagePartitionGroupsByDatabase)
             {
                 var packagePartitionGroupsByContainer = packagePartitionGroupByDatabase
-                    .GroupBy(static x => x.Value.ContainerName, StringComparer.Ordinal)
+                    .GroupBy(static x => x.ContainerName, StringComparer.Ordinal)
                     .OrderBy(static x => x.Key, StringComparer.Ordinal);
 
                 foreach (var packagePartitionGroupByContainer in packagePartitionGroupsByContainer)
@@ -74,23 +69,22 @@ public sealed partial class PackageManager
                     }
 
                     var packagePartitionGroupsByOperation = packagePartitionGroupByContainer
-                        .GroupBy(static x => x.Value.OperationType)
+                        .GroupBy(static x => x.OperationType)
                         .OrderBy(static x => x.Key);
 
                     foreach (var packagePartitionGroupByOperation in packagePartitionGroupsByOperation)
                     {
                         var packagePartitionsByOperation = packagePartitionGroupByOperation
-                            .OrderBy(static x => x.Key.OriginalString, StringComparer.Ordinal);
+                            .OrderBy(static x => x.Uri.OriginalString, StringComparer.Ordinal);
 
-                        foreach (var (packagePartitionUri, packagePartition) in packagePartitionsByOperation)
+                        foreach (var packagePartition in packagePartitionsByOperation)
                         {
                             var packagePartitionOperationName = packagePartition.OperationType.ToString().ToLowerInvariant();
-                            var packagePart = package.GetPart(packagePartitionUri);
                             var documents = default(JsonObject?[]);
 
-                            using (var packagePartStream = packagePart.GetStream(FileMode.Open, FileAccess.Read))
+                            using (var packagePartitionStream = packagePartition.GetStream(FileMode.Open, FileAccess.Read))
                             {
-                                documents = await JsonSerializer.DeserializeAsync<JsonObject?[]>(packagePartStream, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false) ?? [];
+                                documents = await JsonSerializer.DeserializeAsync<JsonObject?[]>(packagePartitionStream, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false) ?? [];
                             }
 
                             deployOperations.EnsureCapacity(deployOperations.Count + documents.Length);
@@ -108,12 +102,12 @@ public sealed partial class PackageManager
 
                                 if (!CosmosDocument.TryGetId(document, out var documentId))
                                 {
-                                    throw new InvalidOperationException($"Failed to extract document identifier from {packagePartitionUri}:$[{i}]");
+                                    throw new InvalidOperationException($"Failed to extract document identifier from {packagePartition.Uri}:$[{i}]");
                                 }
 
                                 if (!CosmosDocument.TryGetPartitionKey(document, containerPartitionKeyPaths, out var documentPartitionKey))
                                 {
-                                    throw new InvalidOperationException($"Failed to extract document partition key from {packagePartitionUri}:$[{i}]");
+                                    throw new InvalidOperationException($"Failed to extract document partition key from {packagePartition.Uri}:$[{i}]");
                                 }
 
                                 var documentKey = new PackageDocumentKey(
@@ -124,7 +118,7 @@ public sealed partial class PackageManager
 
                                 if (!deployOperations.Add((documentKey, packagePartition.OperationType)))
                                 {
-                                    throw new InvalidOperationException($"A duplicate document+operation entry {packagePartitionUri}:$[{i}]");
+                                    throw new InvalidOperationException($"A duplicate document+operation entry {packagePartition.Uri}:$[{i}]");
                                 }
 
                                 if (!dryRun)
@@ -137,22 +131,22 @@ public sealed partial class PackageManager
 
                                             switch (packagePartition.OperationType)
                                             {
-                                                case PackageOperationType.Delete:
+                                                case DatabaseOperationType.Delete:
                                                     {
                                                         operationResponse = await container.DeleteItemAsync<JsonObject?>(documentId, documentPartitionKey, default, cancellationToken).ConfigureAwait(false);
                                                     }
                                                     break;
-                                                case PackageOperationType.Create:
+                                                case DatabaseOperationType.Create:
                                                     {
                                                         operationResponse = await container.CreateItemAsync<JsonObject?>(document, documentPartitionKey, default, cancellationToken).ConfigureAwait(false);
                                                     }
                                                     break;
-                                                case PackageOperationType.Upsert:
+                                                case DatabaseOperationType.Upsert:
                                                     {
                                                         operationResponse = await container.UpsertItemAsync<JsonObject?>(document, documentPartitionKey, default, cancellationToken).ConfigureAwait(false);
                                                     }
                                                     break;
-                                                case PackageOperationType.Patch:
+                                                case DatabaseOperationType.Patch:
                                                     {
                                                         var patchOperations = document
                                                             .Where(static x => x.Key != "id")
@@ -164,7 +158,7 @@ public sealed partial class PackageManager
                                                     break;
                                                 default:
                                                     {
-                                                        throw new NotSupportedException();
+                                                        throw new InvalidOperationException();
                                                     }
                                             }
 
@@ -181,9 +175,9 @@ public sealed partial class PackageManager
                                         }
                                         catch (CosmosException ex)
                                         {
-                                            if ((((int)ex.StatusCode == 404) && (packagePartition.OperationType == PackageOperationType.Delete)) ||
-                                                (((int)ex.StatusCode == 409) && (packagePartition.OperationType == PackageOperationType.Create)) ||
-                                                (((int)ex.StatusCode == 404) && (packagePartition.OperationType == PackageOperationType.Patch)))
+                                            if ((((int)ex.StatusCode == 404) && (packagePartition.OperationType == DatabaseOperationType.Delete)) ||
+                                                (((int)ex.StatusCode == 409) && (packagePartition.OperationType == DatabaseOperationType.Create)) ||
+                                                (((int)ex.StatusCode == 404) && (packagePartition.OperationType == DatabaseOperationType.Patch)))
                                             {
                                                 _logger.LogInformation(
                                                     "{OperationName} /{DatabaseName}/{ContainerName}/{DocumentId}:{DocumentPartitionKey}: HTTP {StatusCode} ({RU:F2} RU)",

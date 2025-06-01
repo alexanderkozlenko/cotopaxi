@@ -6,11 +6,11 @@ using Microsoft.CommonDataModel.ObjectModel.Storage;
 
 namespace Cotopaxi.Cosmos.Packaging;
 
-internal abstract class StorageAdapter : StorageAdapterBase
+internal abstract class DatabasePackageStorageAdapter : StorageAdapterBase
 {
     private readonly CancellationTokenSource _cancellationTokenSource;
 
-    public StorageAdapter(CancellationTokenSource cancellationTokenSource)
+    public DatabasePackageStorageAdapter(CancellationTokenSource cancellationTokenSource)
     {
         Debug.Assert(cancellationTokenSource is not null);
 

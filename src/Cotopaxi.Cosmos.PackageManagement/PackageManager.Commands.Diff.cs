@@ -6,7 +6,6 @@
 using System.Collections.Frozen;
 using System.Diagnostics;
 using System.Globalization;
-using System.IO.Packaging;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -79,7 +78,7 @@ public sealed partial class PackageManager
                 WriteIndented = true,
             };
 
-            using (var profileStream = new FileStream(profilePath, FileMode.Create, FileAccess.Write, FileShare.None))
+            await using (var profileStream = new FileStream(profilePath, FileMode.Create, FileAccess.Write, FileShare.None))
             {
                 await JsonSerializer.SerializeAsync(profileStream, profileDocumentKeyNodes, jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
             }
@@ -98,7 +97,7 @@ public sealed partial class PackageManager
         return true;
     }
 
-    private void PrintDiffSection(string category, (PackageDocumentKey DocumentKey, PackageOperationType OperationType, ComparisonStatistics Statistics)[] source)
+    private void PrintDiffSection(string category, (PackageDocumentKey DocumentKey, DatabaseOperationType OperationType, ComparisonStatistics Statistics)[] source)
     {
         if (source.Length == 0)
         {
@@ -183,20 +182,15 @@ public sealed partial class PackageManager
         return new(0, 0, 0);
     }
 
-    private static async Task<FrozenDictionary<(PackageDocumentKey DocumentKey, PackageOperationType OperationType), JsonObject>> GetPackageDocumentsAsync(string packagePath, CosmosClient cosmosClient, Dictionary<(string, string), JsonPointer[]> partitionKeyPathsCache, CancellationToken cancellationToken)
+    private static async Task<FrozenDictionary<(PackageDocumentKey DocumentKey, DatabaseOperationType OperationType), JsonObject>> GetPackageDocumentsAsync(string packagePath, CosmosClient cosmosClient, Dictionary<(string, string), JsonPointer[]> partitionKeyPathsCache, CancellationToken cancellationToken)
     {
-        using var package = Package.Open(packagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        await using var packageStream = new FileStream(packagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        await using var package = await DatabasePackage.OpenAsync(packageStream, FileMode.Open, FileAccess.Read, cancellationToken).ConfigureAwait(false);
 
-        var packagePartitions = default(IReadOnlyDictionary<Uri, PackagePartition>);
+        var packagePartitions = package.GetPartitions();
+        var packageDocuments = new Dictionary<(PackageDocumentKey DocumentKey, DatabaseOperationType OperationType), JsonObject>();
 
-        using (var packageModel = await PackageModel.OpenAsync(package, default, cancellationToken).ConfigureAwait(false))
-        {
-            packagePartitions = packageModel.GetPartitions();
-        }
-
-        var packageDocuments = new Dictionary<(PackageDocumentKey DocumentKey, PackageOperationType OperationType), JsonObject>();
-
-        foreach (var (packagePartitionUri, packagePartition) in packagePartitions)
+        foreach (var packagePartition in packagePartitions)
         {
             var container = cosmosClient.GetContainer(packagePartition.DatabaseName, packagePartition.ContainerName);
             var containerPartitionKeyPathsKey = (packagePartition.DatabaseName, packagePartition.ContainerName);
@@ -209,12 +203,11 @@ public sealed partial class PackageManager
                 partitionKeyPathsCache.Add(containerPartitionKeyPathsKey, containerPartitionKeyPaths);
             }
 
-            var packagePart = package.GetPart(packagePartitionUri);
             var documents = default(JsonObject?[]);
 
-            using (var packagePartStream = packagePart.GetStream(FileMode.Open, FileAccess.Read))
+            using (var packagePartitionStream = packagePartition.GetStream(FileMode.Open, FileAccess.Read))
             {
-                documents = await JsonSerializer.DeserializeAsync<JsonObject?[]>(packagePartStream, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false) ?? [];
+                documents = await JsonSerializer.DeserializeAsync<JsonObject?[]>(packagePartitionStream, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false) ?? [];
             }
 
             packageDocuments.EnsureCapacity(packageDocuments.Count + documents.Length);
@@ -230,12 +223,12 @@ public sealed partial class PackageManager
 
                 if (!CosmosDocument.TryGetId(document, out var documentId))
                 {
-                    throw new InvalidOperationException($"Failed to extract document identifier from {packagePartitionUri}:$[{i}]");
+                    throw new InvalidOperationException($"Failed to extract document identifier from {packagePartition.Uri}:$[{i}]");
                 }
 
                 if (!CosmosDocument.TryGetPartitionKey(document, containerPartitionKeyPaths!, out var documentPartitionKey))
                 {
-                    throw new InvalidOperationException($"Failed to extract document partition key from {packagePartitionUri}:$[{i}]");
+                    throw new InvalidOperationException($"Failed to extract document partition key from {packagePartition.Uri}:$[{i}]");
                 }
 
                 var documentKey = new PackageDocumentKey(
@@ -246,7 +239,7 @@ public sealed partial class PackageManager
 
                 if (!packageDocuments.TryAdd((documentKey, packagePartition.OperationType), document))
                 {
-                    throw new InvalidOperationException($"A duplicate document+operation entry {packagePartitionUri}:$[{i}]");
+                    throw new InvalidOperationException($"A duplicate document+operation entry {packagePartition.Uri}:$[{i}]");
                 }
             }
         }

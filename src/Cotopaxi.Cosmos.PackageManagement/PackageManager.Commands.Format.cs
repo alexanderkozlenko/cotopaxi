@@ -33,7 +33,7 @@ public sealed partial class PackageManager
 
             try
             {
-                using (var sourceStream = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                await using (var sourceStream = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read))
                 {
                     documents = await JsonSerializer.DeserializeAsync<JsonObject?[]>(sourceStream, jsonSerializerOptions, cancellationToken).ConfigureAwait(false) ?? [];
                 }
@@ -57,7 +57,7 @@ public sealed partial class PackageManager
                 _logger.LogInformation("{SourcePath}:$[{DocumentIndex}]: OK", sourcePath, i);
             }
 
-            using (var sourceStream = new FileStream(sourcePath, FileMode.Create, FileAccess.Write, FileShare.None))
+            await using (var sourceStream = new FileStream(sourcePath, FileMode.Create, FileAccess.Write, FileShare.None))
             {
                 await JsonSerializer.SerializeAsync(sourceStream, documents, jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
             }
