@@ -5,6 +5,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Cotopaxi.Cosmos.PackageManagement.Primitives;
 using Cotopaxi.Cosmos.Packaging;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
@@ -19,10 +20,10 @@ public sealed partial class PackageManager
         Debug.Assert(packagePath is not null);
         Debug.Assert(cosmosAuthInfo is not null);
 
-        using var packageVersion = new VersionBuilder();
+        using var versionBuilder = new HashBuilder("SHA1");
         using var cosmosClient = CreateCosmosClient(cosmosAuthInfo);
 
-        var partitionKeyPathsCache = new Dictionary<(string, string), JsonPointer[]>();
+        var cosmosMetadataCache = new CosmosMetadataCache(cosmosClient);
         var profileDocumentKeys = await GetProfileDocumentKeysAsync(profilePaths, cancellationToken).ConfigureAwait(false);
         var packageDirectory = Path.GetDirectoryName(packagePath);
 
@@ -51,16 +52,7 @@ public sealed partial class PackageManager
                 foreach (var documentKeyGroupByContainer in documentKeyGroupsByContainer)
                 {
                     var container = cosmosClient.GetContainer(documentKeyGroupByDatabase.Key, documentKeyGroupByContainer.Key);
-                    var containerPartitionKeyPathsKey = (documentKeyGroupByDatabase.Key, documentKeyGroupByContainer.Key);
-
-                    if (!partitionKeyPathsCache.TryGetValue(containerPartitionKeyPathsKey, out var containerPartitionKeyPaths))
-                    {
-                        var containerResponse = await container.ReadContainerAsync(default, cancellationToken).ConfigureAwait(false);
-
-                        containerPartitionKeyPaths = containerResponse.Resource.PartitionKeyPaths.Select(static x => new JsonPointer(x)).ToArray();
-                        partitionKeyPathsCache.Add(containerPartitionKeyPathsKey, containerPartitionKeyPaths);
-                    }
-
+                    var containerPartitionKeyPaths = await cosmosMetadataCache.GetPartitionKeyPathsAsync(documentKeyGroupByDatabase.Key, documentKeyGroupByContainer.Key, cancellationToken).ConfigureAwait(false);
                     var snapshots = new Dictionary<PackageDocumentKey, JsonObject>();
 
                     foreach (var documentKey in documentKeyGroupByContainer)
@@ -85,7 +77,7 @@ public sealed partial class PackageManager
                                 CosmosDocument.Prune(document);
 
                                 snapshots.Add(documentKey, document);
-                                packageVersion.Append(operationResponse.ETag);
+                                versionBuilder.Append(operationResponse.ETag);
                             }
                         }
                         catch (CosmosException ex)
@@ -144,7 +136,7 @@ public sealed partial class PackageManager
             }
 
             package.PackageProperties.Identifier = Guid.CreateVersion7().ToString();
-            package.PackageProperties.Version = packageVersion.ToVersion();
+            package.PackageProperties.Version = versionBuilder.ToHashString();
             package.PackageProperties.Subject = cosmosClient.Endpoint.AbsoluteUri;
             package.PackageProperties.Created = _timeProvider.GetUtcNow().UtcDateTime;
             package.PackageProperties.Creator = s_applicationName;

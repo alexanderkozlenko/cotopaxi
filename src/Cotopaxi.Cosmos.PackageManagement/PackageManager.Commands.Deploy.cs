@@ -25,7 +25,7 @@ public sealed partial class PackageManager
 
         using var cosmosClient = CreateCosmosClient(cosmosAuthInfo, static x => x.EnableContentResponseOnWrite = false);
 
-        var partitionKeyPathsCache = new Dictionary<(string, string), JsonPointer[]>();
+        var cosmosMetadataCache = new CosmosMetadataCache(cosmosClient);
         var deployOperations = new HashSet<(PackageDocumentKey, DatabaseOperationType)>();
         var profileDocumentKeys = profilePaths is not null ? await GetProfileDocumentKeysAsync(profilePaths, cancellationToken).ConfigureAwait(false) : null;
 
@@ -58,15 +58,7 @@ public sealed partial class PackageManager
                 foreach (var packagePartitionGroupByContainer in packagePartitionGroupsByContainer)
                 {
                     var container = cosmosClient.GetContainer(packagePartitionGroupByDatabase.Key, packagePartitionGroupByContainer.Key);
-                    var containerPartitionKeyPathsKey = (packagePartitionGroupByDatabase.Key, packagePartitionGroupByContainer.Key);
-
-                    if (!partitionKeyPathsCache.TryGetValue(containerPartitionKeyPathsKey, out var containerPartitionKeyPaths))
-                    {
-                        var containerResponse = await container.ReadContainerAsync(default, cancellationToken).ConfigureAwait(false);
-
-                        containerPartitionKeyPaths = containerResponse.Resource.PartitionKeyPaths.Select(static x => new JsonPointer(x)).ToArray();
-                        partitionKeyPathsCache[containerPartitionKeyPathsKey] = containerPartitionKeyPaths;
-                    }
+                    var containerPartitionKeyPaths = await cosmosMetadataCache.GetPartitionKeyPathsAsync(packagePartitionGroupByDatabase.Key, packagePartitionGroupByContainer.Key, cancellationToken).ConfigureAwait(false);
 
                     var packagePartitionGroupsByOperation = packagePartitionGroupByContainer
                         .GroupBy(static x => x.OperationType)

@@ -27,9 +27,9 @@ public sealed partial class PackageManager
 
         using var cosmosClient = CreateCosmosClient(cosmosAuthInfo);
 
-        var partitionKeyPathsCache = new Dictionary<(string, string), JsonPointer[]>();
-        var package1Documents = await GetPackageDocumentsAsync(package1Path, cosmosClient, partitionKeyPathsCache, cancellationToken).ConfigureAwait(false);
-        var package2Documents = await GetPackageDocumentsAsync(package2Path, cosmosClient, partitionKeyPathsCache, cancellationToken).ConfigureAwait(false);
+        var cosmosMetadataCache = new CosmosMetadataCache(cosmosClient);
+        var package1Documents = await GetPackageDocumentsAsync(package1Path, cosmosClient, cosmosMetadataCache, cancellationToken).ConfigureAwait(false);
+        var package2Documents = await GetPackageDocumentsAsync(package2Path, cosmosClient, cosmosMetadataCache, cancellationToken).ConfigureAwait(false);
 
         var documentsCreated = package1Documents
             .Where(x => !package2Documents.ContainsKey(x.Key))
@@ -182,7 +182,7 @@ public sealed partial class PackageManager
         return new(0, 0, 0);
     }
 
-    private static async Task<FrozenDictionary<(PackageDocumentKey DocumentKey, DatabaseOperationType OperationType), JsonObject>> GetPackageDocumentsAsync(string packagePath, CosmosClient cosmosClient, Dictionary<(string, string), JsonPointer[]> partitionKeyPathsCache, CancellationToken cancellationToken)
+    private static async Task<FrozenDictionary<(PackageDocumentKey DocumentKey, DatabaseOperationType OperationType), JsonObject>> GetPackageDocumentsAsync(string packagePath, CosmosClient cosmosClient, CosmosMetadataCache cosmosMetadataCache, CancellationToken cancellationToken)
     {
         await using var packageStream = new FileStream(packagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
         await using var package = await DatabasePackage.OpenAsync(packageStream, FileMode.Open, FileAccess.Read, cancellationToken).ConfigureAwait(false);
@@ -192,17 +192,7 @@ public sealed partial class PackageManager
 
         foreach (var packagePartition in packagePartitions)
         {
-            var container = cosmosClient.GetContainer(packagePartition.DatabaseName, packagePartition.ContainerName);
-            var containerPartitionKeyPathsKey = (packagePartition.DatabaseName, packagePartition.ContainerName);
-
-            if (!partitionKeyPathsCache.TryGetValue(containerPartitionKeyPathsKey, out var containerPartitionKeyPaths))
-            {
-                var containerResponse = await container.ReadContainerAsync(default, cancellationToken).ConfigureAwait(false);
-
-                containerPartitionKeyPaths = containerResponse.Resource.PartitionKeyPaths.Select(static x => new JsonPointer(x)).ToArray();
-                partitionKeyPathsCache.Add(containerPartitionKeyPathsKey, containerPartitionKeyPaths);
-            }
-
+            var containerPartitionKeyPaths = await cosmosMetadataCache.GetPartitionKeyPathsAsync(packagePartition.DatabaseName, packagePartition.ContainerName, cancellationToken).ConfigureAwait(false);
             var documents = default(JsonObject?[]);
 
             using (var packagePartitionStream = packagePartition.GetStream(FileMode.Open, FileAccess.Read))
