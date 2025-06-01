@@ -25,10 +25,10 @@ public sealed partial class PackageManager
             return true;
         }
 
-        using var versionBuilder = new HashBuilder("SHA1");
         using var cosmosClient = CreateCosmosClient(cosmosAuthInfo);
+        using var cosmosMetadataCache = new CosmosMetadataCache(cosmosClient);
+        using var versionBuilder = new HashBuilder("SHA1");
 
-        var cosmosMetadataCache = new CosmosMetadataCache(cosmosClient);
         var deployOperations = new HashSet<(PackageDocumentKey, DatabaseOperationType)>();
         var deployDocumentStates = new Dictionary<PackageDocumentKey, (Dictionary<DatabaseOperationType, JsonObject> Sources, JsonObject? Target)>();
 

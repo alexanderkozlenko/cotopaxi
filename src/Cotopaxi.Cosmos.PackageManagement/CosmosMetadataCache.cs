@@ -6,7 +6,7 @@ using Microsoft.Azure.Cosmos;
 
 namespace Cotopaxi.Cosmos.PackageManagement;
 
-internal sealed class CosmosMetadataCache
+internal sealed class CosmosMetadataCache : IDisposable
 {
     private readonly CosmosClient _cosmosClient;
     private readonly Dictionary<(string, string), JsonPointer[]> _partitionKeyPathsCache = new();
@@ -16,6 +16,11 @@ internal sealed class CosmosMetadataCache
         Debug.Assert(cosmosClient is not null);
 
         _cosmosClient = cosmosClient;
+    }
+
+    public void Dispose()
+    {
+        _partitionKeyPathsCache.Clear();
     }
 
     public async Task<JsonPointer[]> GetPartitionKeyPathsAsync(string databaseName, string containerName, CancellationToken cancellationToken)

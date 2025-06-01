@@ -26,8 +26,8 @@ public sealed partial class PackageManager
         Debug.Assert(cosmosAuthInfo is not null);
 
         using var cosmosClient = CreateCosmosClient(cosmosAuthInfo);
+        using var cosmosMetadataCache = new CosmosMetadataCache(cosmosClient);
 
-        var cosmosMetadataCache = new CosmosMetadataCache(cosmosClient);
         var package1Documents = await GetPackageDocumentsAsync(package1Path, cosmosClient, cosmosMetadataCache, cancellationToken).ConfigureAwait(false);
         var package2Documents = await GetPackageDocumentsAsync(package2Path, cosmosClient, cosmosMetadataCache, cancellationToken).ConfigureAwait(false);
 
@@ -97,7 +97,7 @@ public sealed partial class PackageManager
         return true;
     }
 
-    private void PrintDiffSection(string category, (PackageDocumentKey DocumentKey, DatabaseOperationType OperationType, ComparisonStatistics Statistics)[] source)
+    private void PrintDiffSection(string category, (PackageDocumentKey DocumentKey, DatabaseOperationType OperationType, OperationStatistics Statistics)[] source)
     {
         if (source.Length == 0)
         {
@@ -158,7 +158,7 @@ public sealed partial class PackageManager
         }
     }
 
-    private static ComparisonStatistics CreateDiffStatistics(JsonObject? document1, JsonObject? document2)
+    private static OperationStatistics CreateDiffStatistics(JsonObject? document1, JsonObject? document2)
     {
         if ((document1 is not null) && (document2 is null))
         {

@@ -2,7 +2,7 @@
 
 namespace Cotopaxi.Cosmos.PackageManagement;
 
-internal readonly record struct ComparisonStatistics
+internal readonly record struct OperationStatistics
 (
     int Created,
     int Updated,

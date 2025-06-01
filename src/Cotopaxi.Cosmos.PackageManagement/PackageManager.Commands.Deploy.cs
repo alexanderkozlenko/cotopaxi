@@ -24,8 +24,8 @@ public sealed partial class PackageManager
         }
 
         using var cosmosClient = CreateCosmosClient(cosmosAuthInfo, static x => x.EnableContentResponseOnWrite = false);
+        using var cosmosMetadataCache = new CosmosMetadataCache(cosmosClient);
 
-        var cosmosMetadataCache = new CosmosMetadataCache(cosmosClient);
         var deployOperations = new HashSet<(PackageDocumentKey, DatabaseOperationType)>();
         var profileDocumentKeys = profilePaths is not null ? await GetProfileDocumentKeysAsync(profilePaths, cancellationToken).ConfigureAwait(false) : null;
 

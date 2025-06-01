@@ -20,10 +20,10 @@ public sealed partial class PackageManager
         Debug.Assert(packagePath is not null);
         Debug.Assert(cosmosAuthInfo is not null);
 
-        using var versionBuilder = new HashBuilder("SHA1");
         using var cosmosClient = CreateCosmosClient(cosmosAuthInfo);
+        using var cosmosMetadataCache = new CosmosMetadataCache(cosmosClient);
+        using var versionBuilder = new HashBuilder("SHA1");
 
-        var cosmosMetadataCache = new CosmosMetadataCache(cosmosClient);
         var profileDocumentKeys = await GetProfileDocumentKeysAsync(profilePaths, cancellationToken).ConfigureAwait(false);
         var packageDirectory = Path.GetDirectoryName(packagePath);
 
