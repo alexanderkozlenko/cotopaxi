@@ -37,7 +37,7 @@ public sealed partial class PackageManager
         {
             var documents = default(JsonObject?[]);
 
-            using (var packagePartitionStream = packagePartition.GetStream(FileMode.Open, FileAccess.Read))
+            await using (var packagePartitionStream = packagePartition.GetStream(FileMode.Open, FileAccess.Read))
             {
                 documents = await JsonSerializer.DeserializeAsync<JsonObject?[]>(packagePartitionStream, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false) ?? [];
             }

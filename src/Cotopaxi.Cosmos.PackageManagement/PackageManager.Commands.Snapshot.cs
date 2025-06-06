@@ -128,7 +128,7 @@ public sealed partial class PackageManager
                             document.Count);
                     }
 
-                    using (var packagePartitionStream = packagePartition.GetStream(FileMode.Create, FileAccess.Write))
+                    await using (var packagePartitionStream = packagePartition.GetStream(FileMode.Create, FileAccess.Write))
                     {
                         await JsonSerializer.SerializeAsync(packagePartitionStream, documents.Select(static x => x.Value), s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
                     }

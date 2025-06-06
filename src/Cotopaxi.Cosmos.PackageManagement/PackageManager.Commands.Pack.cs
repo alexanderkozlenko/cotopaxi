@@ -56,32 +56,23 @@ public sealed partial class PackageManager
 
                     foreach (var projectSourceGroupByOperation in projectSourceGroupsByOperation)
                     {
-                        var packagePartition = package.CreatePartition(
-                            projectSourceGroupByDatabase.Key,
-                            projectSourceGroupByContainer.Key,
-                            projectSourceGroupByOperation.Key);
-
-                        var packagePartitionOperationName = packagePartition.OperationType.ToString().ToLowerInvariant();
+                        var packagePartitionOperationName = projectSourceGroupByOperation.Key.ToString().ToLowerInvariant();
 
                         var projectSourcesByOperation = projectSourceGroupByOperation
                             .OrderBy(static x => x.FilePath, StringComparer.OrdinalIgnoreCase);
 
-                        var documentsByOperation = new List<JsonObject>();
-
                         foreach (var projectSource in projectSourcesByOperation)
                         {
-                            var documentsBySource = default(JsonObject?[]);
+                            var documents = default(JsonObject?[]);
 
                             await using (var projectSourceStream = new FileStream(projectSource.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
                             {
-                                documentsBySource = await JsonSerializer.DeserializeAsync<JsonObject?[]>(projectSourceStream, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false) ?? [];
+                                documents = await JsonSerializer.DeserializeAsync<JsonObject?[]>(projectSourceStream, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false) ?? [];
                             }
 
-                            documentsByOperation.EnsureCapacity(documentsByOperation.Count + documentsBySource.Length);
-
-                            for (var i = 0; i < documentsBySource.Length; i++)
+                            for (var i = 0; i < documents.Length; i++)
                             {
-                                var document = documentsBySource[i];
+                                var document = documents[i];
 
                                 if (document is null)
                                 {
@@ -100,28 +91,26 @@ public sealed partial class PackageManager
                                     throw new InvalidOperationException($"A malformed document identifier in {projectSource.FilePath}:$[{i}]");
                                 }
 
-                                if (documentsByOperation.Any(x => JsonNode.DeepEquals(x, document)))
-                                {
-                                    throw new InvalidOperationException($"A duplicate document+operation entry {projectSource.FilePath}:$[{i}]");
-                                }
-
-                                documentsByOperation.Add(document);
-
                                 _logger.LogInformation(
                                     "{SourcePath}:$[{DocumentIndex}]: {OperationName} /{DatabaseName}/{ContainerName}/{DocumentId} ({PropertyCount})",
                                     projectSource.FilePath,
                                     i,
                                     packagePartitionOperationName,
-                                    packagePartition.DatabaseName,
-                                    packagePartition.ContainerName,
+                                    projectSourceGroupByDatabase.Key,
+                                    projectSourceGroupByContainer.Key,
                                     documentId,
                                     document.Count);
                             }
-                        }
 
-                        using (var packagePartitionStream = packagePartition.GetStream(FileMode.Create, FileAccess.Write))
-                        {
-                            await JsonSerializer.SerializeAsync(packagePartitionStream, documentsByOperation, s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+                            var packagePartition = package.CreatePartition(
+                                projectSourceGroupByDatabase.Key,
+                                projectSourceGroupByContainer.Key,
+                                projectSourceGroupByOperation.Key);
+
+                            await using (var packagePartitionStream = packagePartition.GetStream(FileMode.Create, FileAccess.Write))
+                            {
+                                await JsonSerializer.SerializeAsync(packagePartitionStream, documents.Where(static x => x is not null), s_jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+                            }
                         }
                     }
                 }

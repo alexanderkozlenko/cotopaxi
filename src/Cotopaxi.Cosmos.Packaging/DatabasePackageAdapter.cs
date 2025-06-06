@@ -39,7 +39,7 @@ internal sealed class DatabasePackageAdapter : DatabasePackageStorageAdapter
         var packagePartUri = new Uri(adapterPath, UriKind.Relative);
         var packagePart = _package.GetPart(packagePartUri);
 
-        using (var packagePartStream = packagePart.GetStream(FileMode.Open, FileAccess.Read))
+        await using (var packagePartStream = packagePart.GetStream(FileMode.Open, FileAccess.Read))
         {
             return await JsonDocument.ParseAsync(packagePartStream, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
@@ -56,7 +56,7 @@ internal sealed class DatabasePackageAdapter : DatabasePackageStorageAdapter
             _package.GetPart(packagePartUri) :
             _package.CreatePart(packagePartUri, "application/json", _compressionOption);
 
-        using (var packagePartStream = packagePart.GetStream(FileMode.Create, FileAccess.Write))
+        await using (var packagePartStream = packagePart.GetStream(FileMode.Create, FileAccess.Write))
         {
             await JsonSerializer.SerializeAsync(packagePartStream, document.RootElement, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
