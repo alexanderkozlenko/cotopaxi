@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Build.targets" />
+    <File Path="Directory.Packages.props" />
+  </Folder>
+  <Project Path="src/Cotopaxi.Cosmos.PackageManagement.AppHost/Cotopaxi.Cosmos.PackageManagement.AppHost.csproj" />
+  <Project Path="src/Cotopaxi.Cosmos.PackageManagement.UnitTests/Cotopaxi.Cosmos.PackageManagement.UnitTests.csproj" />
+  <Project Path="src/Cotopaxi.Cosmos.PackageManagement/Cotopaxi.Cosmos.PackageManagement.csproj" />
+  <Project Path="src/Cotopaxi.Cosmos.Packaging.UnitTests/Cotopaxi.Cosmos.Packaging.UnitTests.csproj" />
+  <Project Path="src/Cotopaxi.Cosmos.Packaging/Cotopaxi.Cosmos.Packaging.csproj" />
+</Solution>
