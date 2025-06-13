@@ -1,7 +1,6 @@
 ﻿<Project>
   <PropertyGroup>
     <VersionPrefix>1.11.0</VersionPrefix>
-    <VersionSuffix></VersionSuffix>
   </PropertyGroup>
   <PropertyGroup>
     <AnalysisMode>Recommended</AnalysisMode>
@@ -14,7 +13,6 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(ContinuousIntegrationBuild)' == 'true'">
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <VersionSuffix Condition="'$(VersionSuffix)' != ''">$(VersionSuffix).$([System.DateTimeOffset]::UtcNow.ToUnixTimeSeconds())</VersionSuffix>
     <DebugType>none</DebugType>
   </PropertyGroup>
   <Import Project="$(MSBuildProjectDirectory)\**\Properties\Directory.Package.props" />
