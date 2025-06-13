@@ -85,7 +85,7 @@ public sealed partial class PackageManager
                                     continue;
                                 }
 
-                                CosmosDocument.Prune(sourceDocument);
+                                CosmosDocument.PruneSystemProperties(sourceDocument);
 
                                 if (!CosmosDocument.TryGetId(sourceDocument, out var documentId))
                                 {
@@ -149,7 +149,7 @@ public sealed partial class PackageManager
 
                                     if (targetDocument is not null)
                                     {
-                                        CosmosDocument.Prune(targetDocument);
+                                        CosmosDocument.PruneSystemProperties(targetDocument);
                                     }
 
                                     deployDocumentState = (new(), targetDocument);

@@ -79,7 +79,7 @@ public sealed partial class PackageManager
                                     continue;
                                 }
 
-                                CosmosDocument.Prune(document);
+                                CosmosDocument.PruneSystemProperties(document);
 
                                 if (!CosmosDocument.TryGetId(document, out var documentId))
                                 {

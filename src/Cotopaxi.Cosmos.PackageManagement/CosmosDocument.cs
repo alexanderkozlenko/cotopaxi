@@ -143,7 +143,7 @@ public static class CosmosDocument
         return false;
     }
 
-    public static void Prune(JsonObject document)
+    public static void PruneSystemProperties(JsonObject document)
     {
         Debug.Assert(document is not null);
 
@@ -154,11 +154,9 @@ public static class CosmosDocument
         document.Remove("_ts");
     }
 
-    public static void Format(JsonObject document)
+    public static void OrderSystemProperties(JsonObject document)
     {
         Debug.Assert(document is not null);
-
-        Prune(document);
 
         if (document.TryGetPropertyValue("id", out var idNode))
         {

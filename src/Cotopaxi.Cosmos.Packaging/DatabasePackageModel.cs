@@ -87,7 +87,7 @@ internal sealed class DatabasePackageModel : IDisposable
     {
         var context = _corpusDef.Ctx;
 
-        if (_package.FileOpenAccess.HasFlag(FileAccess.ReadWrite) && context.FeatureFlags.ContainsKey("3392b72a-db0c-4f15-af30-afc833c903c4"))
+        if (_package.FileOpenAccess.HasFlag(FileAccess.ReadWrite) && context.FeatureFlags.ContainsKey(DatabasePackageAdapter.SchemeName))
         {
             _cancellationTokenSource.Token.ThrowIfCancellationRequested();
 
@@ -108,7 +108,7 @@ internal sealed class DatabasePackageModel : IDisposable
                 _package.CreateRelationship(manifestUri, TargetMode.Internal, s_manifestSchemaUrl);
             }
 
-            context.FeatureFlags.Remove("3392b72a-db0c-4f15-af30-afc833c903c4");
+            context.FeatureFlags.Remove(DatabasePackageAdapter.SchemeName);
         }
     }
 
@@ -133,7 +133,7 @@ internal sealed class DatabasePackageModel : IDisposable
 
         partitionDec.DataPartitions.Add(partitionDef);
 
-        _corpusDef.Ctx.FeatureFlags["3392b72a-db0c-4f15-af30-afc833c903c4"] = true;
+        _corpusDef.Ctx.FeatureFlags[DatabasePackageAdapter.SchemeName] = true;
 
         return new(partitionUri, databaseName, containerName, operationType);
     }

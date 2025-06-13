@@ -52,7 +52,8 @@ public sealed partial class PackageManager
                     continue;
                 }
 
-                CosmosDocument.Format(document);
+                CosmosDocument.PruneSystemProperties(document);
+                CosmosDocument.OrderSystemProperties(document);
 
                 _logger.LogInformation("{SourcePath}:$[{DocumentIndex}]: OK", sourcePath, i);
             }

@@ -320,7 +320,7 @@ public sealed class CosmosDocumentTests
     }
 
     [TestMethod]
-    public void Prune()
+    public void PruneSystemProperties()
     {
         var document = new JsonObject
         {
@@ -333,7 +333,7 @@ public sealed class CosmosDocumentTests
             ["_ts"] = "_ts",
         };
 
-        CosmosDocument.Prune(document);
+        CosmosDocument.PruneSystemProperties(document);
 
         Assert.AreEqual(2, document.Count);
         Assert.IsTrue(document.ContainsKey("id") && JsonNode.DeepEquals(document["id"], "5f3edc36-17c0-4e11-a6da-a81440214abe"));
@@ -341,20 +341,15 @@ public sealed class CosmosDocumentTests
     }
 
     [TestMethod]
-    public void Format()
+    public void OrderSystemProperties()
     {
         var document = new JsonObject
         {
             ["pk"] = "59fcfd99-4016-4eba-a9cd-4d44cae02282",
             ["id"] = "5f3edc36-17c0-4e11-a6da-a81440214abe",
-            ["_attachments"] = "_attachments",
-            ["_etag"] = "_etag",
-            ["_rid"] = "_rid",
-            ["_self"] = "_self",
-            ["_ts"] = "_ts",
         };
 
-        CosmosDocument.Format(document);
+        CosmosDocument.OrderSystemProperties(document);
 
         Assert.AreEqual(2, document.Count);
         Assert.IsTrue(document.ContainsKey("id") && JsonNode.DeepEquals(document["id"], "5f3edc36-17c0-4e11-a6da-a81440214abe"));

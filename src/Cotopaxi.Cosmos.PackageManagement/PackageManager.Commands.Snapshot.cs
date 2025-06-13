@@ -74,7 +74,7 @@ public sealed partial class PackageManager
 
                             if (document is not null)
                             {
-                                CosmosDocument.Prune(document);
+                                CosmosDocument.PruneSystemProperties(document);
 
                                 snapshots.Add(documentKey, document);
                                 versionBuilder.Append(operationResponse.ETag);
