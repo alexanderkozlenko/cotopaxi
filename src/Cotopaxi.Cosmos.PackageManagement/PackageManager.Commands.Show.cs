@@ -19,17 +19,20 @@ public sealed partial class PackageManager
         await using var packageStream = new FileStream(packagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
         await using var package = await DatabasePackage.OpenAsync(packageStream, FileMode.Open, FileAccess.Read, cancellationToken).ConfigureAwait(false);
 
-        _logger.LogInformation("cdbpkg:properties:uuid: {PackageUUID}",
+        _logger.LogInformation("cdbpkg:properties:uuid: {Value}",
             package.PackageProperties.Identifier ?? string.Empty);
 
-        _logger.LogInformation("cdbpkg:properties:created: {PackageCreated}",
-            package.PackageProperties.Created?.ToUniversalTime().ToString("O") ?? string.Empty);
-
-        _logger.LogInformation("cdbpkg:properties:version: {PackageVersion}",
+        _logger.LogInformation("cdbpkg:properties:version: {Value}",
             package.PackageProperties.Version ?? string.Empty);
 
-        _logger.LogInformation("cdbpkg:properties:subject: {PackageSubject}",
+        _logger.LogInformation("cdbpkg:properties:subject: {Value}",
             package.PackageProperties.Subject ?? string.Empty);
+
+        _logger.LogInformation("cdbpkg:properties:created: {Value}",
+            package.PackageProperties.Created?.ToUniversalTime().ToString("O") ?? string.Empty);
+
+        _logger.LogInformation("cdbpkg:properties:creator: {Value}",
+            package.PackageProperties.Creator ?? string.Empty);
 
         var packagePartitions = package.GetPartitions();
 
