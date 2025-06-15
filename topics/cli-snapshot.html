@@ -2,9 +2,9 @@
 <html>
   <head>
     <meta charset="utf-8">
-      <title>cotopaxi show </title>
+      <title>cotopaxi snapshot </title>
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <meta name="title" content="cotopaxi show ">
+      <meta name="title" content="cotopaxi snapshot ">
       
       
       <link rel="icon" href="../images/app-32.png">
@@ -16,7 +16,7 @@
       <meta name="docfx:rel" content="../">
       
       <meta name="docfx:disabletocfilter" content="true">
-      <meta name="docfx:docurl" content="https://github.com/alexanderkozlenko/cotopaxi/blob/gh-pages/topics/cli-show.md/#L1">
+      <meta name="docfx:docurl" content="https://github.com/alexanderkozlenko/cotopaxi/blob/gh-pages/topics/cli-snapshot.md/#L1">
       <meta name="loc:inThisArticle" content="In this article">
       <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
       <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
@@ -84,28 +84,53 @@
         </div>
 
         <article data-uid="">
-<h1 id="cotopaxi-show">cotopaxi show</h1>
+<h1 id="cotopaxi-snapshot">cotopaxi snapshot</h1>
 
 <p></p>
 <h2 id="name">Name</h2>
 <p></p>
-<p><code>cotopaxi show</code> - Shows information about a database package.</p>
+<p><code>cotopaxi snapshot</code> - Creates a database package from the Azure Cosmos DB account.</p>
 <p></p>
 <h2 id="synopsis">Synopsis</h2>
 <p></p>
-<pre><code class="lang-txt">cotopaxi show &lt;package&gt;
+<pre><code class="lang-txt">cotopaxi snapshot &lt;profile&gt; &lt;package&gt;
+  [--endpoint &lt;endpoint&gt; --key &lt;key&gt;|--connection-string &lt;connection-string&gt;]
 
-cotopaxi show -h|--help
+cotopaxi snapshot -h|--help
 </code></pre>
+<p></p>
+<h2 id="description">Description</h2>
+<p></p>
+<p>The snapshots of existing documents are added to the resulting database package as <code>upsert</code> operations.</p>
 <p></p>
 <h2 id="arguments">Arguments</h2>
 <p></p>
 <ul>
+<li><code>profile</code><br>
+The path to the deployment profile or profiles that specify which documents to take snapshots of (globbing patterns are supported).</li>
+</ul>
+<p></p>
+<ul>
 <li><code>package</code><br>
-The path to the database package to show information about.</li>
+The path to a resulting database package with import operations.</li>
 </ul>
 <p></p>
 <h2 id="options">Options</h2>
+<p></p>
+<ul>
+<li><code>--endpoint &lt;endpoint&gt;</code><br>
+The address of the Azure Cosmos DB account. Can be specified with <code>AZURE_COSMOS_ENDPOINT</code> environment variable. Must be used with <code>--key</code> option or <code>AZURE_COSMOS_KEY</code> environment variable.</li>
+</ul>
+<p></p>
+<ul>
+<li><code>--key &lt;key&gt;</code><br>
+The account key or resource token for the Azure Cosmos DB account. Can be specified with <code>AZURE_COSMOS_KEY</code> environment variable. Must be used with <code>--endpoint</code> option or <code>AZURE_COSMOS_ENDPOINT</code> environment variable.</li>
+</ul>
+<p></p>
+<ul>
+<li><code>--connection-string &lt;connection-string&gt;</code><br>
+The connection string for the Azure Cosmos DB account. Can be specified with <code>AZURE_COSMOS_CONNECTION_STRING</code> environment variable.</li>
+</ul>
 <p></p>
 <ul>
 <li><code>-h|--help</code><br>
@@ -114,17 +139,42 @@ Show help and usage information.</li>
 <p></p>
 <h2 id="examples">Examples</h2>
 <p></p>
-<h4 id="showing-information-about-a-database-package">Showing information about a database package:</h4>
+<h4 id="creating-a-snapshot-package-with-azure-pipelines-using-a-read-only-account-key">Creating a snapshot package with Azure Pipelines using a read-only account key:</h4>
 <p></p>
-<pre><code class="lang-txt">dotnet tool run cotopaxi show adventureworks-v1.0.0.cdbpkg
+<pre><code class="lang-yaml">- script: &gt;
+    dotnet tool run cotopaxi snapshot
+    $(System.ArtifactsDirectory)/**/*.profile.json
+    $(System.ArtifactsDirectory)/adventureworks.sn.cdbpkg
+    --endpoint $(AZURE_COSMOS_ENDPOINT)
+    --key $(AZURE_COSMOS_KEY_READ_ONLY)
 </code></pre>
 <p></p>
-<pre><code class="lang-txt">cdbpkg:properties:uuid: 0196f43b-4a47-7207-a702-2ef28659cd1a
-cdbpkg:properties:created: 2025-05-04T00:00:08.5198965Z
-cdbpkg:properties:version: 1.0.0
-cdbpkg:properties:subject: 
-cdbpkg:/cosmosdb.document/0196f43b-498e-7098-a28d-1e7d0e44e9dd.json:$[0]: upsert /adventureworks/products/3202cb6f-42af-4fe6-a3c5-d61927721e75 (4)
-cdbpkg:/cosmosdb.document/0196f43b-498e-7098-a28d-1e7d0e44e9dd.json:$[1]: upsert /adventureworks/products/e1894e24-550d-4fe3-9784-47d614600baa (4)
+<pre><code class="lang-txt">https://adventureworks.documents.azure.com:443 &gt;&gt;&gt; /home/vsts/work/r1/a/adventureworks.sn.cdbpkg
+read /adventureworks/products/3202cb6f-42af-4fe6-a3c5-d61927721e75:[&quot;bikes&quot;]: HTTP 200 (1.00 RU)
+read /adventureworks/products/7f1b7c5a-c339-41e3-bc00-bc753b1d66bc:[&quot;bikes&quot;]: HTTP 404 (1.00 RU)
++++ upsert /adventureworks/products/3202cb6f-42af-4fe6-a3c5-d61927721e75:[&quot;bikes&quot;] (4)
+</code></pre>
+<p></p>
+<p>The corresponding deployment profile <code>adventureworks.profile.json</code>:</p>
+<p></p>
+<pre><code class="lang-json">[
+  {
+    &quot;databaseName&quot;: &quot;adventureworks&quot;,
+    &quot;containerName&quot;: &quot;products&quot;,
+    &quot;documentId&quot;: &quot;3202cb6f-42af-4fe6-a3c5-d61927721e75&quot;,
+    &quot;documentPartitionKey&quot;: [
+      &quot;bikes&quot;
+    ]
+  },
+  {
+    &quot;databaseName&quot;: &quot;adventureworks&quot;,
+    &quot;containerName&quot;: &quot;products&quot;,
+    &quot;documentId&quot;: &quot;7f1b7c5a-c339-41e3-bc00-bc753b1d66bc&quot;,
+    &quot;documentPartitionKey&quot;: [
+      &quot;bikes&quot;
+    ]
+  }
+]
 </code></pre>
 
 </article>
