@@ -99,9 +99,9 @@ Show help and usage information.
 
 ```txt
 /home/vsts/work/r1/a/adventureworks-v1.0.1.cdbpkg + https://adventureworks.documents.azure.com:443 >>> /home/vsts/work/r1/a/adventureworks.rb.cdbpkg
-read /adventureworks/products/3202cb6f-42af-4fe6-a3c5-d61927721e75:["bikes"]: HTTP 200 (1.00 RU)
-read /adventureworks/products/e1894e24-550d-4fe3-9784-47d614600baa:["bikes"]: HTTP 200 (1.00 RU)
-read /adventureworks/products/7f1b7c5a-c339-41e3-bc00-bc753b1d66bc:["bikes"]: HTTP 404 (1.00 RU)
+read /adventureworks/products/3202cb6f-42af-4fe6-a3c5-d61927721e75:["bikes"]: HTTP 200
+read /adventureworks/products/e1894e24-550d-4fe3-9784-47d614600baa:["bikes"]: HTTP 200
+read /adventureworks/products/7f1b7c5a-c339-41e3-bc00-bc753b1d66bc:["bikes"]: HTTP 404
 +++ delete /adventureworks/products/7f1b7c5a-c339-41e3-bc00-bc753b1d66bc:["bikes"] (4)
 +++ upsert /adventureworks/products/3202cb6f-42af-4fe6-a3c5-d61927721e75:["bikes"] (4)
 ```

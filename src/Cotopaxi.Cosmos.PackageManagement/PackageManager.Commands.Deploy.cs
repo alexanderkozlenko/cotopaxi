@@ -113,47 +113,67 @@ public sealed partial class PackageManager
                                     throw new InvalidOperationException($"A duplicate document+operation entry {packagePartition.Uri}:$[{i}]");
                                 }
 
+                                if ((profileDocumentKeys is not null) && !profileDocumentKeys.Contains(documentKey))
+                                {
+                                    continue;
+                                }
+
                                 if (!dryRun)
                                 {
-                                    if ((profileDocumentKeys is null) || profileDocumentKeys.Contains(documentKey))
+                                    try
                                     {
-                                        try
+                                        var operationResponse = default(ItemResponse<JsonObject?>);
+
+                                        switch (packagePartition.OperationType)
                                         {
-                                            var operationResponse = default(ItemResponse<JsonObject?>);
+                                            case DatabaseOperationType.Delete:
+                                                {
+                                                    operationResponse = await container.DeleteItemAsync<JsonObject?>(documentId, documentPartitionKey, default, cancellationToken).ConfigureAwait(false);
+                                                }
+                                                break;
+                                            case DatabaseOperationType.Create:
+                                                {
+                                                    operationResponse = await container.CreateItemAsync<JsonObject?>(document, documentPartitionKey, default, cancellationToken).ConfigureAwait(false);
+                                                }
+                                                break;
+                                            case DatabaseOperationType.Upsert:
+                                                {
+                                                    operationResponse = await container.UpsertItemAsync<JsonObject?>(document, documentPartitionKey, default, cancellationToken).ConfigureAwait(false);
+                                                }
+                                                break;
+                                            case DatabaseOperationType.Patch:
+                                                {
+                                                    var patchOperations = document
+                                                        .Where(static x => x.Key != "id")
+                                                        .Select(static x => PatchOperation.Set("/" + x.Key, x.Value))
+                                                        .ToArray();
 
-                                            switch (packagePartition.OperationType)
-                                            {
-                                                case DatabaseOperationType.Delete:
-                                                    {
-                                                        operationResponse = await container.DeleteItemAsync<JsonObject?>(documentId, documentPartitionKey, default, cancellationToken).ConfigureAwait(false);
-                                                    }
-                                                    break;
-                                                case DatabaseOperationType.Create:
-                                                    {
-                                                        operationResponse = await container.CreateItemAsync<JsonObject?>(document, documentPartitionKey, default, cancellationToken).ConfigureAwait(false);
-                                                    }
-                                                    break;
-                                                case DatabaseOperationType.Upsert:
-                                                    {
-                                                        operationResponse = await container.UpsertItemAsync<JsonObject?>(document, documentPartitionKey, default, cancellationToken).ConfigureAwait(false);
-                                                    }
-                                                    break;
-                                                case DatabaseOperationType.Patch:
-                                                    {
-                                                        var patchOperations = document
-                                                            .Where(static x => x.Key != "id")
-                                                            .Select(static x => PatchOperation.Set("/" + x.Key, x.Value))
-                                                            .ToArray();
+                                                    operationResponse = await container.PatchItemAsync<JsonObject?>(documentId, documentPartitionKey, patchOperations, default, cancellationToken).ConfigureAwait(false);
+                                                }
+                                                break;
+                                            default:
+                                                {
+                                                    throw new InvalidOperationException();
+                                                }
+                                        }
 
-                                                        operationResponse = await container.PatchItemAsync<JsonObject?>(documentId, documentPartitionKey, patchOperations, default, cancellationToken).ConfigureAwait(false);
-                                                    }
-                                                    break;
-                                                default:
-                                                    {
-                                                        throw new InvalidOperationException();
-                                                    }
-                                            }
+                                        _logger.LogInformation(
+                                            "{OperationName} /{DatabaseName}/{ContainerName}/{DocumentId}:{DocumentPartitionKey}: HTTP {StatusCode} ({RU:F2} RU)",
+                                            packagePartitionOperationName,
+                                            packagePartition.DatabaseName,
+                                            packagePartition.ContainerName,
+                                            documentId,
+                                            documentPartitionKey,
+                                            (int)operationResponse.StatusCode,
+                                            Math.Round(operationResponse.RequestCharge, 2));
 
+                                    }
+                                    catch (CosmosException ex)
+                                    {
+                                        if ((((int)ex.StatusCode == 404) && (packagePartition.OperationType == DatabaseOperationType.Delete)) ||
+                                            (((int)ex.StatusCode == 409) && (packagePartition.OperationType == DatabaseOperationType.Create)) ||
+                                            (((int)ex.StatusCode == 404) && (packagePartition.OperationType == DatabaseOperationType.Patch)))
+                                        {
                                             _logger.LogInformation(
                                                 "{OperationName} /{DatabaseName}/{ContainerName}/{DocumentId}:{DocumentPartitionKey}: HTTP {StatusCode} ({RU:F2} RU)",
                                                 packagePartitionOperationName,
@@ -161,44 +181,65 @@ public sealed partial class PackageManager
                                                 packagePartition.ContainerName,
                                                 documentId,
                                                 documentPartitionKey,
-                                                (int)operationResponse.StatusCode,
-                                                Math.Round(operationResponse.RequestCharge, 2));
-
+                                                (int)ex.StatusCode,
+                                                Math.Round(ex.RequestCharge, 2));
                                         }
-                                        catch (CosmosException ex)
+                                        else
                                         {
-                                            if ((((int)ex.StatusCode == 404) && (packagePartition.OperationType == DatabaseOperationType.Delete)) ||
-                                                (((int)ex.StatusCode == 409) && (packagePartition.OperationType == DatabaseOperationType.Create)) ||
-                                                (((int)ex.StatusCode == 404) && (packagePartition.OperationType == DatabaseOperationType.Patch)))
-                                            {
-                                                _logger.LogInformation(
-                                                    "{OperationName} /{DatabaseName}/{ContainerName}/{DocumentId}:{DocumentPartitionKey}: HTTP {StatusCode} ({RU:F2} RU)",
-                                                    packagePartitionOperationName,
-                                                    packagePartition.DatabaseName,
-                                                    packagePartition.ContainerName,
-                                                    documentId,
-                                                    documentPartitionKey,
-                                                    (int)ex.StatusCode,
-                                                    Math.Round(ex.RequestCharge, 2));
-                                            }
-                                            else
-                                            {
-                                                throw;
-                                            }
+                                            throw;
                                         }
                                     }
                                 }
                                 else
                                 {
-                                    if ((profileDocumentKeys is null) || profileDocumentKeys.Contains(documentKey))
+                                    try
                                     {
+                                        var operationResponse = await container.ReadItemAsync<JsonObject?>(documentId, documentPartitionKey, default, cancellationToken).ConfigureAwait(false);
+
+                                        var statusCode = packagePartition.OperationType switch
+                                        {
+                                            DatabaseOperationType.Create => 409,
+                                            DatabaseOperationType.Delete => 204,
+                                            DatabaseOperationType.Upsert => 200,
+                                            DatabaseOperationType.Patch => 200,
+                                            _ => throw new InvalidOperationException(),
+                                        };
+
                                         _logger.LogInformation(
-                                            "[dry-run] {OperationName} /{DatabaseName}/{ContainerName}/{DocumentId}:{DocumentPartitionKey}: HTTP ??? (?.?? RU)",
+                                            "[dry-run] {OperationName} /{DatabaseName}/{ContainerName}/{DocumentId}:{DocumentPartitionKey}: HTTP {StatusCode}",
                                             packagePartitionOperationName,
                                             packagePartition.DatabaseName,
                                             packagePartition.ContainerName,
                                             documentId,
-                                            documentPartitionKey);
+                                            documentPartitionKey,
+                                            statusCode);
+                                    }
+                                    catch (CosmosException ex)
+                                    {
+                                        if ((int)ex.StatusCode == 404)
+                                        {
+                                            var statusCode = packagePartition.OperationType switch
+                                            {
+                                                DatabaseOperationType.Create => 201,
+                                                DatabaseOperationType.Delete => 404,
+                                                DatabaseOperationType.Upsert => 201,
+                                                DatabaseOperationType.Patch => 404,
+                                                _ => throw new InvalidOperationException(),
+                                            };
+
+                                            _logger.LogInformation(
+                                                "[dry-run] {OperationName} /{DatabaseName}/{ContainerName}/{DocumentId}:{DocumentPartitionKey}: HTTP {StatusCode}",
+                                                packagePartitionOperationName,
+                                                packagePartition.DatabaseName,
+                                                packagePartition.ContainerName,
+                                                documentId,
+                                                documentPartitionKey,
+                                                statusCode);
+                                        }
+                                        else
+                                        {
+                                            throw;
+                                        }
                                     }
                                 }
                             }

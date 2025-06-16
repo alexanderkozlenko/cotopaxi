@@ -108,7 +108,7 @@ Show help and usage information.
 ```txt
 /home/vsts/work/r1/a/adventureworks-v1.0.0.cdbpkg >>> https://adventureworks.documents.azure.com:443
 upsert /adventureworks/products/3202cb6f-42af-4fe6-a3c5-d61927721e75:["bikes"]: HTTP 200 (6.67 RU)
-upsert /adventureworks/products/e1894e24-550d-4fe3-9784-47d614600baa:["bikes"]: HTTP 200 (6.67 RU)
+upsert /adventureworks/products/e1894e24-550d-4fe3-9784-47d614600baa:["bikes"]: HTTP 201 (6.67 RU)
 ```
 
 <p />
@@ -171,8 +171,8 @@ The corresponding deployment profile `adventureworks-v1.0.0.profile.json`:
 
 ```txt
 [dry-run] /home/vsts/work/r1/a/adventureworks-v1.0.0.cdbpkg >>> https://adventureworks.documents.azure.com:443
-[dry-run] upsert /adventureworks/products/3202cb6f-42af-4fe6-a3c5-d61927721e75:["bikes"]: HTTP ??? (?.?? RU)
-[dry-run] upsert /adventureworks/products/e1894e24-550d-4fe3-9784-47d614600baa:["bikes"]: HTTP ??? (?.?? RU)
+[dry-run] upsert /adventureworks/products/3202cb6f-42af-4fe6-a3c5-d61927721e75:["bikes"]: HTTP 200
+[dry-run] upsert /adventureworks/products/e1894e24-550d-4fe3-9784-47d614600baa:["bikes"]: HTTP 201
 ```
 
 <p />

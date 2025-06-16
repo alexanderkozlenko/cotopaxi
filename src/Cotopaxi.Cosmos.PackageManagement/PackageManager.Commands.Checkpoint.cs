@@ -117,13 +117,12 @@ public sealed partial class PackageManager
                                         var operationResponse = await container.ReadItemAsync<JsonObject?>(documentId, documentPartitionKey, default, cancellationToken).ConfigureAwait(false);
 
                                         _logger.LogInformation(
-                                            "read /{DatabaseName}/{ContainerName}/{DocumentId}:{DocumentPartitionKey}: HTTP {StatusCode} ({RU:F2} RU)",
+                                            "read /{DatabaseName}/{ContainerName}/{DocumentId}:{DocumentPartitionKey}: HTTP {StatusCode}",
                                             packagePartition.DatabaseName,
                                             packagePartition.ContainerName,
                                             documentId,
                                             documentPartitionKey,
-                                            (int)operationResponse.StatusCode,
-                                            Math.Round(operationResponse.RequestCharge, 2));
+                                            (int)operationResponse.StatusCode);
 
                                         targetDocument = operationResponse.Resource;
                                         versionBuilder.Append(operationResponse.ETag);
@@ -133,13 +132,12 @@ public sealed partial class PackageManager
                                         if ((int)ex.StatusCode == 404)
                                         {
                                             _logger.LogInformation(
-                                                "read /{DatabaseName}/{ContainerName}/{DocumentId}:{DocumentPartitionKey}: HTTP {StatusCode} ({RU:F2} RU)",
+                                                "read /{DatabaseName}/{ContainerName}/{DocumentId}:{DocumentPartitionKey}: HTTP {StatusCode}",
                                                 packagePartition.DatabaseName,
                                                 packagePartition.ContainerName,
                                                 documentId,
                                                 documentPartitionKey,
-                                                (int)ex.StatusCode,
-                                                Math.Round(ex.RequestCharge, 2));
+                                                (int)ex.StatusCode);
                                         }
                                         else
                                         {

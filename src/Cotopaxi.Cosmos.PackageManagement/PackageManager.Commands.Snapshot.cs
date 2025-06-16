@@ -62,13 +62,12 @@ public sealed partial class PackageManager
                             var operationResponse = await container.ReadItemAsync<JsonObject?>(documentKey.DocumentId, documentKey.DocumentPartitionKey, default, cancellationToken).ConfigureAwait(false);
 
                             _logger.LogInformation(
-                                "read /{DatabaseName}/{ContainerName}/{DocumentId}:{DocumentPartitionKey}: HTTP {StatusCode} ({RU:F2} RU)",
+                                "read /{DatabaseName}/{ContainerName}/{DocumentId}:{DocumentPartitionKey}: HTTP {StatusCode}",
                                 documentKey.DatabaseName,
                                 documentKey.ContainerName,
                                 documentKey.DocumentId,
                                 documentKey.DocumentPartitionKey,
-                                (int)operationResponse.StatusCode,
-                                Math.Round(operationResponse.RequestCharge, 2));
+                                (int)operationResponse.StatusCode);
 
                             var document = operationResponse.Resource;
 
@@ -85,13 +84,12 @@ public sealed partial class PackageManager
                             if ((int)ex.StatusCode == 404)
                             {
                                 _logger.LogInformation(
-                                    "read /{DatabaseName}/{ContainerName}/{DocumentId}:{DocumentPartitionKey}: HTTP {StatusCode} ({RU:F2} RU)",
+                                    "read /{DatabaseName}/{ContainerName}/{DocumentId}:{DocumentPartitionKey}: HTTP {StatusCode}",
                                     documentKey.DatabaseName,
                                     documentKey.ContainerName,
                                     documentKey.DocumentId,
                                     documentKey.DocumentPartitionKey,
-                                    (int)ex.StatusCode,
-                                    Math.Round(ex.RequestCharge, 2));
+                                    (int)ex.StatusCode);
                             }
                             else
                             {
