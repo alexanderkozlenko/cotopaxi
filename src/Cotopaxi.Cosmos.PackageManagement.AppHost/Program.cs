@@ -1,13 +1,9 @@
 ﻿// (c) Oleksandr Kozlenko. Licensed under the MIT license.
 
 using System.CommandLine;
-using System.CommandLine.Builder;
-using System.CommandLine.Hosting;
-using System.CommandLine.Invocation;
-using System.CommandLine.Parsing;
-using Cotopaxi.Cosmos.PackageManagement.AppHost.Invocation;
+using Cotopaxi.Cosmos.PackageManagement.AppHost.Commands;
+using Cotopaxi.Cosmos.PackageManagement.AppHost.Components;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 
@@ -15,86 +11,58 @@ namespace Cotopaxi.Cosmos.PackageManagement.AppHost;
 
 public static class Program
 {
-    public static Task<int> Main(string[] args)
+    public static async Task<int> Main(string[] args)
     {
-        return new CommandLineBuilder(Startup.CreateCommand())
-            .UseHost(static _ => Host.CreateDefaultBuilder(), ConfigureHost)
-            .CancelOnProcessTermination()
-            .UseParseErrorReporting()
-            .UseExceptionHandler(HandleException)
-            .UseVersionOption()
-            .UseHelp(["-h", "--help"])
-            .Build()
-            .InvokeAsync(args);
+        var services = new ServiceCollection();
 
-        static void ConfigureHost(IHostBuilder builder)
+        services.AddLogging(ConfigureLogging);
+        services.AddSingleton(TimeProvider.System);
+
+        services.AddSingleton<PackageManager>();
+
+        services.AddSingleton<CheckpointCommandLineAction>();
+        services.AddSingleton<DeployCommandLineAction>();
+        services.AddSingleton<DiffCommandLineAction>();
+        services.AddSingleton<FormatCommandLineAction>();
+        services.AddSingleton<PackCommandLineAction>();
+        services.AddSingleton<ShowCommandLineAction>();
+        services.AddSingleton<SnapshotCommandLineAction>();
+
+        await using var serviceProvider = services.BuildServiceProvider();
+
+        var command = new RootCommand("The package manager for Azure Cosmos DB")
         {
-            builder
-                .ConfigureServices(static x => x.AddSingleton(TimeProvider.System))
-                .ConfigureLogging(ConfigureLogging);
+            CreateCommand<PackCommand, PackCommandLineAction>(),
+            CreateCommand<DeployCommand, DeployCommandLineAction>(),
+            CreateCommand<CheckpointCommand, CheckpointCommandLineAction>(),
+            CreateCommand<SnapshotCommand, SnapshotCommandLineAction>(),
+            CreateCommand<DiffCommand, DiffCommandLineAction>(),
+            CreateCommand<ShowCommand, ShowCommandLineAction>(),
+            CreateCommand<FormatCommand, FormatCommandLineAction>(),
+        };
 
-            Startup.ConfigureHost(builder);
+        var commandLine = new CommandLineConfiguration(command)
+        {
+            ProcessTerminationTimeout = TimeSpan.Zero,
+        };
+
+        return await commandLine.InvokeAsync(args).ConfigureAwait(false);
+
+        TCommand CreateCommand<TCommand, TCommandLineAction>()
+            where TCommand : Command, new()
+            where TCommandLineAction : CommandLineAction<TCommand>
+        {
+            return new()
+            {
+                Action = serviceProvider.GetRequiredService<TCommandLineAction>(),
+            };
         }
 
         static void ConfigureLogging(ILoggingBuilder builder)
         {
-            builder
-                .AddConsoleFormatter<LoggingFormatter, ConsoleFormatterOptions>()
-                .AddConsole(static x => x.FormatterName = nameof(LoggingFormatter))
-                .AddFilter("Microsoft", LogLevel.Error);
-        }
-    }
-
-    private static void HandleException(Exception exception, InvocationContext context)
-    {
-        context.ExitCode = 0x00000001;
-
-        var exceptions = new Stack<Exception>();
-
-        UnrollException(exception, exceptions);
-
-        if (!Console.IsOutputRedirected)
-        {
-            Console.ForegroundColor = ConsoleColor.Red;
-        }
-
-        try
-        {
-            while (exceptions.TryPop(out var current))
-            {
-                Console.Error.WriteLine($"Error 0x{current.HResult:X8}: {current.Message}");
-            }
-        }
-        finally
-        {
-            if (!Console.IsOutputRedirected)
-            {
-                Console.ResetColor();
-            }
-        }
-    }
-
-    private static void UnrollException(Exception exception, Stack<Exception> exceptions)
-    {
-        var current = exception;
-
-        while (current is not null)
-        {
-            if (current is not AggregateException aggregate)
-            {
-                exceptions.Push(current);
-                current = current.InnerException;
-            }
-            else
-            {
-                exceptions.EnsureCapacity(exceptions.Count + aggregate.InnerExceptions.Count);
-                current = null;
-
-                for (var i = 0; i < aggregate.InnerExceptions.Count; i++)
-                {
-                    UnrollException(aggregate.InnerExceptions[^(i + 1)], exceptions);
-                }
-            }
+            builder.AddConsoleFormatter<CommandLineFormatter, ConsoleFormatterOptions>();
+            builder.AddConsole(static x => x.FormatterName = nameof(CommandLineFormatter));
+            builder.AddFilter("Microsoft", LogLevel.Error);
         }
     }
 }

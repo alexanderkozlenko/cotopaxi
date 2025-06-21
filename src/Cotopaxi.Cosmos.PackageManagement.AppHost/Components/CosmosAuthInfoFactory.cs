@@ -1,6 +1,6 @@
 ﻿// (c) Oleksandr Kozlenko. Licensed under the MIT license.
 
-namespace Cotopaxi.Cosmos.PackageManagement.AppHost.Commands;
+namespace Cotopaxi.Cosmos.PackageManagement.AppHost.Components;
 
 internal static class CosmosAuthInfoFactory
 {
