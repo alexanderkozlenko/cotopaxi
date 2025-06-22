@@ -28,7 +28,7 @@ public static class Program
         services.AddSingleton<ShowCommandLineAction>();
         services.AddSingleton<SnapshotCommandLineAction>();
 
-        await using var serviceProvider = services.BuildServiceProvider();
+        using var serviceProvider = services.BuildServiceProvider();
 
         var command = new RootCommand("The package manager for Azure Cosmos DB")
         {
@@ -46,7 +46,7 @@ public static class Program
             ProcessTerminationTimeout = TimeSpan.Zero,
         };
 
-        return await commandLine.InvokeAsync(args).ConfigureAwait(false);
+        return await commandLine.InvokeAsync(args);
 
         TCommand CreateCommand<TCommand, TCommandLineAction>()
             where TCommand : Command, new()
@@ -62,7 +62,6 @@ public static class Program
         {
             builder.AddConsoleFormatter<CommandLineFormatter, ConsoleFormatterOptions>();
             builder.AddConsole(static x => x.FormatterName = nameof(CommandLineFormatter));
-            builder.AddFilter("Microsoft", LogLevel.Error);
         }
     }
 }

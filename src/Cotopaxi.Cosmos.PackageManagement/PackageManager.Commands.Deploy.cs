@@ -11,7 +11,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Cotopaxi.Cosmos.PackageManagement;
 
-public sealed partial class PackageManager
+public partial class PackageManager
 {
     public async Task<bool> DeployPackagesAsync(IReadOnlyCollection<string> packagePaths, CosmosAuthInfo cosmosAuthInfo, IReadOnlyCollection<string>? profilePaths, bool dryRun, CancellationToken cancellationToken)
     {

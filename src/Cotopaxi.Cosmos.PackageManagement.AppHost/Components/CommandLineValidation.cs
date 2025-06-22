@@ -23,7 +23,7 @@ internal static class CommandLineValidation
         return AddValidator(
             argument,
             static x => File.Exists(x),
-            static x => $"The file '{x}' could not be found");
+            static x => $"The file '{x}' does not exist");
     }
 
     public static Option<string> AsOutputFile(this Option<string> option)
@@ -38,17 +38,17 @@ internal static class CommandLineValidation
     {
         return AddValidator(
             option,
-            static x => x is { IsAbsoluteUri: true } && x.Scheme == Uri.UriSchemeHttps,
+            static x => (x is { IsAbsoluteUri: true }) && (x.Scheme == Uri.UriSchemeHttps),
             static x => $"The value '{x}' is not an HTTPS URI");
     }
 
     private static Argument<T> AddValidator<T>(Argument<T> argument, Predicate<T?> predicate, Func<T?, string> formatter)
     {
-        argument.Validators.Add(ValidateSymbolResult);
+        argument.Validators.Add(Validate);
 
-        void ValidateSymbolResult(ArgumentResult result)
+        void Validate(SymbolResult result)
         {
-            var value = result.GetValueOrDefault<T>();
+            var value = result.GetValue(argument);
 
             if (!predicate.Invoke(value))
             {
@@ -61,11 +61,11 @@ internal static class CommandLineValidation
 
     private static Option<T> AddValidator<T>(Option<T> option, Predicate<T?> predicate, Func<T?, string> formatter)
     {
-        option.Validators.Add(ValidateSymbolResult);
+        option.Validators.Add(Validate);
 
-        void ValidateSymbolResult(OptionResult result)
+        void Validate(SymbolResult result)
         {
-            var value = result.GetValueOrDefault<T>();
+            var value = result.GetValue(option);
 
             if (!predicate.Invoke(value))
             {

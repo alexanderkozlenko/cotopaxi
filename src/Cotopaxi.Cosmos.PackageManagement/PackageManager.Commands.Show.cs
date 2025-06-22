@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Cotopaxi.Cosmos.PackageManagement;
 
-public sealed partial class PackageManager
+public partial class PackageManager
 {
     public async Task<bool> ShowPackageInfoAsync(string packagePath, CancellationToken cancellationToken)
     {

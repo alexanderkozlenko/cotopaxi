@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Cotopaxi.Cosmos.PackageManagement;
 
-public sealed partial class PackageManager
+public partial class PackageManager
 {
     public async Task<bool> CreateRollbackPackageAsync(IReadOnlyCollection<string> sourcePackagePaths, string rollbackPackagePath, CosmosAuthInfo cosmosAuthInfo, CancellationToken cancellationToken)
     {

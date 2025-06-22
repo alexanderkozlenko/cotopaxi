@@ -7,6 +7,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.CommonDataModel.ObjectModel" />
+    <PackageReference Include="Newtonsoft.Json" />
     <PackageReference Include="System.IO.Packaging" />
   </ItemGroup>
 </Project>

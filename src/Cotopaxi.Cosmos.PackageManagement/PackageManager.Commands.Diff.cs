@@ -17,7 +17,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Cotopaxi.Cosmos.PackageManagement;
 
-public sealed partial class PackageManager
+public partial class PackageManager
 {
     public async Task<bool> ComparePackagesAsync(string package1Path, string package2Path, CosmosAuthInfo cosmosAuthInfo, string? profilePath, bool useExitCode, CancellationToken cancellationToken)
     {
