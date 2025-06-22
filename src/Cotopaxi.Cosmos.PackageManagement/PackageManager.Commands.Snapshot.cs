@@ -3,6 +3,7 @@
 #pragma warning disable CA1848
 
 using System.Diagnostics;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Cotopaxi.Cosmos.PackageManagement.Primitives;
@@ -22,7 +23,7 @@ public partial class PackageManager
 
         using var cosmosClient = CreateCosmosClient(cosmosAuthInfo);
         using var cosmosMetadataCache = new CosmosMetadataCache(cosmosClient);
-        using var versionBuilder = new HashBuilder("SHA1");
+        using var versionBuilder = new HashBuilder("SHA1", Encoding.UTF8);
 
         var profileDocumentKeys = await GetProfileDocumentKeysAsync(profilePaths, cancellationToken).ConfigureAwait(false);
         var packageDirectory = Path.GetDirectoryName(packagePath);

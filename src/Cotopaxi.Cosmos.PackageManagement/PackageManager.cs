@@ -70,7 +70,7 @@ public sealed partial class PackageManager
         configure?.Invoke(options);
 
         return cosmosAuthInfo.IsConnectionString ?
-            new CosmosClient(cosmosAuthInfo.ConnectionString, options) :
-            new CosmosClient(cosmosAuthInfo.AccountEndpoint.AbsoluteUri, cosmosAuthInfo.AuthKeyOrResourceToken, options);
+            new(cosmosAuthInfo.ConnectionString, options) :
+            new(cosmosAuthInfo.AccountEndpoint.AbsoluteUri, cosmosAuthInfo.AuthKeyOrResourceToken, options);
     }
 }

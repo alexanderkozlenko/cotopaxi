@@ -10,12 +10,15 @@ namespace Cotopaxi.Cosmos.PackageManagement.Primitives;
 internal sealed class HashBuilder : IDisposable
 {
     private readonly IncrementalHash _hash;
+    private readonly Encoding _encoding;
 
-    public HashBuilder(string hashAlgorithmName)
+    public HashBuilder(string hashAlgorithmName, Encoding encoding)
     {
         Debug.Assert(hashAlgorithmName is not null);
+        Debug.Assert(encoding is not null);
 
         _hash = IncrementalHash.CreateHash(new(hashAlgorithmName));
+        _encoding = encoding;
     }
 
     public void Dispose()
@@ -25,15 +28,14 @@ internal sealed class HashBuilder : IDisposable
 
     public void Append(ReadOnlySpan<char> value)
     {
-        var byteCount = Encoding.UTF8.GetByteCount(value);
+        var byteCount = _encoding.GetByteCount(value);
         var byteBuffer = ArrayPool<byte>.Shared.Rent(byteCount);
 
         try
         {
             var byteSpan = byteBuffer.AsSpan(0, byteCount);
 
-            Encoding.UTF8.GetBytes(value, byteSpan);
-
+            _encoding.GetBytes(value, byteSpan);
             _hash.AppendData(byteSpan);
         }
         finally
