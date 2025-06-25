@@ -110,7 +110,7 @@ public partial class PackageManager
 
                                 if (!deployOperations.Add((documentKey, packagePartition.OperationType)))
                                 {
-                                    throw new InvalidOperationException($"A duplicate document+operation entry {packagePartition.Uri}:$[{i}]");
+                                    throw new InvalidOperationException($"A conflicting deployment entry {packagePartition.Uri}:$[{i}]");
                                 }
 
                                 if ((profileDocumentKeys is not null) && !profileDocumentKeys.Contains(documentKey))

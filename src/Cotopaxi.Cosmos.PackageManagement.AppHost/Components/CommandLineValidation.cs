@@ -23,7 +23,7 @@ internal static class CommandLineValidation
         return AddValidator(
             argument,
             static x => File.Exists(x),
-            static x => $"The file '{x}' does not exist");
+            static x => $"The file '{x}' could not be found");
     }
 
     public static Option<string> AsOutputFile(this Option<string> option)

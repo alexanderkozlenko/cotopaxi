@@ -112,11 +112,11 @@ public partial class PackageManager
                 DocumentPartitionKey: x.DocumentKey.DocumentPartitionKey.ToString(),
                 OperationType: x.OperationType,
                 Statistics: x.Statistics))
-            .OrderBy(static x => x.DatabaseName, StringComparer.Ordinal)
+            .OrderBy(static x => x.OperationType)
+            .ThenBy(static x => x.DatabaseName, StringComparer.Ordinal)
             .ThenBy(static x => x.ContainerName, StringComparer.Ordinal)
             .ThenBy(static x => x.DocumentId, StringComparer.Ordinal)
             .ThenBy(static x => x.DocumentPartitionKey, StringComparer.Ordinal)
-            .ThenBy(static x => x.OperationType)
             .ThenByDescending(static x => x.Statistics.Created)
             .ThenByDescending(static x => x.Statistics.Updated)
             .ThenByDescending(static x => x.Statistics.Deleted)
@@ -229,7 +229,7 @@ public partial class PackageManager
 
                 if (!packageDocuments.TryAdd((documentKey, packagePartition.OperationType), document))
                 {
-                    throw new InvalidOperationException($"A duplicate document+operation entry {packagePartition.Uri}:$[{i}]");
+                    throw new InvalidOperationException($"A conflicting deployment entry {packagePartition.Uri}:$[{i}]");
                 }
             }
         }

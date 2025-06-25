@@ -33,7 +33,22 @@ internal sealed class CosmosMetadataCache : IDisposable
         if (!_partitionKeyPathsCache.TryGetValue(partitionKeyPathsKey, out var partitionKeyPaths))
         {
             var container = _cosmosClient.GetContainer(databaseName, containerName);
-            var containerResponse = await container.ReadContainerAsync(default, cancellationToken).ConfigureAwait(false);
+            var containerResponse = default(ContainerResponse);
+
+            try
+            {
+                containerResponse = await container.ReadContainerAsync(default, cancellationToken).ConfigureAwait(false);
+            }
+            catch (CosmosException ex)
+                when ((int)ex.StatusCode == 404)
+            {
+                var message = $"The container '/{databaseName}/{containerName}' could not be found (status: {(int)ex.StatusCode}, sub-status: {ex.SubStatusCode}, activity: {ex.ActivityId})";
+
+                throw new InvalidOperationException(message)
+                {
+                    HResult = ex.HResult,
+                };
+            }
 
             partitionKeyPaths = containerResponse.Resource.PartitionKeyPaths.Select(static x => new JsonPointer(x)).ToArray();
 
