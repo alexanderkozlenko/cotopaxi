@@ -229,7 +229,7 @@ public partial class PackageManager
 
                 if (!packageDocuments.TryAdd((documentKey, packagePartition.OperationType), document))
                 {
-                    throw new InvalidOperationException($"A conflicting deployment entry {packagePartition.Uri}:$[{i}]");
+                    throw new InvalidOperationException($"A conflicting deployment entry at {packagePartition.Uri}:$[{i}]");
                 }
             }
         }

@@ -320,6 +320,24 @@ public sealed class CosmosDocumentTests
     }
 
     [TestMethod]
+    public void AsPatchOperations()
+    {
+        var document = new JsonObject
+        {
+            ["id"] = "5f3edc36-17c0-4e11-a6da-a81440214abe",
+            ["pk"] = "59fcfd99-4016-4eba-a9cd-4d44cae02282",
+            ["p1"] = "v1",
+        };
+
+        var result = CosmosDocument.AsPatchOperations(document, PatchOperationType.Set);
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(2, result.Length);
+        Assert.AreEqual(1, result.Count(static x => (x.OperationType == PatchOperationType.Set) && (x.Path == "/pk")));
+        Assert.AreEqual(1, result.Count(static x => (x.OperationType == PatchOperationType.Set) && (x.Path == "/p1")));
+    }
+
+    [TestMethod]
     public void PruneSystemProperties()
     {
         var document = new JsonObject

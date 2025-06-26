@@ -110,7 +110,7 @@ public partial class PackageManager
 
                                 if (!deployOperations.Add((documentKey, packagePartition.OperationType)))
                                 {
-                                    throw new InvalidOperationException($"A conflicting deployment entry {packagePartition.Uri}:$[{i}]");
+                                    throw new InvalidOperationException($"A conflicting deployment entry at {packagePartition.Uri}:$[{i}]");
                                 }
 
                                 if ((profileDocumentKeys is not null) && !profileDocumentKeys.Contains(documentKey))
@@ -143,10 +143,7 @@ public partial class PackageManager
                                                 break;
                                             case DatabaseOperationType.Patch:
                                                 {
-                                                    var patchOperations = document
-                                                        .Where(static x => x.Key != "id")
-                                                        .Select(static x => PatchOperation.Set("/" + x.Key, x.Value))
-                                                        .ToArray();
+                                                    var patchOperations = CosmosDocument.AsPatchOperations(document, PatchOperationType.Set);
 
                                                     operationResponse = await container.PatchItemAsync<JsonObject?>(documentId, documentPartitionKey, patchOperations, default, cancellationToken).ConfigureAwait(false);
                                                 }

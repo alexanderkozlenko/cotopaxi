@@ -143,6 +143,26 @@ public static class CosmosDocument
         return false;
     }
 
+    public static PatchOperation[] AsPatchOperations(JsonObject document, PatchOperationType operationType)
+    {
+        Debug.Assert(document is not null);
+
+        switch (operationType)
+        {
+            case PatchOperationType.Set:
+                {
+                    return document
+                        .Where(static x => x.Key != "id")
+                        .Select(static x => PatchOperation.Set("/" + x.Key, x.Value))
+                        .ToArray();
+                }
+            default:
+                {
+                    throw new NotSupportedException();
+                }
+        }
+    }
+
     public static void PruneSystemProperties(JsonObject document)
     {
         Debug.Assert(document is not null);

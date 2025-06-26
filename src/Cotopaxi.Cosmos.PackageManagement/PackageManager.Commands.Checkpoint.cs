@@ -106,7 +106,7 @@ public partial class PackageManager
 
                                 if (!deployOperations.Add((documentKey, packagePartition.OperationType)))
                                 {
-                                    throw new InvalidOperationException($"A conflicting deployment entry {packagePartition.Uri}:$[{i}]");
+                                    throw new InvalidOperationException($"A conflicting deployment entry at {packagePartition.Uri}:$[{i}]");
                                 }
 
                                 if (!deployDocumentStates.TryGetValue(documentKey, out var deployDocumentState))
