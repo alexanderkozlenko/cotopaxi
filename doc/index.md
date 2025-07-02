@@ -12,13 +12,13 @@ A toolset for deploying data to Azure Cosmos DB as part of a cloud-native applic
 
 ```mermaid
 flowchart LR
-    s1[/"JSON<br />documents"/]
-    s2[["cotopaxi<br />pack"]]
-    s3[/"CDM<br />package"/]
-    s4[["cotopaxi<br />deploy"]]
-    s5[("Azure<br />Cosmos DB")]
-    s1-->s2-->s3-->s4-->s5
-    classDef default stroke-width: 3px, font-family: system-ui
+  s1[/"<p style='width:100px'>JSON<br />documents</p>"/]
+  s2[["<p style='width:100px'>cotopaxi<br />pack</p>"]]
+  s3[/"<p style='width:100px'>CDM<br />package</p>"/]
+  s4[["<p style='width:100px'>cotopaxi<br />deploy</p>"]]
+  s5[("<p style='width:100px'>Azure<br />Cosmos DB</p>")]
+  s1 --> s2 --> s3 --> s4 --> s5
+  classDef default stroke-width: 2px, font-family: system-ui
 ```
 
 <p />
