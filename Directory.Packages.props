@@ -1,6 +1,6 @@
 <Project>
   <ItemGroup>
-    <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.52.0" />
+    <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.52.1" />
     <PackageVersion Include="Microsoft.CommonDataModel.ObjectModel" Version="1.7.6" />
     <PackageVersion Include="Microsoft.Extensions.FileSystemGlobbing" Version="9.0.7" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.7" />
