@@ -92,13 +92,13 @@
 <p>A toolset for deploying data to Azure Cosmos DB as part of a cloud-native application, designed for straightforward integration with CI/CD pipelines. The package format is based on Microsoft Common Data Model (CDM) and ECMA-376 (Open Packaging Conventions).</p>
 <p></p>
 <pre><code class="lang-mermaid">flowchart LR
-    s1[/&quot;JSON&lt;br /&gt;documents&quot;/]
-    s2[[&quot;cotopaxi&lt;br /&gt;pack&quot;]]
-    s3[/&quot;CDM&lt;br /&gt;package&quot;/]
-    s4[[&quot;cotopaxi&lt;br /&gt;deploy&quot;]]
-    s5[(&quot;Azure&lt;br /&gt;Cosmos DB&quot;)]
-    s1--&gt;s2--&gt;s3--&gt;s4--&gt;s5
-    classDef default stroke-width: 3px, font-family: system-ui
+  s1[/&quot;&lt;p style='width:100px'&gt;JSON&lt;br /&gt;documents&lt;/p&gt;&quot;/]
+  s2[[&quot;&lt;p style='width:100px'&gt;cotopaxi&lt;br /&gt;pack&lt;/p&gt;&quot;]]
+  s3[/&quot;&lt;p style='width:100px'&gt;CDM&lt;br /&gt;package&lt;/p&gt;&quot;/]
+  s4[[&quot;&lt;p style='width:100px'&gt;cotopaxi&lt;br /&gt;deploy&lt;/p&gt;&quot;]]
+  s5[(&quot;&lt;p style='width:100px'&gt;Azure&lt;br /&gt;Cosmos DB&lt;/p&gt;&quot;)]
+  s1 --&gt; s2 --&gt; s3 --&gt; s4 --&gt; s5
+  classDef default stroke-width: 2px, font-family: system-ui
 </code></pre>
 <p></p>
 <p>Packing the database documents specified in a database package project (an example with Azure Pipelines):</p>
