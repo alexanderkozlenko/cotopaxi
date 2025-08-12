@@ -1,13 +1,11 @@
 ﻿#pragma warning disable CA1806
 
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-
 namespace Cotopaxi.Cosmos.PackageManagement.UnitTests;
 
 [TestClass]
 public sealed class CosmosDocumentIdTests
 {
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(null, false)]
     [DataRow("", false)]
     [DataRow(" ", true)]
@@ -30,7 +28,7 @@ public sealed class CosmosDocumentIdTests
         }
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(null, false)]
     [DataRow("", false)]
     [DataRow(" ", true)]

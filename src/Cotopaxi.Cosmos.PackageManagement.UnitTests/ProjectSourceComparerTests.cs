@@ -1,12 +1,11 @@
 ﻿using Cotopaxi.Cosmos.Packaging;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Cotopaxi.Cosmos.PackageManagement.UnitTests;
 
 [TestClass]
 public sealed class ProjectSourceComparerTests
 {
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(
         "adventureworks/products/bikes.json", "adventureworks", "products", DatabaseOperationType.Upsert,
         "adventureworks/products/bikes.json", "adventureworks", "products", DatabaseOperationType.Upsert,

@@ -1,12 +1,11 @@
 ﻿using System.Text.Json;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Cotopaxi.Cosmos.PackageManagement.UnitTests;
 
 [TestClass]
 public sealed class JsonPointerTests
 {
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("", new string[] { })]
     [DataRow("/foo", new string[] { "foo" })]
     [DataRow("/foo/0", new string[] { "foo", "0" })]

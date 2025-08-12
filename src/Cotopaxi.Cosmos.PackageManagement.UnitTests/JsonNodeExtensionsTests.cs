@@ -1,13 +1,12 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Nodes;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Cotopaxi.Cosmos.PackageManagement.UnitTests;
 
 [TestClass]
 public sealed class JsonNodeExtensionsTests
 {
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("", "$")]
     [DataRow("/foo", "$.foo")]
     [DataRow("/foo/0", "$.foo[0]")]

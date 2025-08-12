@@ -1,7 +1,6 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Azure.Cosmos;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Cotopaxi.Cosmos.PackageManagement.UnitTests;
 

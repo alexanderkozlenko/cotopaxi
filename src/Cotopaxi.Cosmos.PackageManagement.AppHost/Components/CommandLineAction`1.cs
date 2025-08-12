@@ -20,7 +20,7 @@ internal abstract class CommandLineAction<T> : AsynchronousCommandLineAction
         }
         catch (Exception exception)
         {
-            var configuration = parseResult.Configuration;
+            var configuration = parseResult.InvocationConfiguration;
             var exceptions = new Stack<Exception>();
 
             UnrollException(exception, exceptions);

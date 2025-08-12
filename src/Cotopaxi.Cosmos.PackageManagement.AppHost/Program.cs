@@ -41,12 +41,12 @@ public static class Program
             CreateCommand<FormatCommand, FormatCommandLineAction>(),
         };
 
-        var commandLine = new CommandLineConfiguration(command)
+        var configuration = new InvocationConfiguration
         {
             ProcessTerminationTimeout = TimeSpan.Zero,
         };
 
-        return await commandLine.InvokeAsync(args);
+        return await command.Parse(args).InvokeAsync(configuration);
 
         TCommand CreateCommand<TCommand, TCommandLineAction>()
             where TCommand : Command, new()
