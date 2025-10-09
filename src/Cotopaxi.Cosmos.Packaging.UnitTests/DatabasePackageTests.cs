@@ -84,7 +84,7 @@ public sealed class DatabasePackageTests
             var packagePartitions = package.GetPartitions();
 
             Assert.IsNotNull(packagePartitions);
-            Assert.AreEqual(0, packagePartitions.Length);
+            Assert.IsEmpty(packagePartitions);
         }
     }
 
@@ -126,7 +126,7 @@ public sealed class DatabasePackageTests
             var packagePartitions = package.GetPartitions();
 
             Assert.IsNotNull(packagePartitions);
-            Assert.AreEqual(1, packagePartitions.Length);
+            Assert.HasCount(1, packagePartitions);
 
             var packagePartition = packagePartitions.First();
 
@@ -143,7 +143,7 @@ public sealed class DatabasePackageTests
             var documents = await JsonSerializer.DeserializeAsync<JsonObject[]>(packagePartitionStream, JsonSerializerOptions.Default);
 
             Assert.IsNotNull(documents);
-            Assert.AreEqual(1, documents.Length);
+            Assert.HasCount(1, documents);
 
             var document = documents[0];
 

@@ -331,7 +331,7 @@ public sealed class CosmosDocumentTests
         var result = CosmosDocument.AsPatchOperations(document, PatchOperationType.Set);
 
         Assert.IsNotNull(result);
-        Assert.AreEqual(2, result.Length);
+        Assert.HasCount(2, result);
         Assert.AreEqual(1, result.Count(static x => (x.OperationType == PatchOperationType.Set) && (x.Path == "/pk")));
         Assert.AreEqual(1, result.Count(static x => (x.OperationType == PatchOperationType.Set) && (x.Path == "/p1")));
     }
