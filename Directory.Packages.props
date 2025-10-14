@@ -8,6 +8,6 @@
     <PackageVersion Include="MSTest" Version="4.0.0" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageVersion Include="System.CommandLine" Version="2.0.0-rc.1.25451.107" />
-    <PackageVersion Include="System.IO.Packaging" Version="9.0.9" />
+    <PackageVersion Include="System.IO.Packaging" Version="9.0.10" />
   </ItemGroup>
 </Project>
