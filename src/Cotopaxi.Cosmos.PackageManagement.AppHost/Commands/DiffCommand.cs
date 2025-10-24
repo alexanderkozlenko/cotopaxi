@@ -32,6 +32,11 @@ internal sealed class DiffCommand : Command
         Description = "The connection string for the Azure Cosmos DB account",
     };
 
+    public readonly Option<string> DiffFilterOption = new("--diff-filter")
+    {
+        Description = "The filter expression to show only specified difference types",
+    };
+
     public readonly Option<string> ProfileOption = new("--profile")
     {
         Description = "The path to the deployment profile to generate based on new and modified documents",
@@ -50,6 +55,7 @@ internal sealed class DiffCommand : Command
         Options.Add(EndpointOption.AsHttpsUri());
         Options.Add(KeyOption);
         Options.Add(ConnectionStringOption);
+        Options.Add(DiffFilterOption);
         Options.Add(ProfileOption.AsOutputFile());
         Options.Add(ExitCodeOption);
     }

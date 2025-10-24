@@ -18,6 +18,7 @@ internal sealed class DiffCommandLineAction : CommandLineAction<DiffCommand>
     {
         var package1Path = Path.GetFullPath(result.GetRequiredValue(command.Package1Argument), Environment.CurrentDirectory);
         var package2Path = Path.GetFullPath(result.GetRequiredValue(command.Package2Argument), Environment.CurrentDirectory);
+        var diffFilter = result.GetValue(command.DiffFilterOption);
         var profilePath = result.GetValue(command.ProfileOption);
         var useExitCode = result.GetValue(command.ExitCodeOption);
         var cosmosAccountEndpoint = result.GetValue(command.EndpointOption);
@@ -28,6 +29,6 @@ internal sealed class DiffCommandLineAction : CommandLineAction<DiffCommand>
 
         var cosmosAuthInfo = CosmosAuthInfoFactory.CreateAuthInfo(cosmosAccountEndpoint, cosmosAuthKeyOrResourceToken, cosmosConnectionString);
 
-        return _manager.ComparePackagesAsync(package1Path, package2Path, cosmosAuthInfo, profilePath, useExitCode, cancellationToken);
+        return _manager.ComparePackagesAsync(package1Path, package2Path, cosmosAuthInfo, diffFilter, profilePath, useExitCode, cancellationToken);
     }
 }

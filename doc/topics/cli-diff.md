@@ -17,6 +17,7 @@
 ```txt
 cotopaxi diff <package1> <package2>
   [--endpoint <endpoint> --key <key>|--connection-string <connection-string>]
+  [--diff-filter <filter>]
   [--profile <profile>]
   [--exit-code]
 
@@ -66,6 +67,11 @@ The connection string for the Azure Cosmos DB account. Can be specified with `AZ
 
 <p />
 
+- `--diff-filter <filter>`  
+The filter expression to show only specified difference types. The supported expression symbols are: `A` for added entries, `M` for modified entries, and `D` for deleted entries.
+
+<p />
+
 - `--profile`  
 The path to the deployment profile to generate based on new and modified documents, which can be used with `deploy` command. The option automatically discards `--exit-code` instruction.
 
@@ -98,6 +104,22 @@ dotnet tool run cotopaxi diff adventureworks-v1.0.1.cdbpkg adventureworks-v1.0.0
 ```txt
 +++ upsert /adventureworks/products/7f1b7c5a-c339-41e3-bc00-bc753b1d66bc:["bikes"] (+4)
 *** upsert /adventureworks/products/3202cb6f-42af-4fe6-a3c5-d61927721e75:["bikes"] (*1)
+```
+
+<p />
+
+#### Showing only added and deleted entries in a new version:
+
+<p />
+
+```txt
+dotnet tool run cotopaxi diff adventureworks-v1.0.1.cdbpkg adventureworks-v1.0.0.cdbpkg --diff-filter ad
+```
+
+<p />
+
+```txt
++++ upsert /adventureworks/products/7f1b7c5a-c339-41e3-bc00-bc753b1d66bc:["bikes"] (+4)
 ```
 
 <p />

@@ -19,7 +19,7 @@ namespace Cotopaxi.Cosmos.PackageManagement;
 
 public partial class PackageManager
 {
-    public async Task<bool> ComparePackagesAsync(string package1Path, string package2Path, CosmosAuthInfo cosmosAuthInfo, string? profilePath, bool useExitCode, CancellationToken cancellationToken)
+    public async Task<bool> ComparePackagesAsync(string package1Path, string package2Path, CosmosAuthInfo cosmosAuthInfo, string? diffFilter, string? profilePath, bool useExitCode, CancellationToken cancellationToken)
     {
         Debug.Assert(package1Path is not null);
         Debug.Assert(package2Path is not null);
@@ -47,9 +47,20 @@ public partial class PackageManager
             .Select(static x => (x.Key.DocumentKey, x.Key.OperationType, Statistics: CreateDiffStatistics(null, x.Value)))
             .ToArray();
 
-        PrintDiffSection("+++", documentsCreated);
-        PrintDiffSection("***", documentsUpdated);
-        PrintDiffSection("---", documentsDeleted);
+        if (IsIncludedDiffType(diffFilter, 'A'))
+        {
+            PrintDiffSection("+++", documentsCreated);
+        }
+
+        if (IsIncludedDiffType(diffFilter, 'M'))
+        {
+            PrintDiffSection("***", documentsUpdated);
+        }
+
+        if (IsIncludedDiffType(diffFilter, 'D'))
+        {
+            PrintDiffSection("---", documentsDeleted);
+        }
 
         if (profilePath is not null)
         {
@@ -95,6 +106,11 @@ public partial class PackageManager
         }
 
         return true;
+
+        static bool IsIncludedDiffType(string? diffFilter, char diffType)
+        {
+            return string.IsNullOrEmpty(diffFilter) || diffFilter.Contains(diffType, StringComparison.OrdinalIgnoreCase);
+        }
     }
 
     private void PrintDiffSection(string category, (PackageDocumentKey DocumentKey, DatabaseOperationType OperationType, OperationStatistics Statistics)[] source)
