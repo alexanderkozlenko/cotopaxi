@@ -1,6 +1,7 @@
 ﻿// (c) Oleksandr Kozlenko. Licensed under the MIT license.
 
 #pragma warning disable CA1848
+#pragma warning disable CA1873
 
 using System.Diagnostics;
 using System.Text.Json;

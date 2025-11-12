@@ -2,6 +2,7 @@
 
 #pragma warning disable CA1848
 #pragma warning disable CA1869
+#pragma warning disable CA1873
 
 using System.Collections.Frozen;
 using System.Diagnostics;
