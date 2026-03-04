@@ -12,9 +12,10 @@ internal sealed class DiffCommand : Command
         Description = "The path to the database package to compare",
     };
 
-    public readonly Argument<string> Package2Argument = new("package2")
+    public readonly Argument<string?> Package2Argument = new("package2")
     {
-        Description = "The path to the database package to compare with",
+        Description = "The path to the database package to compare with (if not specified, the database is used)",
+        Arity = ArgumentArity.ZeroOrOne,
     };
 
     public readonly Option<Uri> EndpointOption = new("--endpoint")
@@ -51,7 +52,7 @@ internal sealed class DiffCommand : Command
         : base("diff", "Shows differences between database packages")
     {
         Arguments.Add(Package1Argument.AsInputFile());
-        Arguments.Add(Package2Argument.AsInputFile());
+        Arguments.Add(Package2Argument);
         Options.Add(EndpointOption.AsHttpsUri());
         Options.Add(KeyOption);
         Options.Add(ConnectionStringOption);

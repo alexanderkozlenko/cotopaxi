@@ -6,7 +6,7 @@
 
 <p />
 
-`cotopaxi diff` - Shows differences between database packages.
+`cotopaxi diff` - Shows differences between database packages or between a database package and the database.
 
 <p />
 
@@ -15,7 +15,7 @@
 <p />
 
 ```txt
-cotopaxi diff <package1> <package2>
+cotopaxi diff <package1> [<package2>]
   [--endpoint <endpoint> --key <key>|--connection-string <connection-string>]
   [--diff-filter <filter>]
   [--profile <profile>]
@@ -30,7 +30,7 @@ cotopaxi diff -h|--help
 
 <p />
 
-The command uses a connection to the Azure Cosmos DB account to get partition keys configuration.
+The command uses a connection to the Azure Cosmos DB account to get partition keys configuration. If `package2` is not specified, the command compares the database package against the database state. In this mode, only added and modified entries are reported.
 
 <p />
 
@@ -44,7 +44,7 @@ The path to the database package to compare.
 <p />
 
 - `package2`  
-The path to the database package to compare with.
+The path to the database package to compare with. If not specified, the comparison is performed against the database.
 
 <p />
 
@@ -68,7 +68,7 @@ The connection string for the Azure Cosmos DB account. Can be specified with `AZ
 <p />
 
 - `--diff-filter <filter>`  
-The filter expression to show only specified difference types. The supported expression symbols are: `A` for added entries, `M` for modified entries, and `D` for deleted entries.
+The filter expression to show only specified difference types. The supported expression symbols are: `A` for added entries, `M` for modified entries, and `D` for deleted entries. When comparing against the database, only `A` and `M` are applicable.
 
 <p />
 
@@ -130,6 +130,23 @@ dotnet tool run cotopaxi diff adventureworks-v1.0.1.cdbpkg adventureworks-v1.0.0
 
 ```txt
 dotnet tool run cotopaxi diff adventureworks-v1.0.1.cdbpkg adventureworks-v1.0.0.cdbpkg --profile adventureworks-v1.0.1.profile.json
+```
+
+<p />
+
+```txt
++++ upsert /adventureworks/products/7f1b7c5a-c339-41e3-bc00-bc753b1d66bc:["bikes"] (+4)
+*** upsert /adventureworks/products/3202cb6f-42af-4fe6-a3c5-d61927721e75:["bikes"] (*1)
+```
+
+<p />
+
+#### Showing differences between a database package and the database:
+
+<p />
+
+```txt
+dotnet tool run cotopaxi diff adventureworks-v1.0.1.cdbpkg
 ```
 
 <p />

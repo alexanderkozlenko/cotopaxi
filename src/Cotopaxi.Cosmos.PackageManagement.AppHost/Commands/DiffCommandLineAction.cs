@@ -17,7 +17,7 @@ internal sealed class DiffCommandLineAction : CommandLineAction<DiffCommand>
     protected override Task<bool> InvokeAsync(DiffCommand command, SymbolResult result, CancellationToken cancellationToken)
     {
         var package1Path = Path.GetFullPath(result.GetRequiredValue(command.Package1Argument), Environment.CurrentDirectory);
-        var package2Path = Path.GetFullPath(result.GetRequiredValue(command.Package2Argument), Environment.CurrentDirectory);
+        var package2Value = result.GetValue(command.Package2Argument);
         var diffFilter = result.GetValue(command.DiffFilterOption);
         var profilePath = result.GetValue(command.ProfileOption);
         var useExitCode = result.GetValue(command.ExitCodeOption);
@@ -29,6 +29,15 @@ internal sealed class DiffCommandLineAction : CommandLineAction<DiffCommand>
 
         var cosmosAuthInfo = CosmosAuthInfoFactory.CreateAuthInfo(cosmosAccountEndpoint, cosmosAuthKeyOrResourceToken, cosmosConnectionString);
 
-        return _manager.ComparePackagesAsync(package1Path, package2Path, cosmosAuthInfo, diffFilter, profilePath, useExitCode, cancellationToken);
+        if (!string.IsNullOrEmpty(package2Value))
+        {
+            var package2Path = Path.GetFullPath(package2Value, Environment.CurrentDirectory);
+
+            return _manager.ComparePackagesAsync(package1Path, package2Path, cosmosAuthInfo, diffFilter, profilePath, useExitCode, cancellationToken);
+        }
+        else
+        {
+            return _manager.ComparePackageWithDatabaseAsync(package1Path, cosmosAuthInfo, diffFilter, profilePath, useExitCode, cancellationToken);
+        }
     }
 }
