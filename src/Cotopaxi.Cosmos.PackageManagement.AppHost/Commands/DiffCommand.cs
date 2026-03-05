@@ -49,7 +49,7 @@ internal sealed class DiffCommand : Command
     };
 
     public DiffCommand()
-        : base("diff", "Shows differences between database packages")
+        : base("diff", "Shows differences between database packages or between a database package and a database")
     {
         Arguments.Add(Package1Argument.AsInputFile());
         Arguments.Add(Package2Argument);

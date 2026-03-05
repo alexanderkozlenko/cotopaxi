@@ -6,7 +6,7 @@
 
 <p />
 
-`cotopaxi diff` - Shows differences between database packages or between a database package and the database.
+`cotopaxi diff` - Shows differences between database packages or between a database package and a database.
 
 <p />
 
@@ -30,7 +30,7 @@ cotopaxi diff -h|--help
 
 <p />
 
-The command uses a connection to the Azure Cosmos DB account to get partition keys configuration. If `package2` is not specified, the command compares the database package against the database state. In this mode, only added and modified entries are reported.
+The command uses a connection to the Azure Cosmos DB account to get partition keys configuration. If `package2` is not specified, the command compares the database package against the database state.
 
 <p />
 
@@ -44,7 +44,7 @@ The path to the database package to compare.
 <p />
 
 - `package2`  
-The path to the database package to compare with. If not specified, the comparison is performed against the database.
+The path to the database package to compare with (if not specified, the database is used).
 
 <p />
 
@@ -68,7 +68,7 @@ The connection string for the Azure Cosmos DB account. Can be specified with `AZ
 <p />
 
 - `--diff-filter <filter>`  
-The filter expression to show only specified difference types. The supported expression symbols are: `A` for added entries, `M` for modified entries, and `D` for deleted entries. When comparing against the database, only `A` and `M` are applicable.
+The filter expression to show only specified difference types. The supported expression symbols are: `A` for added entries, `M` for modified entries, and `D` for deleted entries.
 
 <p />
 
@@ -141,7 +141,7 @@ dotnet tool run cotopaxi diff adventureworks-v1.0.1.cdbpkg adventureworks-v1.0.0
 
 <p />
 
-#### Showing differences between a database package and the database:
+#### Showing differences between a database package and a database:
 
 <p />
 

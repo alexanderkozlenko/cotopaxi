@@ -34,33 +34,33 @@ public partial class PackageManager
 
         var documentsCreated = package1Documents
             .Where(x => !package2Documents.ContainsKey(x.Key))
-            .Select(static x => (x.Key.DocumentKey, x.Key.OperationType, Statistics: CreateDiffStatistics(x.Value, null)))
+            .Select(static x => (x.Key.DocumentKey, x.Key.OperationType, Counters: CreateGlobalCounters(x.Value, null)))
             .ToArray();
 
         var documentsUpdated = package1Documents
             .Where(x => package2Documents.ContainsKey(x.Key))
-            .Select(x => (x.Key.DocumentKey, x.Key.OperationType, Statistics: CreateDiffStatistics(x.Value, package2Documents[x.Key])))
-            .Where(static x => (x.Statistics.Created > 0) || (x.Statistics.Updated > 0) || (x.Statistics.Deleted > 0))
+            .Select(x => (x.Key.DocumentKey, x.Key.OperationType, Counters: CreateGlobalCounters(x.Value, package2Documents[x.Key])))
+            .Where(static x => (x.Counters.Created > 0) || (x.Counters.Updated > 0) || (x.Counters.Deleted > 0))
             .ToArray();
 
         var documentsDeleted = package2Documents
             .Where(x => !package1Documents.ContainsKey(x.Key))
-            .Select(static x => (x.Key.DocumentKey, x.Key.OperationType, Statistics: CreateDiffStatistics(null, x.Value)))
+            .Select(static x => (x.Key.DocumentKey, x.Key.OperationType, Counters: CreateGlobalCounters(null, x.Value)))
             .ToArray();
 
         if (IsIncludedDiffType(diffFilter, 'A'))
         {
-            PrintDiffSection("+++", documentsCreated);
+            PrintCountersSection("+++", documentsCreated);
         }
 
         if (IsIncludedDiffType(diffFilter, 'M'))
         {
-            PrintDiffSection("***", documentsUpdated);
+            PrintCountersSection("***", documentsUpdated);
         }
 
         if (IsIncludedDiffType(diffFilter, 'D'))
         {
-            PrintDiffSection("---", documentsDeleted);
+            PrintCountersSection("---", documentsDeleted);
         }
 
         if (profilePath is not null)
@@ -114,7 +114,7 @@ public partial class PackageManager
         }
     }
 
-    private void PrintDiffSection(string category, (PackageDocumentKey DocumentKey, DatabaseOperationType OperationType, OperationStatistics Statistics)[] source)
+    private void PrintCountersSection(string category, (PackageDocumentKey DocumentKey, DatabaseOperationType OperationType, DifferenceCounters Counters)[] source, bool printOperationName = true)
     {
         if (source.Length == 0)
         {
@@ -128,54 +128,69 @@ public partial class PackageManager
                 DocumentId: x.DocumentKey.DocumentId,
                 DocumentPartitionKey: x.DocumentKey.DocumentPartitionKey.ToString(),
                 OperationType: x.OperationType,
-                Statistics: x.Statistics))
+                Counters: x.Counters))
             .OrderBy(static x => x.OperationType)
             .ThenBy(static x => x.DatabaseName, StringComparer.Ordinal)
             .ThenBy(static x => x.ContainerName, StringComparer.Ordinal)
             .ThenBy(static x => x.DocumentId, StringComparer.Ordinal)
             .ThenBy(static x => x.DocumentPartitionKey, StringComparer.Ordinal)
-            .ThenByDescending(static x => x.Statistics.Created)
-            .ThenByDescending(static x => x.Statistics.Updated)
-            .ThenByDescending(static x => x.Statistics.Deleted)
+            .ThenByDescending(static x => x.Counters.Created)
+            .ThenByDescending(static x => x.Counters.Updated)
+            .ThenByDescending(static x => x.Counters.Deleted)
             .ToArray();
 
-        var printItemStatisticsBuilder = new StringBuilder();
+        var printItemCountersBuilder = new StringBuilder();
 
         foreach (var printItem in printItems)
         {
-            printItemStatisticsBuilder.Clear();
+            printItemCountersBuilder.Clear();
 
-            if (printItem.Statistics.Created > 0)
+            if (printItem.Counters.Created > 0)
             {
-                printItemStatisticsBuilder.AppendFormat(CultureInfo.InvariantCulture, "+{0} ", printItem.Statistics.Created);
+                printItemCountersBuilder.AppendFormat(CultureInfo.InvariantCulture, "+{0} ", printItem.Counters.Created);
             }
 
-            if (printItem.Statistics.Updated > 0)
+            if (printItem.Counters.Updated > 0)
             {
-                printItemStatisticsBuilder.AppendFormat(CultureInfo.InvariantCulture, "*{0} ", printItem.Statistics.Updated);
+                printItemCountersBuilder.AppendFormat(CultureInfo.InvariantCulture, "*{0} ", printItem.Counters.Updated);
             }
 
-            if (printItem.Statistics.Deleted > 0)
+            if (printItem.Counters.Deleted > 0)
             {
-                printItemStatisticsBuilder.AppendFormat(CultureInfo.InvariantCulture, "-{0} ", printItem.Statistics.Deleted);
+                printItemCountersBuilder.AppendFormat(CultureInfo.InvariantCulture, "-{0} ", printItem.Counters.Deleted);
             }
 
-            var printItemOperationName = printItem.OperationType.ToString().ToLowerInvariant();
-            var printItemStatistics = printItemStatisticsBuilder.ToString().TrimEnd();
+            var printItemCounters = printItemCountersBuilder.ToString().TrimEnd();
 
-            _logger.LogInformation(
-                "{Category} {OperationName} /{DatabaseName}/{ContainerName}/{DocumentId}:{DocumentPartitionKey} ({DocumentStatistics})",
-                category,
-                printItemOperationName,
-                printItem.DatabaseName,
-                printItem.ContainerName,
-                printItem.DocumentId,
-                printItem.DocumentPartitionKey,
-                printItemStatistics);
+            if (printOperationName)
+            {
+                var printItemOperationName = printItem.OperationType.ToString().ToLowerInvariant();
+
+                _logger.LogInformation(
+                    "{Category} {OperationName} /{DatabaseName}/{ContainerName}/{DocumentId}:{DocumentPartitionKey} ({DocumentCounters})",
+                    category,
+                    printItemOperationName,
+                    printItem.DatabaseName,
+                    printItem.ContainerName,
+                    printItem.DocumentId,
+                    printItem.DocumentPartitionKey,
+                    printItemCounters);
+            }
+            else
+            {
+                _logger.LogInformation(
+                    "{Category} /{DatabaseName}/{ContainerName}/{DocumentId}:{DocumentPartitionKey} ({DocumentCounters})",
+                    category,
+                    printItem.DatabaseName,
+                    printItem.ContainerName,
+                    printItem.DocumentId,
+                    printItem.DocumentPartitionKey,
+                    printItemCounters);
+            }
         }
     }
 
-    private static OperationStatistics CreateDiffStatistics(JsonObject? document1, JsonObject? document2)
+    private static DifferenceCounters CreateGlobalCounters(JsonObject? document1, JsonObject? document2)
     {
         if ((document1 is not null) && (document2 is null))
         {
@@ -194,6 +209,29 @@ public partial class PackageManager
             var countDeleted = document2.Count(x => !document1.ContainsKey(x.Key));
 
             return new(countCreated, countUpdated, countDeleted);
+        }
+
+        return new(0, 0, 0);
+    }
+
+    private static DifferenceCounters CreateScopedCounters(JsonObject? document1, JsonObject? document2)
+    {
+        if ((document1 is not null) && (document2 is null))
+        {
+            return new(document1.Count, 0, 0);
+        }
+
+        if ((document1 is null) && (document2 is not null))
+        {
+            return new(0, 0, 0);
+        }
+
+        if ((document1 is not null) && (document2 is not null))
+        {
+            var countCreated = document1.Count(x => !document2.ContainsKey(x.Key));
+            var countUpdated = document1.Count(x => document2.TryGetPropertyValue(x.Key, out var value) && !JsonNode.DeepEquals(x.Value, value));
+
+            return new(countCreated, countUpdated, 0);
         }
 
         return new(0, 0, 0);
@@ -266,24 +304,47 @@ public partial class PackageManager
         var databaseDocuments = await GetDatabaseDocumentsAsync(package1Path, cosmosClient, cosmosMetadataCache, cancellationToken).ConfigureAwait(false);
 
         var documentsCreated = package1Documents
-            .Where(x => !databaseDocuments.ContainsKey(x.Key))
-            .Select(static x => (x.Key.DocumentKey, x.Key.OperationType, Statistics: CreateDiffStatistics(x.Value, null)))
+            .Where(x => !databaseDocuments.ContainsKey(x.Key) && ((x.Key.OperationType == DatabaseOperationType.Create) || (x.Key.OperationType == DatabaseOperationType.Upsert)))
+            .Select(static x => (x.Key.DocumentKey, x.Key.OperationType, Counters: CreateGlobalCounters(x.Value, null)))
             .ToArray();
 
         var documentsUpdated = package1Documents
-            .Where(x => databaseDocuments.ContainsKey(x.Key))
-            .Select(x => (x.Key.DocumentKey, x.Key.OperationType, Statistics: CreateDiffStatistics(x.Value, databaseDocuments[x.Key])))
-            .Where(static x => (x.Statistics.Created > 0) || (x.Statistics.Updated > 0) || (x.Statistics.Deleted > 0))
+            .Where(x => databaseDocuments.ContainsKey(x.Key) && ((x.Key.OperationType == DatabaseOperationType.Upsert) || (x.Key.OperationType == DatabaseOperationType.Patch)))
+            .Select(x =>
+            {
+                var packageDocument = x.Value;
+                var databaseDocument = databaseDocuments[x.Key];
+
+                if (x.Key.OperationType != DatabaseOperationType.Patch)
+                {
+                    return (x.Key.DocumentKey, x.Key.OperationType, Counters: CreateGlobalCounters(packageDocument, databaseDocument));
+                }
+                else
+                {
+                    return (x.Key.DocumentKey, x.Key.OperationType, Counters: CreateScopedCounters(packageDocument, databaseDocument));
+                }
+            })
+            .Where(static x => (x.Counters.Created > 0) || (x.Counters.Updated > 0) || (x.Counters.Deleted > 0))
+            .ToArray();
+
+        var documentsDeleted = package1Documents
+            .Where(x => databaseDocuments.ContainsKey(x.Key) && x.Key.OperationType == DatabaseOperationType.Delete)
+            .Select(x => (x.Key.DocumentKey, x.Key.OperationType, Counters: CreateGlobalCounters(null, databaseDocuments[x.Key])))
             .ToArray();
 
         if (IsIncludedDiffType(diffFilter, 'A'))
         {
-            PrintDiffSection("+++", documentsCreated);
+            PrintCountersSection("+++", documentsCreated, false);
         }
 
         if (IsIncludedDiffType(diffFilter, 'M'))
         {
-            PrintDiffSection("***", documentsUpdated);
+            PrintCountersSection("***", documentsUpdated, false);
+        }
+
+        if (IsIncludedDiffType(diffFilter, 'D'))
+        {
+            PrintCountersSection("---", documentsDeleted, false);
         }
 
         if (profilePath is not null)
@@ -292,6 +353,7 @@ public partial class PackageManager
 
             profileDocumentKeys.UnionWith(documentsUpdated.Select(static x => x.DocumentKey));
             profileDocumentKeys.UnionWith(documentsCreated.Select(static x => x.DocumentKey));
+            profileDocumentKeys.UnionWith(documentsDeleted.Select(static x => x.DocumentKey));
 
             var profileDocumentKeyNodes = profileDocumentKeys
                 .OrderBy(static x => x.DatabaseName, StringComparer.Ordinal)
@@ -322,7 +384,8 @@ public partial class PackageManager
         if (useExitCode && (profilePath is null))
         {
             if ((documentsCreated.Length > 0) ||
-                (documentsUpdated.Length > 0))
+                (documentsUpdated.Length > 0) ||
+                (documentsDeleted.Length > 0))
             {
                 return false;
             }
@@ -336,7 +399,7 @@ public partial class PackageManager
         }
     }
 
-    private async Task<FrozenDictionary<(PackageDocumentKey DocumentKey, DatabaseOperationType OperationType), JsonObject>> GetDatabaseDocumentsAsync(string packagePath, CosmosClient cosmosClient, CosmosMetadataCache cosmosMetadataCache, CancellationToken cancellationToken)
+    private static async Task<FrozenDictionary<(PackageDocumentKey DocumentKey, DatabaseOperationType OperationType), JsonObject>> GetDatabaseDocumentsAsync(string packagePath, CosmosClient cosmosClient, CosmosMetadataCache cosmosMetadataCache, CancellationToken cancellationToken)
     {
         await using var packageStream = new FileStream(packagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
         await using var package = await DatabasePackage.OpenAsync(packageStream, FileMode.Open, FileAccess.Read, cancellationToken).ConfigureAwait(false);
@@ -396,13 +459,6 @@ public partial class PackageManager
                 catch (CosmosException ex)
                     when ((int)ex.StatusCode == 404)
                 {
-                    _logger.LogInformation(
-                        "read /{DatabaseName}/{ContainerName}/{DocumentId}:{DocumentPartitionKey}: HTTP {StatusCode}",
-                        packagePartition.DatabaseName,
-                        packagePartition.ContainerName,
-                        documentId,
-                        documentPartitionKey,
-                        (int)ex.StatusCode);
                 }
             }
         }
