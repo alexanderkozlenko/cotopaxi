@@ -89,11 +89,11 @@
 <p></p>
 <h2 id="name">Name</h2>
 <p></p>
-<p><code>cotopaxi diff</code> - Shows differences between database packages.</p>
+<p><code>cotopaxi diff</code> - Shows differences between database packages or between a database package and a database.</p>
 <p></p>
 <h2 id="synopsis">Synopsis</h2>
 <p></p>
-<pre><code class="lang-txt">cotopaxi diff &lt;package1&gt; &lt;package2&gt;
+<pre><code class="lang-txt">cotopaxi diff &lt;package1&gt; [&lt;package2&gt;]
   [--endpoint &lt;endpoint&gt; --key &lt;key&gt;|--connection-string &lt;connection-string&gt;]
   [--diff-filter &lt;filter&gt;]
   [--profile &lt;profile&gt;]
@@ -104,7 +104,7 @@ cotopaxi diff -h|--help
 <p></p>
 <h2 id="description">Description</h2>
 <p></p>
-<p>The command uses a connection to the Azure Cosmos DB account to get partition keys configuration.</p>
+<p>The command uses a connection to the Azure Cosmos DB account to get partition keys configuration. If <code>package2</code> is not specified, the command compares the database package against the database state.</p>
 <p></p>
 <h2 id="arguments">Arguments</h2>
 <p></p>
@@ -115,7 +115,7 @@ The path to the database package to compare.</li>
 <p></p>
 <ul>
 <li><code>package2</code><br>
-The path to the database package to compare with.</li>
+The path to the database package to compare with (if not specified, the database is used).</li>
 </ul>
 <p></p>
 <h2 id="options">Options</h2>
@@ -181,6 +181,15 @@ Show help and usage information.</li>
 <p></p>
 <pre><code class="lang-txt">+++ upsert /adventureworks/products/7f1b7c5a-c339-41e3-bc00-bc753b1d66bc:[&quot;bikes&quot;] (+4)
 *** upsert /adventureworks/products/3202cb6f-42af-4fe6-a3c5-d61927721e75:[&quot;bikes&quot;] (*1)
+</code></pre>
+<p></p>
+<h4 id="showing-differences-between-a-database-package-and-a-database">Showing differences between a database package and a database:</h4>
+<p></p>
+<pre><code class="lang-txt">dotnet tool run cotopaxi diff adventureworks-v1.0.1.cdbpkg
+</code></pre>
+<p></p>
+<pre><code class="lang-txt">+++ /adventureworks/products/7f1b7c5a-c339-41e3-bc00-bc753b1d66bc:[&quot;bikes&quot;] (+4)
+*** /adventureworks/products/3202cb6f-42af-4fe6-a3c5-d61927721e75:[&quot;bikes&quot;] (*1)
 </code></pre>
 
 </article>
