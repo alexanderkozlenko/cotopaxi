@@ -152,6 +152,6 @@ dotnet tool run cotopaxi diff adventureworks-v1.0.1.cdbpkg
 <p />
 
 ```txt
-+++ upsert /adventureworks/products/7f1b7c5a-c339-41e3-bc00-bc753b1d66bc:["bikes"] (+4)
-*** upsert /adventureworks/products/3202cb6f-42af-4fe6-a3c5-d61927721e75:["bikes"] (*1)
++++ /adventureworks/products/7f1b7c5a-c339-41e3-bc00-bc753b1d66bc:["bikes"] (+4)
+*** /adventureworks/products/3202cb6f-42af-4fe6-a3c5-d61927721e75:["bikes"] (*1)
 ```
