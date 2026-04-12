@@ -41,7 +41,7 @@ Given a unique identifier and partition key values, deletes a document if it exi
 
 <p />
 
-Partial document update performs Azure Cosmos DB `Set` operation on specified root-level document properties.
+Partial document update performs the Azure Cosmos DB `Set` operation on specified root-level document properties.
 
 <p />
 

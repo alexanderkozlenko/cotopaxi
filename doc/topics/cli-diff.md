@@ -30,7 +30,7 @@ cotopaxi diff -h|--help
 
 <p />
 
-The command uses a connection to the Azure Cosmos DB account to get partition keys configuration. If `package2` is not specified, the command compares the database package against the database state.
+The command uses a connection to the Azure Cosmos DB account to get partition key configuration. If `package2` is not specified, the command compares the database package against the database state.
 
 <p />
 
@@ -73,7 +73,7 @@ The filter expression to show only specified difference types. The supported exp
 <p />
 
 - `--profile`  
-The path to the deployment profile to generate based on new and modified documents, which can be used with `deploy` command. The option automatically discards `--exit-code` instruction.
+The path to the deployment profile to generate based on new and modified documents, which can be used with the `deploy` command. This option automatically disables the `--exit-code` option.
 
 <p />
 

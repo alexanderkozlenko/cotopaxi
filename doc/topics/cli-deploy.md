@@ -29,7 +29,7 @@ cotopaxi deploy -h|--help
 
 <p />
 
-The command uses a connection to the Azure Cosmos DB account to get partition keys configuration for regular and "dry run" modes.
+The command uses a connection to the Azure Cosmos DB account to get partition key configuration for regular and "dry run" modes.
 
 <p />
 
