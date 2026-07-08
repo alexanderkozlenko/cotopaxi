@@ -23,7 +23,6 @@ public static class Program
         services.AddSingleton<CheckpointCommandLineAction>();
         services.AddSingleton<DeployCommandLineAction>();
         services.AddSingleton<DiffCommandLineAction>();
-        services.AddSingleton<FormatCommandLineAction>();
         services.AddSingleton<PackCommandLineAction>();
         services.AddSingleton<ShowCommandLineAction>();
         services.AddSingleton<SnapshotCommandLineAction>();
@@ -38,7 +37,6 @@ public static class Program
             CreateCommand<SnapshotCommand, SnapshotCommandLineAction>(),
             CreateCommand<DiffCommand, DiffCommandLineAction>(),
             CreateCommand<ShowCommand, ShowCommandLineAction>(),
-            CreateCommand<FormatCommand, FormatCommandLineAction>(),
         };
 
         var configuration = new InvocationConfiguration

@@ -12,5 +12,3 @@
   href: cli-diff.md
 - name: cotopaxi show
   href: cli-show.md
-- name: cotopaxi format
-  href: cli-format.md
