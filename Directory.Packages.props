@@ -2,13 +2,12 @@
   <ItemGroup>
     <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.64.0" />
     <PackageVersion Include="Microsoft.CommonDataModel.ObjectModel" Version="1.7.6" />
-    <PackageVersion Include="Microsoft.Extensions.FileSystemGlobbing" Version="10.0.15" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.15" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="10.0.15" />
+    <PackageVersion Include="Microsoft.Extensions.FileSystemGlobbing" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="11.0.0" />
     <PackageVersion Include="Microsoft.Sbom.Targets" Version="4.1.13" />
     <PackageVersion Include="MSTest" Version="4.5.2" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageVersion Include="System.CommandLine" Version="3.0.0" />
-    <PackageVersion Include="System.IO.Packaging" Version="10.0.15" />
+    <PackageVersion Include="System.IO.Packaging" Version="11.0.0" />
   </ItemGroup>
 </Project>

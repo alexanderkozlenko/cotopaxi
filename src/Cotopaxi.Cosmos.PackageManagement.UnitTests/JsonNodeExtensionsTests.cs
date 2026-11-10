@@ -15,8 +15,8 @@ public sealed class JsonNodeExtensionsTests
     [DataRow("/c%d", "$.c%d")]
     [DataRow("/e^f", "$.e^f")]
     [DataRow("/g|h", "$.g|h")]
-    [DataRow("/i\\\\j", "$['i\\\\j']")]
-    [DataRow("/k\\\"l", "$['k\\\"l']")]
+    [DataRow("/i\\\\j", """$['i\\\\j']""")]
+    [DataRow("/k\\\"l", """$['k\\"l']""")]
     [DataRow("/ ", "$[' ']")]
     [DataRow("/m~0n", "$.m~n")]
     public void TryGetNode(string jsonPointerValue, string jsonPath)
