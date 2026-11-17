@@ -15,5 +15,6 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <DebugType>none</DebugType>
   </PropertyGroup>
-  <Import Project="$(MSBuildProjectDirectory)\**\Properties\Directory.Package.props" />
+  <Import Project="$(MSBuildProjectDirectory)\Properties\Directory.Package.props"
+          Condition="Exists('$(MSBuildProjectDirectory)\Properties\Directory.Package.props')" />
 </Project>
